@@ -13,6 +13,6 @@
   "item.vestments.staff_of_light": "Посох Света",
   "tooltip.vestments.staff_of_light.peace": "Не поднимается на игроков, мирных и нейтральных мобов",
   "message.vestments.staff_refuses": "Посох Света не поднимается на мирных",
-  "tooltip.vestments.staff_of_light.blessing": "ПКМ — «Благословение» (перезарядка 15 сек.)",
-  "tooltip.vestments.staff_of_light.blessing_desc": "Луч лечит игроков, мирных и нейтральных мобов на 3 сердца, жжёт нежить на 5 сердец"
+  "tooltip.vestments.staff_of_light.blessing": "Зажать ПКМ — «Благословение» (до 5 сек., перезарядка 15 сек.)",
+  "tooltip.vestments.staff_of_light.blessing_desc": "Золотой луч лечит игроков, мирных и нейтральных мобов и жжёт нежить"
 }

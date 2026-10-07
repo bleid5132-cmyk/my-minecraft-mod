@@ -26,6 +26,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.UseAction;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
@@ -36,19 +37,22 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Посох Света: бьёт враждебных мобов на 3 сердца. По игрокам, мирным и нейтральным мобам удар не проходит.
- * ПКМ — «Благословение»: луч лечит игроков, мирных и нейтральных мобов и жжёт нежить; перезарядка 15 сек.
+ * Зажатая ПКМ — «Благословение»: золотой луч как у маяка до 5 сек. — лечит игроков, мирных и нейтральных
+ * мобов и жжёт нежить; перезарядка 15 сек. Сам луч рисует клиент (client/StaffBeamRenderer).
  */
 public class StaffOfLightItem extends Item {
     private static final double ATTACK_DAMAGE = 6.0;     // 3 сердца (вместе с 1 базовым у игрока)
     private static final double ATTACK_SPEED = 1.3;      // ударов в секунду
 
-    // «Благословение» (ПКМ)
-    private static final int BLESSING_COOLDOWN = 15 * 20;   // 15 секунд
-    private static final double BEAM_RANGE = 20.0;
-    private static final double BEAM_RADIUS = 0.6;           // насколько луч «толстый» для попадания
-    private static final float BLESSING_HEAL = 6.0f;         // 3 сердца
-    private static final float BLESSING_UNDEAD_DAMAGE = 10.0f; // 5 сердец
-    private static final int BLESSING_UNDEAD_FIRE = 3;       // секунд горения
+    // «Благословение» (зажатая ПКМ): поддерживаемый луч
+    public static final int BLESSING_MAX_TICKS = 5 * 20;      // луч держится до 5 секунд
+    private static final int BLESSING_COOLDOWN = 15 * 20;      // перезарядка 15 секунд
+    public static final double BEAM_RANGE = 20.0;
+    private static final double BEAM_RADIUS = 0.6;             // насколько луч «толстый» для попадания
+    private static final int PULSE_TICKS = 10;                 // действие луча раз в полсекунды
+    private static final float PULSE_HEAL = 1.5f;              // 0.75 сердца за импульс
+    private static final float PULSE_UNDEAD_DAMAGE = 3.0f;     // 1.5 сердца за импульс
+    private static final int UNDEAD_FIRE_SECONDS = 2;
 
     private final Multimap<EntityAttribute, EntityAttributeModifier> modifiers;
 
@@ -70,27 +74,73 @@ public class StaffOfLightItem extends Item {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
-        player.getItemCooldownManager().set(this, BLESSING_COOLDOWN);
-        player.swingHand(hand);
-        if (!world.isClient && world instanceof ServerWorld server) {
-            castBlessing(server, player);
-            if (!player.getAbilities().creativeMode) {
-                stack.damage(2, player, p -> p.sendToolBreakStatus(hand));
-            }
+        player.setCurrentHand(hand);   // начинаем держать луч
+        if (!world.isClient) {
+            world.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 0.9f, 1.5f);
         }
-        return TypedActionResult.success(stack, world.isClient());
+        return TypedActionResult.consume(stack);
     }
 
-    /** Луч: лечит игроков, мирных и нейтральных мобов, жжёт нежить. Проходит сквозь существ, гаснет о стену. */
-    private static void castBlessing(ServerWorld world, PlayerEntity player) {
-        Vec3d start = player.getEyePos();
-        Vec3d dir = player.getRotationVec(1.0f);
-        Vec3d end = start.add(dir.multiply(BEAM_RANGE));
-        BlockHitResult wall = world.raycast(new RaycastContext(start, end,
-                RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player));
-        if (wall.getType() != HitResult.Type.MISS) {
-            end = wall.getPos();
+    @Override
+    public int getMaxUseTime(ItemStack stack) {
+        return BLESSING_MAX_TICKS;
+    }
+
+    @Override
+    public UseAction getUseAction(ItemStack stack) {
+        return UseAction.NONE;
+    }
+
+    @Override
+    public void usageTick(World world, LivingEntity user, ItemStack stack, int remainingUseTicks) {
+        if (world.isClient || !(world instanceof ServerWorld server) || !(user instanceof PlayerEntity player)) return;
+        int used = BLESSING_MAX_TICKS - remainingUseTicks;
+        if (used % PULSE_TICKS == 0) {
+            pulseBlessing(server, player);
         }
+        if (used % 20 == 0) {
+            world.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.BLOCK_BEACON_AMBIENT, SoundCategory.PLAYERS, 0.8f, 1.6f);
+            if (!player.getAbilities().creativeMode) {
+                stack.damage(1, player, p -> p.sendToolBreakStatus(p.getActiveHand()));
+            }
+        }
+    }
+
+    @Override
+    public ItemStack finishUsing(ItemStack stack, World world, LivingEntity user) {
+        endBlessing(world, user);
+        return stack;
+    }
+
+    @Override
+    public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks) {
+        endBlessing(world, user);
+    }
+
+    private void endBlessing(World world, LivingEntity user) {
+        if (user instanceof PlayerEntity player) {
+            player.getItemCooldownManager().set(this, BLESSING_COOLDOWN);
+        }
+        if (!world.isClient) {
+            world.playSound(null, user.getX(), user.getY(), user.getZ(),
+                    SoundEvents.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 0.9f, 1.5f);
+        }
+    }
+
+    /** Конец луча: туда, куда смотрит игрок, до 20 блоков или до стены. */
+    public static Vec3d beamEnd(World world, PlayerEntity player, Vec3d eye, Vec3d dir) {
+        Vec3d end = eye.add(dir.multiply(BEAM_RANGE));
+        BlockHitResult wall = world.raycast(new RaycastContext(eye, end,
+                RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player));
+        return wall.getType() != HitResult.Type.MISS ? wall.getPos() : end;
+    }
+
+    /** Один импульс луча: лечит игроков, мирных и нейтральных мобов, жжёт нежить. */
+    private static void pulseBlessing(ServerWorld world, PlayerEntity player) {
+        Vec3d start = player.getEyePos();
+        Vec3d end = beamEnd(world, player, start, player.getRotationVec(1.0f));
 
         Box area = new Box(start, end).expand(BEAM_RADIUS + 1.0);
         for (LivingEntity target : world.getEntitiesByClass(LivingEntity.class, area,
@@ -99,31 +149,18 @@ public class StaffOfLightItem extends Item {
             if (!hitbox.contains(start) && hitbox.raycast(start, end).isEmpty()) continue;
 
             if (target.getGroup() == EntityGroup.UNDEAD) {
-                target.damage(world.getDamageSources().indirectMagic(player, player), BLESSING_UNDEAD_DAMAGE);
-                target.setOnFireFor(BLESSING_UNDEAD_FIRE);
+                target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_UNDEAD_DAMAGE);
+                target.setOnFireFor(UNDEAD_FIRE_SECONDS);
                 world.spawnParticles(ParticleTypes.FLAME, target.getX(), target.getBodyY(0.5), target.getZ(),
-                        12, 0.3, 0.5, 0.3, 0.02);
+                        6, 0.3, 0.5, 0.3, 0.02);
             } else if (!canHit(target)) {   // игроки, мирные и нейтральные — лечим
-                target.heal(BLESSING_HEAL);
+                target.heal(PULSE_HEAL);
                 world.spawnParticles(ParticleTypes.HEART, target.getX(), target.getBodyY(0.9), target.getZ(),
-                        3, 0.35, 0.25, 0.35, 0.0);
+                        1, 0.3, 0.2, 0.3, 0.0);
             }
         }
-
-        // видимый луч из золотых искр
-        double length = start.distanceTo(end);
-        Vec3d from = start.add(dir.multiply(0.6)).add(0, -0.25, 0);
-        for (double d = 0; d < length; d += 0.35) {
-            Vec3d p = from.add(dir.multiply(d));
-            world.spawnParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.02, 0.02, 0.02, 0.0);
-            if (((int) (d / 0.35)) % 3 == 0) {
-                world.spawnParticles(ParticleTypes.WAX_OFF, p.x, p.y, p.z, 1, 0.08, 0.08, 0.08, 0.0);
-            }
-        }
-        world.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 0.8f, 1.6f);
-        world.playSound(null, end.x, end.y, end.z,
-                SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 1.0f, 1.2f);
+        // искры в точке, куда упирается луч
+        world.spawnParticles(ParticleTypes.WAX_OFF, end.x, end.y, end.z, 4, 0.15, 0.15, 0.15, 0.0);
     }
 
     @Override
