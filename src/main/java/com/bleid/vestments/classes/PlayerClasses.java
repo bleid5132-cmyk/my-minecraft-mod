@@ -46,7 +46,7 @@ public final class PlayerClasses {
             server.execute(() -> {
                 if (!CLASSES.contains(chosen) || get(server, player.getUuid()) != null) return;
                 set(server, player.getUuid(), chosen);
-                giveKit(player, chosen);
+                // Стартовый набор пока отключён: giveKit(player, chosen);
                 player.sendMessage(Text.translatable("message.vestments.class_chosen",
                         Text.translatable("class.vestments." + chosen).formatted(Formatting.GOLD)), false);
             });
