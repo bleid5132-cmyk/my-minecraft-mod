@@ -146,6 +146,8 @@ public class StaffOfLightItem extends Item {
         Vec3d start = player.getEyePos();
         Vec3d end = beamEnd(world, player, start, player.getRotationVec(1.0f));
 
+        float power = player instanceof net.minecraft.server.network.ServerPlayerEntity sp
+                ? com.bleid.vestments.service.ServicePoints.power(sp) : 1.0f;   // сила растёт с саном
         Box area = new Box(start, end).expand(BEAM_RADIUS + 1.0);
         for (LivingEntity target : world.getEntitiesByClass(LivingEntity.class, area,
                 e -> e != player && e.isAlive() && !e.isSpectator())) {
@@ -153,16 +155,16 @@ public class StaffOfLightItem extends Item {
             if (!hitbox.contains(start) && hitbox.raycast(start, end).isEmpty()) continue;
 
             if (target.getGroup() == EntityGroup.UNDEAD) {
-                target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_UNDEAD_DAMAGE);
+                target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_UNDEAD_DAMAGE * power);
                 target.setOnFireFor(UNDEAD_FIRE_SECONDS);
                 world.spawnParticles(ParticleTypes.FLAME, target.getX(), target.getBodyY(0.5), target.getZ(),
                         6, 0.3, 0.5, 0.3, 0.02);
             } else if (canHit(target)) {     // остальные враждебные мобы — урон светом
-                target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_HOSTILE_DAMAGE);
+                target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_HOSTILE_DAMAGE * power);
                 world.spawnParticles(ParticleTypes.END_ROD, target.getX(), target.getBodyY(0.5), target.getZ(),
                         5, 0.3, 0.4, 0.3, 0.02);
             } else {                          // игроки, мирные и нейтральные — лечим   // игроки, мирные и нейтральные — лечим
-                target.heal(PULSE_HEAL);
+                target.heal(PULSE_HEAL * power);
                 world.spawnParticles(ParticleTypes.HEART, target.getX(), target.getBodyY(0.9), target.getZ(),
                         1, 0.3, 0.2, 0.3, 0.0);
             }

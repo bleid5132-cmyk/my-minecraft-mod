@@ -30,6 +30,24 @@ public class Vestments implements ModInitializer {
     public static final Item STAFF_OF_LIGHT = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "staff_of_light"),
             new StaffOfLightItem(new FabricItemSettings().maxDamage(500).rarity(Rarity.RARE)));
 
+    /** Священный алтарь — подношения за очки служения. */
+    public static final net.minecraft.block.Block HOLY_ALTAR = Registry.register(Registries.BLOCK,
+            new Identifier(MOD_ID, "holy_altar"),
+            new com.bleid.vestments.altar.HolyAltarBlock(net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings.create()
+                    .mapColor(net.minecraft.block.MapColor.GOLD)
+                    .strength(3.5f, 1200f)
+                    .requiresTool()
+                    .nonOpaque()
+                    .luminance(state -> 10)
+                    .sounds(net.minecraft.sound.BlockSoundGroup.STONE)));
+    public static final Item HOLY_ALTAR_ITEM = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "holy_altar"),
+            new net.minecraft.item.BlockItem(HOLY_ALTAR, new FabricItemSettings().rarity(Rarity.UNCOMMON)));
+
+    /** Огонёк очков служения (частица). */
+    public static final net.minecraft.particle.DefaultParticleType SERVICE_ORB = Registry.register(
+            Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "service_orb"),
+            net.fabricmc.fabric.api.particle.v1.FabricParticleTypes.simple(true));
+
     private static Item register(String name, ArmorItem.Type type, String abilityKey) {
         return Registry.register(
                 Registries.ITEM,
@@ -47,9 +65,12 @@ public class Vestments implements ModInitializer {
             entries.add(BOOTS);
             entries.add(STAFF_OF_LIGHT);
         });
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(HOLY_ALTAR_ITEM));
         SetBonus.register();
         StaffOfLightItem.registerEvents();
         com.bleid.vestments.classes.PlayerClasses.register();
+        com.bleid.vestments.service.ServicePoints.register();
+        com.bleid.vestments.altar.AltarSpawner.register();
         LOGGER.info("Priest Vestments загружен");
     }
 }

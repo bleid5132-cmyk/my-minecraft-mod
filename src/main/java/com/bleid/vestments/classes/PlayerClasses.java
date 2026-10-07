@@ -49,6 +49,7 @@ public final class PlayerClasses {
                 // Стартовый набор пока отключён: giveKit(player, chosen);
                 player.sendMessage(Text.translatable("message.vestments.class_chosen",
                         Text.translatable("class.vestments." + chosen).formatted(Formatting.GOLD)), false);
+                com.bleid.vestments.service.ServicePoints.sync(player);
             });
         });
     }

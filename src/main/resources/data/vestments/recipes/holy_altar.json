@@ -1,0 +1,27 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "pattern": [
+  " G ",
+  "CBC",
+  "SSS"
+ ],
+ "key": {
+  "G": {
+   "item": "minecraft:gold_ingot"
+  },
+  "C": {
+   "tag": "minecraft:candles"
+  },
+  "B": {
+   "item": "minecraft:book"
+  },
+  "S": {
+   "item": "minecraft:stone_bricks"
+  }
+ },
+ "result": {
+  "item": "vestments:holy_altar",
+  "count": 1
+ }
+}

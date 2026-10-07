@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "vestments:block/holy_altar"
+  },
+  "facing=east": {
+   "model": "vestments:block/holy_altar",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "vestments:block/holy_altar",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "vestments:block/holy_altar",
+   "y": 270
+  }
+ }
+}
