@@ -15,5 +15,11 @@
   "message.vestments.staff_refuses": "The Staff of Light will not strike the peaceful",
   "tooltip.vestments.staff_of_light.blessing": "Hold right-click — Blessing (up to 5 s, 15 s cooldown)",
   "tooltip.vestments.staff_of_light.blessing_desc": "Golden beam heals players, peaceful and neutral mobs and burns the undead",
-  "hud.vestments.blessing_key": "RMB"
+  "hud.vestments.blessing_key": "RMB",
+  "screen.vestments.class_select": "Choose your class",
+  "screen.vestments.class_select_hint": "This choice is made once per world",
+  "screen.vestments.choose": "Choose",
+  "class.vestments.priest": "Priest",
+  "class.vestments.priest.desc": "Healer and protector. Heals allies, burns the undead with light and walks on water. Starts with vestments and the Staff of Light.",
+  "message.vestments.class_chosen": "You chose the class: %s"
 }

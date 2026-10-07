@@ -20,5 +20,6 @@ public class VestmentsClient implements ClientModInitializer {
         AbilityHud.register();
         StaffModel.register();
         SmallTooltipComponent.register();
+        ClassSelectScreen.register();
     }
 }

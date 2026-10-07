@@ -49,6 +49,7 @@ public class Vestments implements ModInitializer {
         });
         SetBonus.register();
         StaffOfLightItem.registerEvents();
+        com.bleid.vestments.classes.PlayerClasses.register();
         LOGGER.info("Priest Vestments загружен");
     }
 }
