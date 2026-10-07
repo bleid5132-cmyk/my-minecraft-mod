@@ -7,13 +7,13 @@
 - **Ботинки** (обувь) — нижний ярус подола и чёрные ботинки с золотым кантом
 
 ## Скачать
-https://github.com/bleid5132-cmyk/my-minecraft-mod/releases/latest — файл `vestments-1.0.0.jar`.
+https://github.com/bleid5132-cmyk/my-minecraft-mod/releases/latest — файл `vestments-1.0.N.jar` (N — номер сборки, у новой версии он больше).
 
 ## Установка (папка `.minecraft/mods`)
 1. Fabric Loader для 1.20.1
 2. Fabric API для 1.20.1
 3. Armor Model API для 1.20.1 (Fabric) — https://modrinth.com/mod/armor-model-api
-4. `vestments-1.0.0.jar`
+4. `vestments-1.0.N.jar` — только один, старые версии удалить
 
 ## Крафт
 - Воротник: жёлтая шерсть + золотой слиток + жёлтая шерсть (в ряд)

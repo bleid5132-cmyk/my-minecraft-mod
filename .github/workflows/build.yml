@@ -23,7 +23,7 @@ jobs:
           gradle-version: '8.8'
 
       - name: Build
-        run: gradle build --no-daemon
+        run: gradle build --no-daemon -Pmod_version=1.0.${{ github.run_number }}
 
       - name: Upload jar
         uses: actions/upload-artifact@v4
@@ -37,6 +37,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Priest Vestments (build ${{ github.run_number }})
+          name: Priest Vestments 1.0.${{ github.run_number }}
           make_latest: true
           files: build/libs/vestments-*.jar
