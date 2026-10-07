@@ -19,8 +19,9 @@ import net.minecraft.world.World;
  * <ul>
  *   <li>Идём по воде на уровне верха блока воды — вровень с берегом, без ступеньки (нет тряски на кромке).</li>
  *   <li>Если игрок чуть провалился ниже, его плавно поднимает скоростью, а не телепортом.</li>
- *   <li>Время тратится всё время «сеанса» — с первого шага на воду до возвращения на твёрдую землю,
- *       включая прыжки. Заряд восстанавливается только на твёрдой земле.</li>
+ *   <li>Время тратится, пока стоим на воде или прыгаем над ней; под водой отсчёт замирает.
+ *       Заряд восстанавливается только на твёрдой земле.</li>
+ *   <li>Прыжок с воды обрабатываем сами — он работает всегда, в том числе чтобы выбраться на берег.</li>
  *   <li>SHIFT — сразу уйти под воду.</li>
  * </ul>
  */
@@ -53,8 +54,9 @@ public final class WaterWalkClient {
                 exhaustedShown = false;
             }
 
-            // время идёт весь сеанс — и когда стоим на воде, и в прыжке над ней
-            if (session && usedTicks < MAX_TICKS) {
+            // время идёт, пока стоим на воде или прыгаем над ней; под водой — замирает
+            boolean underwater = player.isTouchingWater() || player.isSubmergedInWater();
+            if (session && usedTicks < MAX_TICKS && !underwater) {
                 usedTicks++;
             }
 
@@ -64,18 +66,22 @@ public final class WaterWalkClient {
             if (canWalk && surface != null) {
                 Vec3d v = player.getVelocity();
                 double y = player.getY();
-                if (y < surface - 0.001 && y > surface - 0.9) {
-                    // провалились чуть ниже — мягко поднимаем к поверхности
+                if (y < surface - 0.35 && y > surface - 0.9) {
+                    // провалились глубоко — мягко поднимаем к поверхности
                     double up = Math.min((surface - y) * 0.6, 0.35);
                     player.setVelocity(v.x, Math.max(v.y, up), v.z);
                     session = true;
-                } else if (y <= surface + 0.02 && v.y <= 0.0) {
-                    // стоим на воде
+                } else if (y >= surface - 0.35 && y <= surface + 0.02 && v.y <= 0.0) {
+                    // стоим на воде: сразу на поверхность, чтобы можно было прыгать
                     if (y < surface) player.setPosition(player.getX(), surface, player.getZ());
-                    player.setVelocity(v.x, 0.0, v.z);
                     player.setOnGround(true);
                     player.fallDistance = 0f;
                     session = true;
+                    if (client.options.jumpKey.isPressed()) {
+                        player.jump();                       // прыжок с воды обрабатываем сами
+                    } else {
+                        player.setVelocity(v.x, 0.0, v.z);
+                    }
                 }
             }
 
