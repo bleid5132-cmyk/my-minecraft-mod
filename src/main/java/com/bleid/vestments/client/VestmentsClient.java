@@ -17,5 +17,6 @@ public class VestmentsClient implements ClientModInitializer {
         ArmorRenderers.register(renderer, Vestments.COLLAR, Vestments.PHELONION, Vestments.PODRIZNIK, Vestments.BOOTS);
         WaterWalkClient.register();
         StaffBeamRenderer.register();
+        AbilityHud.register();
     }
 }

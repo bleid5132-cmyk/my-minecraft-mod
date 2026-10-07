@@ -46,7 +46,8 @@ public class StaffOfLightItem extends Item {
 
     // «Благословение» (зажатая ПКМ): поддерживаемый луч
     public static final int BLESSING_MAX_TICKS = 5 * 20;      // луч держится до 5 секунд
-    private static final int BLESSING_COOLDOWN = 15 * 20;      // перезарядка 15 секунд
+    public static final int BLESSING_COOLDOWN_TICKS = 15 * 20;   // перезарядка 15 секунд
+    private static final int BLESSING_COOLDOWN = BLESSING_COOLDOWN_TICKS;
     public static final double BEAM_RANGE = 20.0;
     private static final double BEAM_RADIUS = 0.6;             // насколько луч «толстый» для попадания
     private static final int PULSE_TICKS = 10;                 // действие луча раз в полсекунды
