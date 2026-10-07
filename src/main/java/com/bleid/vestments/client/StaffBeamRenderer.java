@@ -5,6 +5,7 @@ import com.bleid.vestments.Vestments;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BeaconBlockEntityRenderer;
@@ -40,6 +41,7 @@ public final class StaffBeamRenderer {
             float tickDelta = context.tickDelta();
             Vec3d cam = camera.getPos();
 
+            MinecraftClient client = MinecraftClient.getInstance();
             for (PlayerEntity player : world.getPlayers()) {
                 if (!player.isUsingItem() || !player.getActiveItem().isOf(Vestments.STAFF_OF_LIGHT)) continue;
 
@@ -47,11 +49,18 @@ public final class StaffBeamRenderer {
                 Vec3d dir = player.getRotationVec(tickDelta);
                 Vec3d end = StaffOfLightItem.beamEnd(world, player, eye, dir);
 
-                // начало луча — у руки, которой держат посох
+                // начало луча — центр креста на навершии посоха
                 boolean rightHand = (player.getActiveHand() == Hand.MAIN_HAND) == (player.getMainArm() == Arm.RIGHT);
                 Vec3d right = dir.crossProduct(new Vec3d(0, 1, 0));
                 right = right.lengthSquared() < 1.0e-4 ? new Vec3d(1, 0, 0) : right.normalize();
-                Vec3d start = eye.add(dir.multiply(0.55)).add(right.multiply(rightHand ? 0.32 : -0.32)).add(0, -0.32, 0);
+                Vec3d up = right.crossProduct(dir).normalize();
+                double side = rightHand ? 1.0 : -1.0;
+                boolean firstPerson = player == client.player && client.options.getPerspective().isFirstPerson();
+                Vec3d start = firstPerson
+                        // от первого лица посох наведён вперёд: крест чуть правее и ниже центра экрана
+                        ? eye.add(dir.multiply(1.25)).add(right.multiply(0.17 * side)).add(up.multiply(-0.17))
+                        // от третьего лица — перед игроком, у навершия поднятого посоха
+                        : eye.add(dir.multiply(0.75)).add(right.multiply(0.38 * side)).add(up.multiply(-0.05));
 
                 Vec3d beam = end.subtract(start);
                 double length = beam.length();

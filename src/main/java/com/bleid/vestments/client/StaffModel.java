@@ -7,21 +7,33 @@ import net.fabricmc.fabric.api.client.model.loading.v1.FabricBakedModelManager;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
 
-/** Объёмная модель Посоха Света для руки: загружается как дополнительная модель. */
+/**
+ * Объёмные модели Посоха Света для руки: обычная и «наведённая» (при зажатой ПКМ посох
+ * опущен навершием вперёд, в сторону удара).
+ */
 @Environment(EnvType.CLIENT)
 public final class StaffModel {
     public static final Identifier ID = new Identifier(Vestments.MOD_ID, "item/staff_of_light_3d");
+    public static final Identifier AIM_ID = new Identifier(Vestments.MOD_ID, "item/staff_of_light_3d_aim");
+
+    /** Сущность, чей предмет сейчас рисуется (ставит ItemRendererMixin). */
+    public static LivingEntity currentEntity;
 
     private StaffModel() { }
 
     public static void register() {
-        ModelLoadingPlugin.register(context -> context.addModels(ID));
+        ModelLoadingPlugin.register(context -> context.addModels(ID, AIM_ID));
     }
 
-    public static BakedModel get(MinecraftClient client) {
-        BakedModel model = ((FabricBakedModelManager) client.getBakedModelManager()).getModel(ID);
+    public static BakedModel get(MinecraftClient client, boolean aiming) {
+        BakedModel model = ((FabricBakedModelManager) client.getBakedModelManager()).getModel(aiming ? AIM_ID : ID);
         return model == null || model == client.getBakedModelManager().getMissingModel() ? null : model;
+    }
+
+    public static boolean isAiming(LivingEntity entity) {
+        return entity != null && entity.isUsingItem() && entity.getActiveItem().isOf(Vestments.STAFF_OF_LIGHT);
     }
 }

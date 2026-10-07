@@ -3,20 +3,42 @@ package com.bleid.vestments.mixin;
 import com.bleid.vestments.Vestments;
 import com.bleid.vestments.client.StaffModel;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Посох Света: в инвентаре, на земле и в рамке — плоская иконка, в руке — объёмная 3D-модель
- * (как трезубец в ванильной игре).
+ * Посох Света: в инвентаре, на земле и в рамке — плоская иконка, в руке — объёмная 3D-модель.
+ * При зажатой ПКМ от первого лица посох наводится навершием вперёд.
  */
 @Mixin(ItemRenderer.class)
 public abstract class ItemRendererMixin {
+    @Inject(method = "renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/world/World;III)V",
+            at = @At("HEAD"))
+    private void vestments$captureEntity(LivingEntity entity, ItemStack stack, ModelTransformationMode mode, boolean leftHanded,
+                                         MatrixStack matrices, VertexConsumerProvider consumers, World world,
+                                         int light, int overlay, int seed, CallbackInfo ci) {
+        StaffModel.currentEntity = entity;
+    }
+
+    @Inject(method = "renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/world/World;III)V",
+            at = @At("RETURN"))
+    private void vestments$releaseEntity(LivingEntity entity, ItemStack stack, ModelTransformationMode mode, boolean leftHanded,
+                                         MatrixStack matrices, VertexConsumerProvider consumers, World world,
+                                         int light, int overlay, int seed, CallbackInfo ci) {
+        StaffModel.currentEntity = null;
+    }
+
     @ModifyVariable(
             method = "renderItem(Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;IILnet/minecraft/client/render/model/BakedModel;)V",
             at = @At("HEAD"), argsOnly = true)
@@ -26,7 +48,10 @@ public abstract class ItemRendererMixin {
                 || mode == ModelTransformationMode.FIXED) {
             return model;
         }
-        BakedModel staff = StaffModel.get(MinecraftClient.getInstance());
+        boolean firstPerson = mode == ModelTransformationMode.FIRST_PERSON_RIGHT_HAND
+                || mode == ModelTransformationMode.FIRST_PERSON_LEFT_HAND;
+        boolean aiming = firstPerson && StaffModel.isAiming(StaffModel.currentEntity);
+        BakedModel staff = StaffModel.get(MinecraftClient.getInstance(), aiming);
         return staff != null ? staff : model;
     }
 }
