@@ -31,6 +31,16 @@ public final class CapeAnimator {
     private static final float DAMPING_RATIO = 0.55f; // меньше — сильнее покачивание
     private static final float CURL_TOTAL = 0.30f;   // насколько низ подворачивается при отлёте
     private static final float MAX_BEND = 9f;        // предельный изгиб в одном шарнире, градусы
+    // «дыхание» ткани в покое: бегущая вниз волна
+    private static final float IDLE_WAVE_TOP = 0.3f;   // амплитуда у верха, градусы
+    private static final float IDLE_WAVE_BOTTOM = 1.8f; // амплитуда у низа, градусы
+    private static final float IDLE_WAVE_SPEED = 1.7f;  // радиан в секунду
+    private static final float IDLE_WAVE_PHASE = 0.55f; // сдвиг фазы между соседними частями
+    // прыжок
+    private static final float JUMP_DIP = 4f;          // на взлёте плащ прижимается, градусы
+    private static final float FALL_LIFT = 10f;        // в падении всплывает, градусы (максимум)
+    private static final float LAND_KICK = 35f;        // толчок при приземлении, град/с (максимум)
+    private static final float TAKEOFF_KICK = -15f;    // толчок в момент отрыва, град/с
 
     /** Сущность, броня которой рисуется сейчас (ставит ArmorRenderDispatcherMixin). */
     public static LivingEntity current;
@@ -42,6 +52,9 @@ public final class CapeAnimator {
         final float[] angle = new float[MAX_SEGMENTS];  // мировые углы частей
         final float[] vel = new float[MAX_SEGMENTS];
         float roll, speed;
+        float vy, minVy, time;   // сглаженная вертикальная скорость, самая быстрая в падении, время
+        float phase = Float.NaN; // фаза волны ткани
+        boolean wasOnGround = true;
         State() { java.util.Arrays.fill(angle, BASE_DEG); }
     }
 
@@ -94,17 +107,46 @@ public final class CapeAnimator {
             float a = 1f - (float) Math.exp(-dt * 10f);  // сглаживание скорости
             s.speed += (Math.max(0f, forward) - s.speed) * a;
             s.roll += (MathHelper.clamp(sideways * 70f, -10f, 10f) - s.roll) * a;
+            s.vy += ((float) dy - s.vy) * (1f - (float) Math.exp(-dt * 14f));
+            s.time += dt;
+            if (Float.isNaN(s.phase)) s.phase = e.getId() * 1.7f;
+            // темп волны слегка «гуляет», как от сквозняка
+            float breeze = 0.75f + 0.25f * MathHelper.sin(s.time * 0.37f + e.getId());
+            s.phase += dt * IDLE_WAVE_SPEED * breeze;
+
+            // прыжок: отрыв от земли — плащ по инерции отстаёт вниз; приземление — мягкий подскок
+            boolean onGround = e.isOnGround();
+            float kick = 0f;
+            if (s.wasOnGround && !onGround && dy > 0.05) {
+                kick = TAKEOFF_KICK;                           // толчок вниз в момент отрыва
+                s.minVy = 0f;
+            }
+            if (!onGround) s.minVy = Math.min(s.minVy, s.vy);
+            if (!s.wasOnGround && onGround) {
+                kick = MathHelper.clamp(-s.minVy * 200f, 0f, LAND_KICK);
+                s.minVy = 0f;
+            }
+            s.wasOnGround = onGround;
 
             float back = MathHelper.clamp(s.speed * 160f, 0f, 48f);
-            float lift = (float) MathHelper.clamp(-dy * 60.0, 0.0, 30.0);
+            float lift = MathHelper.clamp(-s.vy * 22f, 0f, FALL_LIFT);           // в падении всплывает
+            float dip = MathHelper.clamp(s.vy * 22f, 0f, JUMP_DIP);              // на взлёте прижимается
             float limbPos = e.limbAnimator.getPos(td);
             float limbSpeed = e.limbAnimator.getSpeed(td);
             float sway = MathHelper.sin(limbPos * 0.6662f) * 3.5f * limbSpeed;
             float sneak = e.isInSneakingPose() ? 14f : 0f;
-            float target = BASE_DEG + back + lift + sway + sneak;
+            float target = BASE_DEG + back + lift - dip + sway + sneak;
+
 
             // подворот низа распределяем по всем шарнирам поровну
             float curlPerJoint = n > 1 ? (s.angle[0] - BASE_DEG) * CURL_TOTAL / (n - 1) : 0f;
+
+            if (kick != 0f) {
+                for (int i = 0; i < n; i++) {
+                    float t = n > 1 ? (float) i / (n - 1) : 0f;
+                    s.vel[i] += kick * (0.35f + 0.65f * t);    // низ подпрыгивает сильнее верха
+                }
+            }
 
             int steps = Math.max(1, (int) Math.ceil(dt / 0.006f));
             float h = dt / steps;
@@ -124,12 +166,24 @@ public final class CapeAnimator {
             }
         }
 
+        // еле заметная бегущая волна ткани поверх физики: амплитуда ровно заданная, без раскачки.
+        // На ходу затихает (движения хватает от шагов); у каждой сущности своя фаза.
+        float calm = 1f - MathHelper.clamp(s.speed * 6f, 0f, 0.7f);
+        float phase0 = Float.isNaN(s.phase) ? 0f : s.phase;
+        float[] shown = new float[n];
+        for (int i = 0; i < n; i++) {
+            float t = n > 1 ? (float) i / (n - 1) : 0f;
+            float wave = MathHelper.lerp(t, IDLE_WAVE_TOP, IDLE_WAVE_BOTTOM) * calm
+                    * MathHelper.sin(phase0 - i * IDLE_WAVE_PHASE);
+            shown[i] = s.angle[i] + wave;
+        }
+
         // части вложены друг в друга: каждой задаём угол относительно предыдущей
         float r = MathHelper.RADIANS_PER_DEGREE;
-        parts.get(0).pitch = s.angle[0] * r;
+        parts.get(0).pitch = shown[0] * r;
         parts.get(0).roll = s.roll * r;
         for (int i = 1; i < n; i++) {
-            parts.get(i).pitch = (s.angle[i] - s.angle[i - 1]) * r;
+            parts.get(i).pitch = (shown[i] - shown[i - 1]) * r;
         }
     }
 }
