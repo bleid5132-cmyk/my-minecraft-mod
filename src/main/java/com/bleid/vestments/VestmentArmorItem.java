@@ -1,14 +1,13 @@
 package com.bleid.vestments;
 
 import java.util.List;
-import net.minecraft.client.item.TooltipContext;
+import java.util.Optional;
+import net.minecraft.client.item.TooltipData;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ArmorMaterial;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 
 /** Предмет облачения: в описании показывает свою способность и условие полного комплекта. */
 public class VestmentArmorItem extends ArmorItem {
@@ -20,8 +19,9 @@ public class VestmentArmorItem extends ArmorItem {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
-        tooltip.add(Text.translatable(abilityKey).formatted(Formatting.GOLD));
-        tooltip.add(Text.translatable("tooltip.vestments.full_set").formatted(Formatting.GRAY, Formatting.ITALIC));
+    public Optional<TooltipData> getTooltipData(ItemStack stack) {
+        return Optional.of(new SmallTooltipData(List.of(
+                Text.translatable(abilityKey).formatted(Formatting.GOLD),
+                Text.translatable("tooltip.vestments.full_set").formatted(Formatting.GRAY, Formatting.ITALIC))));
     }
 }

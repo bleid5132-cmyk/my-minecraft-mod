@@ -3,8 +3,9 @@ package com.bleid.vestments;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.util.List;
+import java.util.Optional;
+import net.minecraft.client.item.TooltipData;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityGroup;
 import net.minecraft.entity.EquipmentSlot;
@@ -33,7 +34,6 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Посох Света: бьёт враждебных мобов на 3 сердца. По игрокам, мирным и нейтральным мобам удар не проходит.
@@ -181,10 +181,11 @@ public class StaffOfLightItem extends Item {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
-        tooltip.add(Text.translatable("tooltip.vestments.staff_of_light.peace").formatted(Formatting.YELLOW));
-        tooltip.add(Text.translatable("tooltip.vestments.staff_of_light.blessing").formatted(Formatting.GOLD));
-        tooltip.add(Text.translatable("tooltip.vestments.staff_of_light.blessing_desc").formatted(Formatting.GRAY));
+    public Optional<TooltipData> getTooltipData(ItemStack stack) {
+        return Optional.of(new SmallTooltipData(List.of(
+                Text.translatable("tooltip.vestments.staff_of_light.peace").formatted(Formatting.YELLOW),
+                Text.translatable("tooltip.vestments.staff_of_light.blessing").formatted(Formatting.GOLD),
+                Text.translatable("tooltip.vestments.staff_of_light.blessing_desc").formatted(Formatting.GRAY))));
     }
 
     /**

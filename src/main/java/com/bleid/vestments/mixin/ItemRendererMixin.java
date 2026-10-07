@@ -2,6 +2,7 @@ package com.bleid.vestments.mixin;
 
 import com.bleid.vestments.Vestments;
 import com.bleid.vestments.client.StaffModel;
+import com.bleid.vestments.client.StaffRibbons;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
@@ -37,6 +38,22 @@ public abstract class ItemRendererMixin {
                                          MatrixStack matrices, VertexConsumerProvider consumers, World world,
                                          int light, int overlay, int seed, CallbackInfo ci) {
         StaffModel.currentEntity = null;
+    }
+
+    /** Перед тем как модель посоха «закроется», дорисовываем ленты с физикой ткани. */
+    @Inject(
+            method = "renderItem(Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;IILnet/minecraft/client/render/model/BakedModel;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;pop()V"))
+    private void vestments$ribbons(ItemStack stack, ModelTransformationMode mode, boolean leftHanded, MatrixStack matrices,
+                                   VertexConsumerProvider consumers, int light, int overlay, BakedModel model,
+                                   CallbackInfo ci) {
+        if (!stack.isOf(Vestments.STAFF_OF_LIGHT) || mode == ModelTransformationMode.GUI
+                || mode == ModelTransformationMode.GROUND || mode == ModelTransformationMode.FIXED) {
+            return;
+        }
+        boolean firstPerson = mode == ModelTransformationMode.FIRST_PERSON_RIGHT_HAND
+                || mode == ModelTransformationMode.FIRST_PERSON_LEFT_HAND;
+        StaffRibbons.render(matrices, consumers, light, overlay, StaffModel.currentEntity, firstPerson);
     }
 
     @ModifyVariable(

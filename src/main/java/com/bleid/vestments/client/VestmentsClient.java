@@ -19,5 +19,6 @@ public class VestmentsClient implements ClientModInitializer {
         StaffBeamRenderer.register();
         AbilityHud.register();
         StaffModel.register();
+        SmallTooltipComponent.register();
     }
 }
