@@ -87,6 +87,11 @@ cube("armorWaist", "epi_top", [-1.75, 12, -3.05], [3.5, 4, 0.6])
 cube("armorWaist", "belt", [-5, 13, -3], [10, 1, 6], 0.02)
 cube("armorWaist", "belt_o", [-5, 13, -3], [10, 1, 6], 0.15)
 cube("armorWaist", "buckle", [-1, 12.6, -3.45], [2, 1.8, 0.5])
+# вставка между ног: висит от пояса и не двигается с ногами, закрывает просвет при ходьбе
+cube("armorWaist", "gore", [-2, 0.3, -2.7], [4, 11.7, 5.4])
+# епитрахиль висит от пояса прямой полосой
+cube("armorWaist", "epi_low", [-2.4, 0.4, -3.6], [4.8, 11.6, 0.8])
+cube("armorWaist", "epi_low_o", [-2.4, 0.4, -3.6], [4.8, 11.6, 0.8], 0.12)
 for side, mir in (("l", False), ("r", True)):
     bone = "armorLeftLeg" if side == "l" else "armorRightLeg"
     sx = 1 if side == "l" else -1
@@ -102,9 +107,6 @@ for side, mir in (("l", False), ("r", True)):
     SD = dict(rotation=[0, 0, -7 * sx], pivot=hip)
     cube(bone, "side_low_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.0, mirror=mir, uv="side_low", **SD)
     cube(bone, "side_low_o_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.18, mirror=mir, uv="side_low_o", **SD)
-    EP = dict()                                # епитрахиль висит прямо, без зазора по центру
-    cube(bone, "epi_low_" + side, [X(-0.05, 2.45), 0.4, -3.6], [2.45, 11.6, 0.8], 0.0 + e, mirror=mir, uv="epi_low", **EP)
-    cube(bone, "epi_low_o_" + side, [X(-0.05, 2.45), 0.4, -3.6], [2.45, 11.6, 0.8], 0.12 + e, mirror=mir, uv="epi_low_o", **EP)
 PAL = dict(rotation=[0, 0, 45], pivot=[-4.6, 6.5, -3.9])
 cube("armorRightLeg", "palitsa", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.0, **PAL)
 cube("armorRightLeg", "palitsa_o", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.15, **PAL)
@@ -339,6 +341,13 @@ paint("buckle", p_buckle)
 def p_skirt_up(f):
     for r in f.values(): linen(r)
 paint("skirt_up", p_skirt_up)
+def p_gore(f):
+    for n, r in f.items():
+        linen(r, 3)
+        if n in SIDES and r[3] >= 4:
+            row(r, r[3] - 3, G1); row(r, r[3] - 2, G3); row(r, r[3] - 1, G0)   # золотая кайма внизу
+    fill(f["down"], WHS)
+paint("gore", p_gore)
 def p_skirt_low(f):
     for n, r in f.items(): linen(r, 3)
     fill(f["down"], WHS)
@@ -374,15 +383,19 @@ paint("side_low", p_side_low); paint("side_low_o", p_side_low_o)
 
 # ---------- епитрахиль внизу ----------
 def p_epi_low(f):
-    for n, r in f.items(): metal(r, seed=6)
-    n = f["north"]
-    for yy in (2, 7):                                     # вышитые кресты
-        px(n, 1, yy, G5); px(n, 1, yy - 1, G4); px(n, 1, yy + 1, G4); px(n, 0, yy, G4)
+    for n, r in f.items(): metal(r, seed=6, motifs=False)
+    n = f["north"]; cx = n[2] // 2
+    for yy in (2, 7):                                     # вышитые кресты на обеих половинах
+        for x0 in (cx - 2, cx + 1):
+            px(n, x0, yy, G5); px(n, x0, yy - 1, G4); px(n, x0, yy + 1, G4)
+            px(n, x0 - 1, yy, G4); px(n, x0 + 1, yy, G4)
 def p_epi_low_o(f):
-    n = f["north"]
-    col(n, n[2] - 1, G3)
+    n = f["north"]; cx = n[2] // 2
+    col(n, 0, G0); col(n, n[2] - 1, G0)
     for yy in (4, 9):
-        px(n, 0, yy, BTN)                                 # пуговицы по шву
+        px(n, cx - 1, yy, BTN); px(n, cx, yy, BTN)          # пуговицы по шву
+    for yy in range(n[3] - 2):
+        if yy not in (4, 9): px(n, cx, yy, G1)            # шов посередине
     for xx in range(n[2]):                                # бахрома
         px(n, xx, n[3] - 1, G5 if xx % 2 == 0 else G1)
     row(n, n[3] - 2, G0)
