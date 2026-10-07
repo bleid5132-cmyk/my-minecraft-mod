@@ -60,8 +60,10 @@ for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
                       ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
     cube("armorHead", k, o, [1, 4, 9.6], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
     cube("armorHead", k + "_o", o, [1, 4, 9.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
-cube("armorHead", "collar_back", [-4.3, 19.5, 4.3], [8.6, 9.5, 1])     # спинка спускается за плечи
-cube("armorHead", "collar_back_o", [-4.3, 19.5, 4.3], [8.6, 9.5, 1], 0.17)
+cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 5.5, 1])         # высокая спинка между боковинами
+cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 5.5, 1], 0.17)
+# воротник загибается под голову: тонкое дно от спинки вперёд, закрывает низ головы игрока
+cube("armorHead", "collar_floor", [-4.3, 23.6, -1.0], [8.6, 0, 5.3])
 
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
@@ -223,7 +225,7 @@ def clear(f):
 # ---------- воротник ----------
 def p_collar(f):
     for n in SIDES: metal(f[n], seed=1, motifs=False)
-    fill(f["up"], G3); fill(f["down"], G1)
+    fill(f["up"], G3); fill(f["down"], LINR)
     for n in SIDES: outline(f[n], bottom=True, sides=False)
 def p_collar_o(f):
     for n in SIDES:
@@ -240,6 +242,12 @@ def p_collar_back_extra(f):
         for yy in range(1, 4): px(r, cx, yy, G4)
         px(r, cx - 1, 2, G4); px(r, cx + 1, 2, G4)
 paint("collar_back", p_collar_back_extra)
+def p_collar_floor(f):
+    for n in ("up", "down"):
+        r = f[n]
+        if r[2] == 0 or r[3] == 0: continue
+        metal(r, seed=7, motifs=False)
+paint("collar_floor", p_collar_floor)
 
 # ---------- фелонь: верх ----------
 def p_phel_top(f):
