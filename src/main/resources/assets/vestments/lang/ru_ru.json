@@ -94,5 +94,16 @@
   "tooltip.vestments.ability.soul_sand": "+%s%% скорости на песке душ",
   "tooltip.vestments.ability.water_walk": "Хождение по воде до %s с (SHIFT — уйти под воду)",
   "tooltip.vestments.ability.protection": "Только защита, без особой силы",
-  "message.vestments.rank_required": "Нужен сан: %s"
+  "message.vestments.rank_required": "Нужен сан: %s",
+  "entity.vestments.church_priest": "Отец %s",
+  "name.vestments.priest.nikolai": "Николай",
+  "name.vestments.priest.sergii": "Сергий",
+  "name.vestments.priest.ioann": "Иоанн",
+  "name.vestments.priest.aleksii": "Алексий",
+  "name.vestments.priest.mikhail": "Михаил",
+  "name.vestments.priest.pavel": "Павел",
+  "name.vestments.priest.andrei": "Андрей",
+  "name.vestments.priest.serafim": "Серафим",
+  "message.vestments.church_discount": "Скидка священнику в церкви: %s%%",
+  "message.vestments.church_free": "Архиерею всё за изумруды — бесплатно"
 }

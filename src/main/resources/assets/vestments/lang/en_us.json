@@ -94,5 +94,16 @@
   "tooltip.vestments.ability.soul_sand": "+%s%% speed on soul sand",
   "tooltip.vestments.ability.water_walk": "Walk on water up to %s s (SHIFT — sink)",
   "tooltip.vestments.ability.protection": "Protection only, no special power",
-  "message.vestments.rank_required": "Requires rank: %s"
+  "message.vestments.rank_required": "Requires rank: %s",
+  "entity.vestments.church_priest": "Father %s",
+  "name.vestments.priest.nikolai": "Nicholas",
+  "name.vestments.priest.sergii": "Sergius",
+  "name.vestments.priest.ioann": "John",
+  "name.vestments.priest.aleksii": "Alexius",
+  "name.vestments.priest.mikhail": "Michael",
+  "name.vestments.priest.pavel": "Paul",
+  "name.vestments.priest.andrei": "Andrew",
+  "name.vestments.priest.serafim": "Seraphim",
+  "message.vestments.church_discount": "Church discount for a priest: %s%%",
+  "message.vestments.church_free": "For a bishop everything sold for emeralds is free"
 }

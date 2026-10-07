@@ -76,7 +76,8 @@ public class Vestments implements ModInitializer {
         StaffOfLightItem.registerEvents();
         com.bleid.vestments.classes.PlayerClasses.register();
         com.bleid.vestments.service.ServicePoints.register();
-        com.bleid.vestments.altar.AltarSpawner.register();
+        com.bleid.vestments.church.ChurchSpawner.register();
+        com.bleid.vestments.church.ChurchPriests.register();
         com.bleid.vestments.weapon.IncenseClouds.register();
         LOGGER.info("Priest Vestments загружен");
     }
