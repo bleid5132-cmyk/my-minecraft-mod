@@ -38,6 +38,8 @@ public final class StaffRibbons {
     private static final float BEND = 0.35f;              // жёсткость на изгиб (0..1) — без резких изломов
     private static final float MAX_SPEED = 60f;           // пикс/с — ограничение рывков
     private static final float STEP = 1f / 120f;
+    /** Какую долю поворота и движения камеры ленты повторяют сразу (остальное — инерция). 0.7 = на 70% мягче. */
+    private static final float FOLLOW_CAMERA = 0.7f;
     private static final float[][] ANCHORS = { { 6.5f, 18.6f, 8.0f }, { 9.5f, 18.6f, 8.0f } };
     // область ленты на текстуре 64x64
     private static final float U0 = 44f / 64f, U1 = 48f / 64f, V0 = 0f, V1 = 38f / 64f;
@@ -50,6 +52,7 @@ public final class StaffRibbons {
         final Vector3f[] pos = new Vector3f[SEGMENTS + 1];
         final Vector3f[] prev = new Vector3f[SEGMENTS + 1];
         Vec3d lastCameraPos;
+        final Quaternionf lastViewToWorld = new Quaternionf();
         long lastNanos;
         long lastUsed;
 
@@ -94,11 +97,20 @@ public final class StaffRibbons {
                 chain.reset(anchor);                     // первый кадр, телепорт или долгий перерыв
                 chain.lastNanos = now;
                 chain.lastCameraPos = camPos;
+                chain.lastViewToWorld.set(viewToWorld);
+            }
+            // часть поворота камеры ленты повторяют вместе с ней — реакция на обзор мягче
+            Quaternionf delta = new Quaternionf(viewToWorld).mul(new Quaternionf(chain.lastViewToWorld).conjugate());
+            Quaternionf follow = new Quaternionf().slerp(delta, FOLLOW_CAMERA);
+            chain.lastViewToWorld.set(viewToWorld);
+            for (int i = 1; i <= SEGMENTS; i++) {
+                follow.transform(chain.pos[i]);
+                follow.transform(chain.prev[i]);
             }
             // камера сдвинулась — сдвигаем систему отсчёта (и pos, и prev, чтобы не добавить скорость)
             Vec3d moved = camPos.subtract(chain.lastCameraPos);
             chain.lastCameraPos = camPos;
-            Vector3f shift = new Vector3f((float) moved.x, (float) moved.y, (float) moved.z).mul(-16f);
+            Vector3f shift = new Vector3f((float) moved.x, (float) moved.y, (float) moved.z).mul(-16f * (1f - FOLLOW_CAMERA));
             for (int i = 0; i <= SEGMENTS; i++) {
                 chain.pos[i].add(shift);
                 chain.prev[i].add(shift);
