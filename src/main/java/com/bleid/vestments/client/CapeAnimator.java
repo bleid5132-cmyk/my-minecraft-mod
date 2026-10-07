@@ -1,5 +1,7 @@
 package com.bleid.vestments.client;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.fabricmc.api.EnvType;
@@ -11,25 +13,24 @@ import net.minecraft.util.math.MathHelper;
 import net.rpg_foundation.armor_api.client.model.GeoArmorModel;
 
 /**
- * Живой плащ из трёх частей на шарнирах.
+ * Живой плащ из 10 частей на шарнирах (кости vestments_cape, vestments_cape2 … vestments_cape10).
  *
- * <p>Верхняя часть «пружиной» с инерцией догоняет нужный наклон (зависит от скорости, падения,
- * приседания, ритма шагов). Средняя и нижняя части — свои пружины помягче, которые догоняют часть
- * над собой с запаздыванием. Отсюда плавный разгон, лёгкий перелёт, мягкое оседание и изгиб ткани.
- * Состояние хранится отдельно для каждой сущности; время берётся реальное, поэтому движение
- * одинаково плавное при любом FPS.
+ * <p>Верхняя часть «пружиной» с инерцией догоняет нужный наклон (скорость, падение, приседание,
+ * ритм шагов). Каждая следующая часть — своя пружина, мягче предыдущей, которая догоняет часть над
+ * собой с запаздыванием. Получается плавный разгон, лёгкий перелёт, волна по ткани и изгиб.
+ * Состояние своё у каждой сущности; время реальное, поэтому плавно при любом FPS.
  */
 @Environment(EnvType.CLIENT)
 public final class CapeAnimator {
     public static final String CAPE_BONE = "vestments_cape";
-    public static final String CAPE_MID = "vestments_cape2";
-    public static final String CAPE_LOW = "vestments_cape3";
+    private static final int MAX_SEGMENTS = 10;
 
-    private static final float BASE_DEG = 8f;          // наклон в покое (как в модели)
-    // пружины: жёсткость и затухание (меньше затухание — сильнее покачивание)
-    private static final float K_TOP = 38f, C_TOP = 7.5f;
-    private static final float K_MID = 26f, C_MID = 5.5f;
-    private static final float K_LOW = 18f, C_LOW = 4.2f;
+    private static final float BASE_DEG = 8f;        // наклон в покое (как в модели)
+    private static final float K_TOP = 38f;          // жёсткость верхней части
+    private static final float K_BOTTOM = 14f;       // жёсткость самой нижней части
+    private static final float DAMPING_RATIO = 0.55f; // меньше — сильнее покачивание
+    private static final float CURL_TOTAL = 0.30f;   // насколько низ подворачивается при отлёте
+    private static final float MAX_BEND = 9f;        // предельный изгиб в одном шарнире, градусы
 
     /** Сущность, броня которой рисуется сейчас (ставит ArmorRenderDispatcherMixin). */
     public static LivingEntity current;
@@ -38,26 +39,41 @@ public final class CapeAnimator {
 
     private static final class State {
         long lastNanos;
-        float top = BASE_DEG, topVel;      // мировой угол верхней части
-        float mid = BASE_DEG, midVel;      // мировой угол средней части
-        float low = BASE_DEG, lowVel;      // мировой угол нижней части
-        float roll, speed;                 // сглаженные боковой наклон и скорость
+        final float[] angle = new float[MAX_SEGMENTS];  // мировые углы частей
+        final float[] vel = new float[MAX_SEGMENTS];
+        float roll, speed;
+        State() { java.util.Arrays.fill(angle, BASE_DEG); }
     }
 
     private CapeAnimator() { }
 
+    /** Цепочка частей плаща сверху вниз. */
+    private static List<ModelPart> chain(ModelPart body) {
+        List<ModelPart> parts = new ArrayList<>(MAX_SEGMENTS);
+        if (!body.hasChild(CAPE_BONE)) return parts;
+        ModelPart part = body.getChild(CAPE_BONE);
+        parts.add(part);
+        for (int i = 2; i <= MAX_SEGMENTS; i++) {
+            String name = CAPE_BONE + i;
+            if (!part.hasChild(name)) break;
+            part = part.getChild(name);
+            parts.add(part);
+        }
+        return parts;
+    }
+
     public static void apply(GeoArmorModel model) {
         ModelPart body = model.armorBone("armorBody");
-        if (body == null || !body.hasChild(CAPE_BONE)) {
-            return; // чужая броня — не трогаем
-        }
-        ModelPart top = body.getChild(CAPE_BONE);
-        ModelPart mid = top.hasChild(CAPE_MID) ? top.getChild(CAPE_MID) : null;
-        ModelPart low = mid != null && mid.hasChild(CAPE_LOW) ? mid.getChild(CAPE_LOW) : null;
+        if (body == null) return;
+        List<ModelPart> parts = chain(body);
+        int n = parts.size();
+        if (n == 0) return; // чужая броня — не трогаем
 
         LivingEntity e = current;
         if (e == null) {
-            setPose(top, mid, low, BASE_DEG, BASE_DEG, BASE_DEG, 0f);
+            parts.get(0).pitch = BASE_DEG * MathHelper.RADIANS_PER_DEGREE;
+            parts.get(0).roll = 0f;
+            for (int i = 1; i < n; i++) parts.get(i).pitch = 0f;
             return;
         }
         State s = STATES.computeIfAbsent(e, k -> new State());
@@ -75,47 +91,45 @@ public final class CapeAnimator {
             float forward = (float) (dx * -MathHelper.sin(yaw) + dz * MathHelper.cos(yaw));
             float sideways = (float) (dx * MathHelper.cos(yaw) + dz * MathHelper.sin(yaw));
 
-            // скорость сглаживаем отдельно, чтобы рывки позиции между тиками не передавались плащу
-            float a = 1f - (float) Math.exp(-dt * 10f);
+            float a = 1f - (float) Math.exp(-dt * 10f);  // сглаживание скорости
             s.speed += (Math.max(0f, forward) - s.speed) * a;
             s.roll += (MathHelper.clamp(sideways * 70f, -10f, 10f) - s.roll) * a;
 
-            float back = MathHelper.clamp(s.speed * 160f, 0f, 48f);              // ходьба ~15°, бег ~40°
-            float lift = (float) MathHelper.clamp(-dy * 60.0, 0.0, 30.0);         // при падении подлетает
+            float back = MathHelper.clamp(s.speed * 160f, 0f, 48f);
+            float lift = (float) MathHelper.clamp(-dy * 60.0, 0.0, 30.0);
             float limbPos = e.limbAnimator.getPos(td);
             float limbSpeed = e.limbAnimator.getSpeed(td);
-            float sway = MathHelper.sin(limbPos * 0.6662f) * 3.5f * limbSpeed;    // мягкое покачивание шагов
+            float sway = MathHelper.sin(limbPos * 0.6662f) * 3.5f * limbSpeed;
             float sneak = e.isInSneakingPose() ? 14f : 0f;
             float target = BASE_DEG + back + lift + sway + sneak;
 
-            // ткань изгибается: чем сильнее плащ отброшен, тем больше подворачивается низ
-            float curl = (s.top - BASE_DEG) * 0.28f;
+            // подворот низа распределяем по всем шарнирам поровну
+            float curlPerJoint = n > 1 ? (s.angle[0] - BASE_DEG) * CURL_TOTAL / (n - 1) : 0f;
 
-            // несколько мелких шагов на кадр — устойчиво и плавно при низком FPS
-            int steps = Math.max(1, (int) Math.ceil(dt / 0.008f));
+            int steps = Math.max(1, (int) Math.ceil(dt / 0.006f));
             float h = dt / steps;
-            for (int i = 0; i < steps; i++) {
-                s.topVel += (K_TOP * (target - s.top) - C_TOP * s.topVel) * h;
-                s.top += s.topVel * h;
-                s.midVel += (K_MID * (s.top + curl - s.mid) - C_MID * s.midVel) * h;
-                s.mid += s.midVel * h;
-                s.lowVel += (K_LOW * (s.mid + curl - s.low) - C_LOW * s.lowVel) * h;
-                s.low += s.lowVel * h;
+            for (int step = 0; step < steps; step++) {
+                for (int i = 0; i < n; i++) {
+                    float t = n > 1 ? (float) i / (n - 1) : 0f;
+                    float k = MathHelper.lerp(t, K_TOP, K_BOTTOM);
+                    float c = 2f * DAMPING_RATIO * MathHelper.sqrt(k);
+                    float goal = i == 0 ? target : s.angle[i - 1] + curlPerJoint;
+                    s.vel[i] += (k * (goal - s.angle[i]) - c * s.vel[i]) * h;
+                    s.angle[i] += s.vel[i] * h;
+                }
             }
-            s.top = MathHelper.clamp(s.top, -10f, 80f);
-            s.mid = MathHelper.clamp(s.mid, s.top - 25f, s.top + 35f);
-            s.low = MathHelper.clamp(s.low, s.mid - 25f, s.mid + 35f);
+            s.angle[0] = MathHelper.clamp(s.angle[0], -10f, 80f);
+            for (int i = 1; i < n; i++) {
+                s.angle[i] = MathHelper.clamp(s.angle[i], s.angle[i - 1] - MAX_BEND, s.angle[i - 1] + MAX_BEND);
+            }
         }
-        setPose(top, mid, low, s.top, s.mid, s.low, s.roll);
-    }
 
-    /** Части вложены друг в друга, поэтому каждой задаём угол относительно предыдущей. */
-    private static void setPose(ModelPart top, ModelPart mid, ModelPart low,
-                                float topDeg, float midDeg, float lowDeg, float rollDeg) {
+        // части вложены друг в друга: каждой задаём угол относительно предыдущей
         float r = MathHelper.RADIANS_PER_DEGREE;
-        top.pitch = topDeg * r;
-        top.roll = rollDeg * r;
-        if (mid != null) mid.pitch = (midDeg - topDeg) * r;
-        if (low != null) low.pitch = (lowDeg - midDeg) * r;
+        parts.get(0).pitch = s.angle[0] * r;
+        parts.get(0).roll = s.roll * r;
+        for (int i = 1; i < n; i++) {
+            parts.get(i).pitch = (s.angle[i] - s.angle[i - 1]) * r;
+        }
     }
 }

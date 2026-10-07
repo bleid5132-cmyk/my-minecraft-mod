@@ -38,8 +38,7 @@ BONES = {
     "armorWaist": dict(parent="bipedBody", pivot=[0, 24, 0]),
     # отдельная кость плаща: в игре её наклон меняет код мода (CapeAnimator) в зависимости от скорости
     "vestments_cape": dict(parent="armorBody", pivot=[0, 25.5, 3.7], rotation=[8, 0, 0]),
-    "vestments_cape2": dict(parent="vestments_cape", pivot=[0, 17.5, 3.7]),
-    "vestments_cape3": dict(parent="vestments_cape2", pivot=[0, 9.5, 3.7]),
+    # ещё 9 частей плаща цепочкой (добавляются ниже, после расчёта высот)
     "bipedLeftArm": dict(parent=None, pivot=[5, 22, 0]),
     "armorLeftArm": dict(parent="bipedLeftArm", pivot=[5, 22, 0]),
     "bipedRightArm": dict(parent=None, pivot=[-5, 22, 0]),
@@ -71,10 +70,20 @@ cube("armorHead", "collar_floor", [-4.3, 23.6, -1.0], [8.6, 0, 5.3])
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
 cube("armorBody", "phel_top_o", [-5, 16, -3], [10, 9, 6], 0.22)
 # плащ из трёх частей на шарнирах: верх 8 px, середина 8 px, низ 9 px
-CAPE_SEGS = [("vestments_cape", 17.5, 8), ("vestments_cape2", 9.5, 8), ("vestments_cape3", 0.5, 9)]
+# 10 частей: сверху по 3 px, снизу по 2 px (низ гибче)
+CAPE_H = [3, 3, 3, 3, 3, 2, 2, 2, 2, 2]
+CAPE_SEGS = []
+_y = 25.5
+for _i, _h in enumerate(CAPE_H):
+    _name = "vestments_cape" if _i == 0 else f"vestments_cape{_i + 1}"
+    if _i > 0:
+        _parent = "vestments_cape" if _i == 1 else f"vestments_cape{_i}"
+        BONES[_name] = dict(parent=_parent, pivot=[0, _y, 3.7])
+    _y -= _h
+    CAPE_SEGS.append((_name, _y, _h))
 for i, (bone, y0, h) in enumerate(CAPE_SEGS):
     cube(bone, f"cape{i}", [-5.5, y0, 3.2], [11, h, 1], 0.03)
-    cube(bone, f"cape{i}_o", [-5.5, y0, 3.2], [11, h, 1], 0.22 + 0.01 * i)
+    cube(bone, f"cape{i}_o", [-5.5, y0, 3.2], [11, h, 1], 0.22 + 0.005 * (i % 2))
 cube("armorBody", "cross_v", [-0.75, 15.5, -3.8], [1.5, 5.5, 1])            # наперсный крест
 cube("armorBody", "cross_h", [-2, 18.5, -3.75], [4, 1.5, 1], 0.01)
 cube("armorBody", "cross_gem", [-0.5, 18.75, -4.1], [1, 1, 0.5])             # красный камень
