@@ -64,7 +64,6 @@ public class StaffOfLightItem extends Item {
 
     @Override
     public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
-        tooltip.add(Text.translatable("tooltip.vestments.staff_of_light.damage").formatted(Formatting.GOLD));
         tooltip.add(Text.translatable("tooltip.vestments.staff_of_light.peace").formatted(Formatting.YELLOW));
     }
 
