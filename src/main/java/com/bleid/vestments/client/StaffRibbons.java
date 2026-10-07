@@ -33,8 +33,10 @@ public final class StaffRibbons {
     private static final int SEGMENTS = 7;
     private static final float SEGMENT_LENGTH = 1.0f;     // пикселей модели
     private static final float HALF_WIDTH = 0.42f;
-    private static final float GRAVITY = 150f;            // пикс/с² (≈ 9.4 м/с²)
-    private static final float AIR_DRAG = 2.2f;           // затухание скорости, 1/с
+    private static final float GRAVITY = 110f;            // пикс/с² — ткань «парит», падает мягче
+    private static final float AIR_DRAG = 5.0f;           // сильное сопротивление воздуха — плавные движения
+    private static final float BEND = 0.35f;              // жёсткость на изгиб (0..1) — без резких изломов
+    private static final float MAX_SPEED = 60f;           // пикс/с — ограничение рывков
     private static final float STEP = 1f / 120f;
     private static final float[][] ANCHORS = { { 6.5f, 18.6f, 8.0f }, { 9.5f, 18.6f, 8.0f } };
     // область ленты на текстуре 64x64
@@ -44,9 +46,10 @@ public final class StaffRibbons {
     private static long lastCleanup;
 
     private static final class Chain {
-        final Vector3f[] pos = new Vector3f[SEGMENTS + 1];   // мировая ориентация, относительно игрока
+        /** Точки в мировых координатах относительно камеры, в пикселях (16 на блок). */
+        final Vector3f[] pos = new Vector3f[SEGMENTS + 1];
         final Vector3f[] prev = new Vector3f[SEGMENTS + 1];
-        Vec3d lastEntityPos;
+        Vec3d lastCameraPos;
         long lastNanos;
         long lastUsed;
 
@@ -66,37 +69,43 @@ public final class StaffRibbons {
         MinecraftClient client = MinecraftClient.getInstance();
         Camera camera = client.gameRenderer.getCamera();
         MatrixStack.Entry entry = matrices.peek();
+        Matrix4f pose = entry.getPositionMatrix();
+        Matrix4f invPose = new Matrix4f(pose).invert();
 
-        // модель → вид (матрица нормалей) → мир (обратный поворот камеры), и обратно
+        // Матрица посоха переводит модель в пространство вида (начало — камера).
+        // Мир = поворот вида обратно + позиция камеры. Так крепление ленты по-настоящему
+        // перемещается в мире, когда игрок поворачивает камеру или двигается.
         Quaternionf worldToView = new Quaternionf()
                 .rotateX(camera.getPitch() * MathHelper.RADIANS_PER_DEGREE)
                 .rotateY((camera.getYaw() + 180f) * MathHelper.RADIANS_PER_DEGREE);
         Quaternionf viewToWorld = new Quaternionf(worldToView).conjugate();
-        Matrix3f itemToView = new Matrix3f(entry.getNormalMatrix());
-        Matrix3f viewToItem = new Matrix3f(itemToView).transpose();
-
-        float tickDelta = client.getTickDelta();
-        Vec3d entityPos = entity != null ? entity.getLerpedPos(tickDelta) : Vec3d.ZERO;
+        Vec3d camPos = camera.getPos();
 
         long now = System.nanoTime();
         long baseKey = (entity != null ? entity.getId() : -1L) * 4L + (firstPerson ? 2 : 0);
         VertexConsumer buffer = consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEXTURE));
         for (int r = 0; r < ANCHORS.length; r++) {
-            Vector3f anchorItem = new Vector3f(ANCHORS[r][0], ANCHORS[r][1], ANCHORS[r][2]);
-            Vector3f anchorWorld = viewToWorld.transform(itemToView.transform(new Vector3f(anchorItem)));
+            Vector3f anchorView = pose.transformPosition(new Vector3f(ANCHORS[r][0], ANCHORS[r][1], ANCHORS[r][2]).div(16f));
+            Vector3f anchor = viewToWorld.transform(anchorView).mul(16f);
 
             Chain chain = CHAINS.computeIfAbsent(baseKey + r, k -> new Chain());
-            if (chain.lastEntityPos == null || chain.pos[0] == null
-                    || chain.lastEntityPos.squaredDistanceTo(entityPos) > 4.0 || now - chain.lastUsed > 1_000_000_000L) {
-                chain.reset(anchorWorld);                // первый кадр, телепорт или долгий перерыв
+            if (chain.lastCameraPos == null || chain.pos[0] == null
+                    || chain.lastCameraPos.squaredDistanceTo(camPos) > 4.0 || now - chain.lastUsed > 1_000_000_000L) {
+                chain.reset(anchor);                     // первый кадр, телепорт или долгий перерыв
                 chain.lastNanos = now;
-                chain.lastEntityPos = entityPos;
+                chain.lastCameraPos = camPos;
             }
-            Vec3d moved = entityPos.subtract(chain.lastEntityPos);
-            chain.lastEntityPos = entityPos;
-            simulate(chain, anchorWorld, new Vector3f((float) moved.x, (float) moved.y, (float) moved.z).mul(16f), now);
+            // камера сдвинулась — сдвигаем систему отсчёта (и pos, и prev, чтобы не добавить скорость)
+            Vec3d moved = camPos.subtract(chain.lastCameraPos);
+            chain.lastCameraPos = camPos;
+            Vector3f shift = new Vector3f((float) moved.x, (float) moved.y, (float) moved.z).mul(-16f);
+            for (int i = 0; i <= SEGMENTS; i++) {
+                chain.pos[i].add(shift);
+                chain.prev[i].add(shift);
+            }
+            simulate(chain, anchor, now);
             chain.lastUsed = now;
-            draw(entry, buffer, chain, worldToView, viewToItem, light, overlay);
+            draw(entry, invPose, buffer, chain, worldToView, light, overlay);
         }
 
         if (now - lastCleanup > 5_000_000_000L) {   // забываем ленты, которые давно не рисовались
@@ -107,30 +116,29 @@ public final class StaffRibbons {
         }
     }
 
-    /**
-     * Шаг физики. anchor — где сейчас крепление ленты (мировая ориентация). moved — насколько сдвинулся
-     * игрок с прошлого кадра: ткань по инерции остаётся на месте в мире, то есть отстаёт от игрока.
-     */
-    private static void simulate(Chain c, Vector3f anchor, Vector3f moved, long now) {
+    /** Шаг физики: крепление плавно идёт к новому месту, остальная ткань тянется за ним по инерции. */
+    private static void simulate(Chain c, Vector3f anchor, long now) {
         float dt = Math.min((now - c.lastNanos) / 1_000_000_000f, 0.1f);
         c.lastNanos = now;
         int steps = Math.max(1, MathHelper.ceil(dt / STEP));
         float h = dt / steps;
         float keep = (float) Math.exp(-AIR_DRAG * h);
-        Vector3f shift = new Vector3f(moved).mul(-1f / steps);
+        float maxStep = MAX_SPEED * h;
         Vector3f anchorPrev = new Vector3f(c.pos[0]);
         for (int s = 0; s < steps; s++) {
-            // крепление плавно идёт к новому положению (поворот камеры/посоха)
             float t = (s + 1f) / steps;
             c.pos[0].set(anchorPrev).lerp(anchor, t);
             c.prev[0].set(c.pos[0]);
             for (int i = 1; i <= SEGMENTS; i++) {
                 Vector3f p = c.pos[i];
                 Vector3f v = new Vector3f(p).sub(c.prev[i]).mul(keep);
+                float sp = v.length();
+                if (sp > maxStep) v.mul(maxStep / sp);
                 c.prev[i].set(p);
-                p.add(v).add(shift).add(0, -GRAVITY * h * h, 0);
+                p.add(v).add(0, -GRAVITY * h * h, 0);
             }
-            for (int iter = 0; iter < 5; iter++) {          // ткань не растягивается
+            for (int iter = 0; iter < 6; iter++) {
+                // длина звеньев — ткань не растягивается
                 for (int i = 0; i < SEGMENTS; i++) {
                     Vector3f a = c.pos[i], b = c.pos[i + 1];
                     Vector3f d = new Vector3f(b).sub(a);
@@ -145,17 +153,34 @@ public final class StaffRibbons {
                         b.sub(d);
                     }
                 }
+                // изгиб — точка через одну держит расстояние, лента гнётся плавной дугой
+                for (int i = 0; i + 2 <= SEGMENTS; i++) {
+                    Vector3f a = c.pos[i], b = c.pos[i + 2];
+                    Vector3f d = new Vector3f(b).sub(a);
+                    float len = d.length();
+                    float rest = SEGMENT_LENGTH * 2f;
+                    if (len < 1e-5f || len >= rest) continue;
+                    float diff = (len - rest) / len * BEND;
+                    if (i == 0) {
+                        b.sub(d.mul(diff));
+                    } else {
+                        d.mul(diff * 0.5f);
+                        a.add(d);
+                        b.sub(d);
+                    }
+                }
             }
         }
     }
 
-    private static void draw(MatrixStack.Entry entry, VertexConsumer buffer, Chain c, Quaternionf worldToView,
-                             Matrix3f viewToItem, int light, int overlay) {
+    private static void draw(MatrixStack.Entry entry, Matrix4f invPose, VertexConsumer buffer, Chain c,
+                             Quaternionf worldToView, int light, int overlay) {
         Matrix4f pose = entry.getPositionMatrix();
         Matrix3f normal = entry.getNormalMatrix();
         Vector3f[] p = new Vector3f[SEGMENTS + 1];
         for (int i = 0; i <= SEGMENTS; i++) {
-            p[i] = viewToItem.transform(worldToView.transform(new Vector3f(c.pos[i])));
+            Vector3f view = worldToView.transform(new Vector3f(c.pos[i]).div(16f));
+            p[i] = invPose.transformPosition(view).mul(16f);      // обратно в пиксели модели
         }
         for (int i = 0; i < SEGMENTS; i++) {
             Vector3f a = p[i], b = p[i + 1];
