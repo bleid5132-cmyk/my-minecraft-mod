@@ -54,12 +54,12 @@ def cube(bone, key, origin, size, inflate=0.0, rotation=None, pivot=None, mirror
                       rotation=rotation, pivot=pivot, mirror=mirror, uv_key=uv or key))
 
 # --- ВОРОТНИК (слот головы): низкий спереди, высокий жёсткий сзади, отогнут наружу ---
-for k, o, mir, uv in (("collar_side_l", [5.0, 23.5, -5.0], False, None),
-                      ("collar_side_r", [-6.0, 23.5, -5.0], True, "collar_side_l")):
-    cube("armorHead", k, o, [1, 4, 11], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
-    cube("armorHead", k + "_o", o, [1, 4, 11], 0.2, mirror=mir, uv=(uv or k) + "_o")
-cube("armorHead", "collar_back", [-5.0, 23.5, 5.0], [10, 5.5, 1])         # высокая спинка между боковинами
-cube("armorHead", "collar_back_o", [-5.0, 23.5, 5.0], [10, 5.5, 1], 0.17)
+for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
+                      ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
+    cube("armorHead", k, o, [1, 4, 9.6], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
+    cube("armorHead", k + "_o", o, [1, 4, 9.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
+cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 5.5, 1])         # высокая спинка между боковинами
+cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 5.5, 1], 0.17)
 
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
