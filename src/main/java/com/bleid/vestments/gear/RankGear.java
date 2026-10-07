@@ -38,13 +38,13 @@ public final class RankGear {
         // ───────────── I. Диаконат ─────────────
         armor(0, "deacon", new int[] { 1, 3, 2, 1 }, 0f, 7, Items.IRON_INGOT, Rarity.COMMON,
                 1.0f, 2.0, 120, 0, 0, 0.0, 0);
-        weapon("censer", 0, 4.0, 1.2, 250, Items.COPPER_INGOT, Rarity.COMMON,
-                new IncenseAbility(3.0, 4, 1.0f, 0, false, 0f), 400, "censer");
+        weapon("deacon_staff", 0, 4.0, 1.2, 250, Items.IRON_INGOT, Rarity.COMMON,
+                new IncenseAbility(3.0, 4, 1.0f, 0, false, 0f), 400, "prayer");
 
         armor(1, "protodeacon", new int[] { 1, 4, 3, 1 }, 0f, 8, Items.GOLD_INGOT, Rarity.COMMON,
                 1.0f, 3.0, 100, 0, 0, 0.10, 0);
-        weapon("silver_censer", 1, 4.5, 1.2, 300, Items.IRON_INGOT, Rarity.COMMON,
-                new IncenseAbility(3.5, 5, 1.0f, 0, true, 0f), 400, "censer");
+        weapon("protodeacon_staff", 1, 4.5, 1.2, 300, Items.GOLD_INGOT, Rarity.COMMON,
+                new IncenseAbility(3.5, 5, 1.0f, 0, true, 0f), 400, "prayer");
 
         armor(2, "hierodeacon", new int[] { 2, 4, 3, 1 }, 0f, 9, Items.IRON_INGOT, Rarity.UNCOMMON,
                 1.0f, 3.0, 100, 300, 60, 0.15, 0);
@@ -53,8 +53,8 @@ public final class RankGear {
 
         armor(3, "archdeacon", new int[] { 2, 5, 3, 2 }, 0f, 10, Items.GOLD_INGOT, Rarity.UNCOMMON,
                 1.0f, 3.0, 80, 240, 60, 0.20, 3);
-        weapon("archdeacon_censer", 3, 5.0, 1.2, 350, Items.GOLD_INGOT, Rarity.UNCOMMON,
-                new IncenseAbility(4.0, 5, 1.5f, 1, true, 1.0f), 360, "censer");
+        weapon("archdeacon_staff", 3, 5.0, 1.2, 350, Items.GOLD_INGOT, Rarity.UNCOMMON,
+                new IncenseAbility(4.0, 5, 1.5f, 1, true, 1.0f), 360, "prayer");
 
         // ───────────── Патриарх (облачение из первой версии мода) ─────────────
         PATRIARCH = new GearSet(14, "patriarch", 2.0f, 5.0, 60, -1, 0, 0.5, 15);

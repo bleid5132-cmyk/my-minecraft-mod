@@ -20,7 +20,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 
-/** Облака ладана, которые идут за священником. */
+/** Молитвенный покров — золотое сияние, которое идёт за священником. */
 public final class IncenseClouds {
     private static final class Cloud {
         final UUID owner;
@@ -62,18 +62,24 @@ public final class IncenseClouds {
         Vec3d center = p.getPos();
         double r = c.a.radius();
         Random rnd = world.getRandom();
-        // дым ладана: медленные клубы по кругу и золотые искры
+        // золотое сияние: вращающееся кольцо искр по краю покрова и искры, поднимающиеся внутри
         if (c.age % 2 == 0) {
-            for (int i = 0; i < 4; i++) {
+            double spin = c.age * 0.12;
+            for (int i = 0; i < 6; i++) {
+                double ang = spin + i * Math.PI / 3;
+                double x = center.x + Math.cos(ang) * r, z = center.z + Math.sin(ang) * r;
+                world.spawnParticles(Vestments.SERVICE_ORB, x, center.y + 0.15, z, 1, 0.05, 0.05, 0.05, 0.0);
+            }
+            for (int i = 0; i < 3; i++) {
                 double ang = rnd.nextDouble() * Math.PI * 2, dist = Math.sqrt(rnd.nextDouble()) * r;
                 double x = center.x + Math.cos(ang) * dist, z = center.z + Math.sin(ang) * dist;
-                world.spawnParticles(ParticleTypes.CLOUD, x, center.y + 0.2 + rnd.nextDouble() * 1.4, z,
-                        0, (rnd.nextDouble() - 0.5) * 0.02, 0.015, (rnd.nextDouble() - 0.5) * 0.02, 1.0);
+                world.spawnParticles(ParticleTypes.END_ROD, x, center.y + 0.1 + rnd.nextDouble() * 0.5, z,
+                        0, 0, 0.04, 0, 1.0);
             }
-            world.spawnParticles(Vestments.SERVICE_ORB, center.x, center.y + 1.0, center.z, 2, r * 0.4, 0.6, r * 0.4, 0.0);
+            world.spawnParticles(ParticleTypes.ENCHANT, center.x, center.y + 1.6, center.z, 3, 0.4, 0.3, 0.4, 0.4);
         }
         if (c.age % 20 == 10) {
-            world.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.BLOCK_CHAIN_STEP, SoundCategory.PLAYERS, 0.6f, 1.4f);
+            world.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.5f, 1.8f);
         }
         if (c.age % 20 != 0) return;
 

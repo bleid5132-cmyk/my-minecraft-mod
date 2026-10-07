@@ -11,7 +11,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 /**
- * «Каждение»: вокруг священника на несколько секунд встаёт облако ладана, которое идёт вместе с ним.
+ * «Молитвенный покров» (посохи диаконов): вокруг священника на несколько секунд встаёт золотое сияние,
+ * которое идёт вместе с ним.
  * Каждую секунду лечит игроков, мирных и нейтральных мобов; враждебных замедляет (и ослабляет),
  * нежить в дыму может получать урон.
  */
@@ -41,8 +42,8 @@ public record IncenseAbility(double radius, int seconds, float healPerSec, int s
     @Override
     public void activate(ServerWorld world, ServerPlayerEntity player, float power) {
         IncenseClouds.start(player, this, power);
-        world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BLOCK_CHAIN_PLACE,
-                SoundCategory.PLAYERS, 1.0f, 1.3f);
+        world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BLOCK_BEACON_ACTIVATE,
+                SoundCategory.PLAYERS, 0.7f, 1.6f);
         world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME,
                 SoundCategory.PLAYERS, 1.2f, 1.6f);
     }

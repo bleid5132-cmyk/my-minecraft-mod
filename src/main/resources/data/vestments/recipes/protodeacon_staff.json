@@ -2,26 +2,23 @@
  "type": "minecraft:crafting_shaped",
  "category": "equipment",
  "pattern": [
-  " C ",
-  "GFG",
-  "RGR"
+  " GR",
+  " SG",
+  "S  "
  ],
  "key": {
-  "C": {
-   "item": "minecraft:chain"
-  },
   "G": {
    "item": "minecraft:gold_ingot"
   },
-  "F": {
-   "tag": "minecraft:coals"
-  },
   "R": {
    "item": "minecraft:redstone"
+  },
+  "S": {
+   "item": "minecraft:stick"
   }
  },
  "result": {
-  "item": "vestments:archdeacon_censer",
+  "item": "vestments:protodeacon_staff",
   "count": 1
  }
 }
