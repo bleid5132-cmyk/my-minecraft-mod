@@ -92,8 +92,6 @@ for side, mir in (("l", False), ("r", True)):
     sx = 1 if side == "l" else -1
     def X(x0, w): return x0 if side == "l" else -(x0 + w)
     hip = [2 * sx, 12, 0]
-    # тонкий слой подризника прямо на ноге — закрывает скин, не меняя силуэт
-    cube(bone, "leg_cover_" + side, [X(0, 4), 0, -2], [4, 12, 4], 0.22, mirror=mir, uv="leg_cover")
     e = 0.01 if side == "r" else 0.0          # против мерцания в месте стыка половин
     cube(bone, "skirt_up_" + side, [X(-1.4, 6), 4, -2.6], [6, 8, 5.2], 0.05 + e, mirror=mir, uv="skirt_up",
          rotation=[0, 0, -4 * sx], pivot=hip)
@@ -341,12 +339,6 @@ paint("buckle", p_buckle)
 def p_skirt_up(f):
     for r in f.values(): linen(r)
 paint("skirt_up", p_skirt_up)
-def p_leg_cover(f):
-    for n, r in f.items():
-        linen(r, 3)
-        if n in SIDES and r[3] >= 3: row(r, r[3] - 1, WHS)
-    fill(f["down"], WHS)
-paint("leg_cover", p_leg_cover)
 def p_skirt_low(f):
     for n, r in f.items(): linen(r, 3)
     fill(f["down"], WHS)
