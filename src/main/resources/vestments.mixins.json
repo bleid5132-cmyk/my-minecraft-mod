@@ -15,6 +15,7 @@
     "MerchantInventoryMixin",
     "TradeOfferMixin",
     "VillagerEntityMixin",
-    "StructurePoolAccessor"
+    "StructurePoolAccessor",
+    "JigsawStructureMixin"
   ]
 }
