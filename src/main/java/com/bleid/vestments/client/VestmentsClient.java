@@ -30,6 +30,7 @@ public class VestmentsClient implements ClientModInitializer {
         SmallTooltipComponent.register();
         ClassSelectScreen.register();
         ServiceClient.register();
+        PatriarchClient.register();
         net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(
                 Vestments.HOLY_ALTAR, net.minecraft.client.render.RenderLayer.getCutout());
     }

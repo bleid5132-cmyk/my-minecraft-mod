@@ -43,6 +43,10 @@ public class Vestments implements ModInitializer {
     public static final Item HOLY_ALTAR_ITEM = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "holy_altar"),
             new net.minecraft.item.BlockItem(HOLY_ALTAR, new FabricItemSettings().rarity(Rarity.UNCOMMON)));
 
+    /** Книга Патриарха — три способности; продаёт мастер-священник (шанс 50%). */
+    public static final Item PATRIARCH_BOOK = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "patriarch_book"),
+            new com.bleid.vestments.patriarch.PatriarchBookItem(new FabricItemSettings().maxCount(1).rarity(Rarity.EPIC)));
+
     /** Огонёк очков служения (частица). */
     public static final net.minecraft.particle.DefaultParticleType SERVICE_ORB = Registry.register(
             Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "service_orb"),
@@ -70,6 +74,7 @@ public class Vestments implements ModInitializer {
                 set.items().forEach(entries::add);
             }
             com.bleid.vestments.gear.RankGear.WEAPONS.forEach(entries::add);
+            entries.add(PATRIARCH_BOOK);
         });
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(HOLY_ALTAR_ITEM));
         SetBonus.register();
@@ -80,6 +85,16 @@ public class Vestments implements ModInitializer {
         com.bleid.vestments.church.ChurchPriests.register();
         com.bleid.vestments.church.VanillaTempleRemover.register();
         com.bleid.vestments.weapon.IncenseClouds.register();
+        com.bleid.vestments.patriarch.Mana.register();
+        com.bleid.vestments.patriarch.PatriarchAbilities.register();
+        // последняя сделка мастера-священника: с шансом 50% — Книга Патриарха
+        net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper.registerVillagerOffers(
+                net.minecraft.village.VillagerProfession.CLERIC, 5, factories -> factories.add((entity, random) ->
+                        random.nextFloat() < 0.5f
+                                ? new net.minecraft.village.TradeOffer(new net.minecraft.item.ItemStack(net.minecraft.item.Items.EMERALD, 48),
+                                        new net.minecraft.item.ItemStack(net.minecraft.item.Items.BOOK),
+                                        new net.minecraft.item.ItemStack(PATRIARCH_BOOK), 1, 30, 0.05f)
+                                : null));
         LOGGER.info("Priest Vestments загружен");
     }
 }
