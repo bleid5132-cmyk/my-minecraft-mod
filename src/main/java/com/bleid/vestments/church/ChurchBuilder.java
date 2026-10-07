@@ -117,21 +117,26 @@ public final class ChurchBuilder {
         // барабан и луковичный купол над входной частью
         for (int x = 2; x <= 4; x++) {
             for (int z = 2; z <= 4; z++) {
-                for (int y = 9; y <= 10; y++) put(x, y, z, s.drum(), Role.DOME);
-                put(x, 11, z, s.dome(), Role.DOME);
+                for (int y = 9; y <= 11; y++) put(x, y, z, s.drum(), Role.DOME);
                 put(x, 12, z, s.dome(), Role.DOME);
+                put(x, 13, z, s.dome(), Role.DOME);
             }
         }
+        // «луковица» шире барабана
+        put(1, 12, 3, s.dome(), Role.DOME);
+        put(5, 12, 3, s.dome(), Role.DOME);
+        put(3, 12, 1, s.dome(), Role.DOME);
+        put(3, 12, 5, s.dome(), Role.DOME);
         put(3, 10, 2, Blocks.GLASS_PANE, Role.DOME);
         put(3, 10, 4, Blocks.GLASS_PANE, Role.DOME);
         put(2, 10, 3, Blocks.GLASS_PANE, Role.DOME);
         put(4, 10, 3, Blocks.GLASS_PANE, Role.DOME);
-        put(3, 13, 3, s.dome(), Role.DOME);
-        put(3, 14, 3, Blocks.GOLD_BLOCK.getDefaultState(), Role.DOME);
+        put(3, 14, 3, s.dome(), Role.DOME);
+        put(3, 15, 3, Blocks.GOLD_BLOCK.getDefaultState(), Role.DOME);
         // крест
-        for (int y = 15; y <= 17; y++) put(3, y, 3, s.fence(), Role.CROSS);
-        put(2, 16, 3, s.fence(), Role.CROSS);
-        put(4, 16, 3, s.fence(), Role.CROSS);
+        for (int y = 16; y <= 18; y++) put(3, y, 3, s.fence(), Role.CROSS);
+        put(2, 17, 3, s.fence(), Role.CROSS);
+        put(4, 17, 3, s.fence(), Role.CROSS);
         // внутри
         put(3, 1, D - 2, Vestments.HOLY_ALTAR.getDefaultState().with(HorizontalFacingBlock.FACING, Direction.NORTH), Role.DECOR);
         put(1, 1, D - 2, Blocks.BREWING_STAND, Role.DECOR);
@@ -159,10 +164,11 @@ public final class ChurchBuilder {
                     if (r.nextFloat() < 0.5f) continue;
                 }
                 case ROOF -> {
-                    float drop = 0.45f + 0.35f * (p.z / (float) D);     // к алтарю крыша обвалилась сильнее
-                    if (r.nextFloat() < drop) continue;
+                    // над алтарной частью крыша обрушилась целиком, у входа — проломы
+                    if (p.z >= 5 && (p.y > 5 || r.nextFloat() < 0.7f)) continue;
+                    if (p.z < 5 && r.nextFloat() < 0.25f) continue;
                 }
-                case GABLE -> { if (r.nextFloat() < 0.45f) continue; }
+                case GABLE -> { if (p.z > 0 || r.nextFloat() < 0.3f) continue; }
                 case WALL -> {
                     float f = r.nextFloat();
                     if (f < 0.12f + 0.06f * p.y) continue;
@@ -238,7 +244,7 @@ public final class ChurchBuilder {
         // над полом — только воздух, трава, листва, снег и естественная земля
         for (int lx = -1; lx <= W; lx++) {
             for (int lz = -1; lz <= D; lz++) {
-                for (int ly = 1; ly <= 18; ly++) {
+                for (int ly = 1; ly <= 19; ly++) {
                     BlockState st = world.getBlockState(toWorld(center, front, lx, 0, lz).withY(best + ly));
                     if (st.isAir()) continue;
                     if (!st.getFluidState().isEmpty()) return null;
@@ -271,7 +277,7 @@ public final class ChurchBuilder {
         // расчистка и фундамент
         for (int lx = -1; lx <= W; lx++) {
             for (int lz = -1; lz <= D; lz++) {
-                for (int ly = 1; ly <= 18; ly++) {
+                for (int ly = 1; ly <= 19; ly++) {
                     world.setBlockState(toWorld(origin, front, lx, ly, lz), Blocks.AIR.getDefaultState(), Block.NOTIFY_LISTENERS);
                 }
                 if (lx < 0 || lx >= W || lz < 0 || lz >= D) {
