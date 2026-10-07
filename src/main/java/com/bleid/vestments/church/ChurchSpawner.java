@@ -44,10 +44,7 @@ public final class ChurchSpawner {
                         .getInSquare(t -> t.matchesKey(PointOfInterestTypes.MEETING), player.getBlockPos(),
                                 SEARCH_RADIUS, PointOfInterestStorage.OccupationStatus.ANY)
                         .map(PointOfInterest::getPos).toList();
-                for (BlockPos bell : bells) {
-                    tryVillage(world, bell);
-                    tryDecor(world, bell);
-                }
+                for (BlockPos bell : bells) tryVillage(world, bell);
             }
         });
     }
@@ -94,22 +91,6 @@ public final class ChurchSpawner {
                 return;
             }
         }
-    }
-
-    /** Украшения улиц — один раз на деревню, когда прогружена вся деревня. */
-    private static void tryDecor(ServerWorld world, BlockPos bell) {
-        VillageDecorator.State st = VillageDecorator.state(world);
-        if (st.done.contains(bell.asLong())) return;
-        if (!state(world).done.contains(bell.asLong())) return;        // сначала решаем с церковью
-        if (!VillageDecorator.ready(world, bell)) return;
-        world.getPointOfInterestStorage().getInSquare(t -> t.matchesKey(PointOfInterestTypes.MEETING), bell, 64,
-                PointOfInterestStorage.OccupationStatus.ANY).forEach(p -> st.done.add(p.getPos().asLong()));
-        st.done.add(bell.asLong());
-        st.markDirty();
-        Box area = new Box(bell).expand(48, 24, 48);
-        int villagers = world.getEntitiesByClass(VillagerEntity.class, area, e -> true).size();
-        int zombies = world.getEntitiesByClass(ZombieVillagerEntity.class, area, e -> true).size();
-        VillageDecorator.decorate(world, bell, VillagerType.forBiome(world.getBiome(bell)), zombies > 0 && villagers == 0);
     }
 
     private static State state(ServerWorld world) {
