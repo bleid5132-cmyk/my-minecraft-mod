@@ -14,7 +14,7 @@
   "tooltip.vestments.staff_of_light.peace": "Will not strike players, peaceful or neutral mobs",
   "message.vestments.staff_refuses": "The Staff of Light will not strike the peaceful",
   "tooltip.vestments.staff_of_light.blessing": "Hold right-click — Blessing (up to 5 s, 15 s cooldown)",
-  "tooltip.vestments.staff_of_light.blessing_desc": "Golden beam heals players, peaceful and neutral mobs and burns the undead",
+  "tooltip.vestments.staff_of_light.blessing_desc": "Golden beam heals players, peaceful and neutral mobs, damages hostile mobs and burns the undead",
   "hud.vestments.blessing_key": "RMB",
   "screen.vestments.class_select": "Choose your class",
   "screen.vestments.class_select_hint": "This choice is made once per world",

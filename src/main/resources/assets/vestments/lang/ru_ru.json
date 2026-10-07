@@ -14,7 +14,7 @@
   "tooltip.vestments.staff_of_light.peace": "Не поднимается на игроков, мирных и нейтральных мобов",
   "message.vestments.staff_refuses": "Посох Света не поднимается на мирных",
   "tooltip.vestments.staff_of_light.blessing": "Зажать ПКМ — «Благословение» (до 5 сек., перезарядка 15 сек.)",
-  "tooltip.vestments.staff_of_light.blessing_desc": "Золотой луч лечит игроков, мирных и нейтральных мобов и жжёт нежить",
+  "tooltip.vestments.staff_of_light.blessing_desc": "Золотой луч лечит игроков, мирных и нейтральных мобов, ранит враждебных и жжёт нежить",
   "hud.vestments.blessing_key": "ПКМ",
   "screen.vestments.class_select": "Выберите класс",
   "screen.vestments.class_select_hint": "Выбор делается один раз для этого мира",

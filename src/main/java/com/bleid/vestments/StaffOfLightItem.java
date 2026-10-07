@@ -138,7 +138,10 @@ public class StaffOfLightItem extends Item {
         return wall.getType() != HitResult.Type.MISS ? wall.getPos() : end;
     }
 
-    /** Один импульс луча: лечит игроков, мирных и нейтральных мобов, жжёт нежить. */
+    /** Урон луча по враждебным мобам (не нежити) за импульс — 1 сердце каждые полсекунды. */
+    private static final float PULSE_HOSTILE_DAMAGE = 2.0f;
+
+    /** Один импульс луча: лечит игроков, мирных и нейтральных мобов, ранит враждебных, жжёт нежить. */
     private static void pulseBlessing(ServerWorld world, PlayerEntity player) {
         Vec3d start = player.getEyePos();
         Vec3d end = beamEnd(world, player, start, player.getRotationVec(1.0f));
@@ -154,7 +157,11 @@ public class StaffOfLightItem extends Item {
                 target.setOnFireFor(UNDEAD_FIRE_SECONDS);
                 world.spawnParticles(ParticleTypes.FLAME, target.getX(), target.getBodyY(0.5), target.getZ(),
                         6, 0.3, 0.5, 0.3, 0.02);
-            } else if (!canHit(target)) {   // игроки, мирные и нейтральные — лечим
+            } else if (canHit(target)) {     // остальные враждебные мобы — урон светом
+                target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_HOSTILE_DAMAGE);
+                world.spawnParticles(ParticleTypes.END_ROD, target.getX(), target.getBodyY(0.5), target.getZ(),
+                        5, 0.3, 0.4, 0.3, 0.02);
+            } else {                          // игроки, мирные и нейтральные — лечим   // игроки, мирные и нейтральные — лечим
                 target.heal(PULSE_HEAL);
                 world.spawnParticles(ParticleTypes.HEART, target.getX(), target.getBodyY(0.9), target.getZ(),
                         1, 0.3, 0.2, 0.3, 0.0);
