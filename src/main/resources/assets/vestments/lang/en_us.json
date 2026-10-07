@@ -12,5 +12,7 @@
   "message.vestments.water_walk_end": "Strength spent — stand on solid ground to recharge",
   "item.vestments.staff_of_light": "Staff of Light",
   "tooltip.vestments.staff_of_light.peace": "Will not strike players, peaceful or neutral mobs",
-  "message.vestments.staff_refuses": "The Staff of Light will not strike the peaceful"
+  "message.vestments.staff_refuses": "The Staff of Light will not strike the peaceful",
+  "tooltip.vestments.staff_of_light.blessing": "Right-click — Blessing (15 s cooldown)",
+  "tooltip.vestments.staff_of_light.blessing_desc": "Beam heals players, peaceful and neutral mobs by 3 hearts, burns undead for 5 hearts"
 }
