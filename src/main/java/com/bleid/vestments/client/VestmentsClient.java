@@ -10,10 +10,10 @@ public class VestmentsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         // Одна 3D-модель на весь комплект: каждый предмет показывает свои кости
-        // (воротник — голова, фелонь — тело и руки, подризник — ноги и пояс).
+        // (воротник — голова, фелонь — тело и руки, подризник — ноги и пояс, ботинки — низ подола и обувь).
         var renderer = GeoArmorRenderer.of(
                 new Identifier(Vestments.MOD_ID, "geo/priest_vestments.geo.json"),
                 new Identifier(Vestments.MOD_ID, "textures/armor/priest_vestments.png"));
-        ArmorRenderers.register(renderer, Vestments.COLLAR, Vestments.PHELONION, Vestments.PODRIZNIK);
+        ArmorRenderers.register(renderer, Vestments.COLLAR, Vestments.PHELONION, Vestments.PODRIZNIK, Vestments.BOOTS);
     }
 }

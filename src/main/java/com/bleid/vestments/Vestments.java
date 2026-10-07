@@ -23,6 +23,8 @@ public class Vestments implements ModInitializer {
     public static final Item PHELONION = register("phelonion", ArmorItem.Type.CHESTPLATE);
     /** Подризник с епитрахилью, поясом и палицей (слот ног). */
     public static final Item PODRIZNIK = register("podriznik", ArmorItem.Type.LEGGINGS);
+    /** Ботинки с нижним ярусом подола (слот обуви). */
+    public static final Item BOOTS = register("boots", ArmorItem.Type.BOOTS);
 
     private static Item register(String name, ArmorItem.Type type) {
         return Registry.register(
@@ -37,6 +39,7 @@ public class Vestments implements ModInitializer {
             entries.add(COLLAR);
             entries.add(PHELONION);
             entries.add(PODRIZNIK);
+            entries.add(BOOTS);
         });
         LOGGER.info("Priest Vestments загружен");
     }

@@ -44,6 +44,8 @@ BONES = {
     "armorLeftLeg": dict(parent="bipedLeftLeg", pivot=[2, 12, 0]),
     "bipedRightLeg": dict(parent=None, pivot=[-2, 12, 0]),
     "armorRightLeg": dict(parent="bipedRightLeg", pivot=[-2, 12, 0]),
+    "armorLeftBoot": dict(parent="bipedLeftLeg", pivot=[2, 12, 0]),
+    "armorRightBoot": dict(parent="bipedRightLeg", pivot=[-2, 12, 0]),
 }
 
 CUBES = []
@@ -54,11 +56,10 @@ def cube(bone, key, origin, size, inflate=0.0, rotation=None, pivot=None, mirror
 # --- ВОРОТНИК (слот головы): низкий спереди, высокий жёсткий сзади, отогнут наружу ---
 for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
                       ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
-    cube("armorHead", k, o, [1, 3, 8.6], 0.0, mirror=mir, uv=uv)
-    cube("armorHead", k + "_o", o, [1, 3, 8.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
-CB = dict(rotation=[-12, 0, 0], pivot=[0, 23.5, 4.8])
-cube("armorHead", "collar_back", [-5.3, 23.5, 4.3], [10.6, 5, 1], **CB)
-cube("armorHead", "collar_back_o", [-5.3, 23.5, 4.3], [10.6, 5, 1], 0.2, **CB)
+    cube("armorHead", k, o, [1, 4, 9.6], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
+    cube("armorHead", k + "_o", o, [1, 4, 9.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
+cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 5.5, 1])         # высокая спинка между боковинами
+cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 5.5, 1], 0.17)
 
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
@@ -93,22 +94,24 @@ for side, mir in (("l", False), ("r", True)):
     def X(x0, w): return x0 if side == "l" else -(x0 + w)
     hip = [2 * sx, 12, 0]
     e = 0.01 if side == "r" else 0.0          # против мерцания в месте стыка половин
-    cube(bone, "skirt_up_" + side, [X(-1.4, 6), 4, -2.6], [6, 8, 5.2], 0.05 + e, mirror=mir, uv="skirt_up",
-         rotation=[0, 0, -4 * sx], pivot=hip)
-    cube(bone, "skirt_low_" + side, [X(-3.2, 8.2), 0, -3.0], [8.2, 5, 6], 0.1 + e, mirror=mir, uv="skirt_low",
-         rotation=[0, 0, -9 * sx], pivot=hip)
-    cube(bone, "skirt_low_o_" + side, [X(-3.2, 8.2), 0, -3.0], [8.2, 5, 6], 0.28 + e, mirror=mir, uv="skirt_low_o",
-         rotation=[0, 0, -9 * sx], pivot=hip)
-    SD = dict(rotation=[0, 0, -7 * sx], pivot=hip)
-    cube(bone, "side_low_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.0, mirror=mir, uv="side_low", **SD)
-    cube(bone, "side_low_o_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.18, mirror=mir, uv="side_low_o", **SD)
-    EP = dict()                                # епитрахиль висит прямо, без зазора по центру
-    cube(bone, "epi_low_" + side, [X(-0.05, 2.45), 0.4, -3.6], [2.45, 11.6, 0.8], 0.0 + e, mirror=mir, uv="epi_low", **EP)
-    cube(bone, "epi_low_o_" + side, [X(-0.05, 2.45), 0.4, -3.6], [2.45, 11.6, 0.8], 0.12 + e, mirror=mir, uv="epi_low_o", **EP)
-PAL = dict(rotation=[0, 0, 45], pivot=[-4.6, 6.5, -3.9])
-cube("armorRightLeg", "palitsa", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.0, **PAL)
-cube("armorRightLeg", "palitsa_o", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.15, **PAL)
-cube("armorRightLeg", "palitsa_gem", [-5.1, 6.0, -4.55], [1, 1, 0.5], 0.0, **PAL)
+    cube(bone, "skirt_up_" + side, [X(-0.8, 5.2), 4, -2.4], [5.2, 8, 4.8], 0.05 + e, mirror=mir, uv="skirt_up",
+         rotation=[0, 0, -3 * sx], pivot=hip)
+    SD = dict(rotation=[0, 0, -4 * sx], pivot=hip)
+    cube(bone, "side_low_" + side, [X(4.15, 1), 0.8, -2.8], [1, 11.2, 5.6], 0.0, mirror=mir, uv="side_low", **SD)
+    cube(bone, "side_low_o_" + side, [X(4.15, 1), 0.8, -2.8], [1, 11.2, 5.6], 0.15, mirror=mir, uv="side_low_o", **SD)
+    cube(bone, "epi_low_" + side, [X(-0.05, 2.45), 0.4, -3.2], [2.45, 11.6, 0.7], 0.0 + e, mirror=mir, uv="epi_low")
+    cube(bone, "epi_low_o_" + side, [X(-0.05, 2.45), 0.4, -3.2], [2.45, 11.6, 0.7], 0.1 + e, mirror=mir, uv="epi_low_o")
+    # --- БОТИНКИ (слот обуви): нижний ярус подола и сами ботинки ---
+    boot = "armorLeftBoot" if side == "l" else "armorRightBoot"
+    LO = dict(rotation=[0, 0, -5 * sx], pivot=hip)
+    cube(boot, "skirt_low_" + side, [X(-1.3, 5.8), 0, -2.8], [5.8, 4.5, 5.6], 0.08 + e, mirror=mir, uv="skirt_low", **LO)
+    cube(boot, "skirt_low_o_" + side, [X(-1.3, 5.8), 0, -2.8], [5.8, 4.5, 5.6], 0.22 + e, mirror=mir, uv="skirt_low_o", **LO)
+    cube(boot, "shoe_" + side, [X(-0.2, 4.4), 0, -2.3], [4.4, 1.5, 4.6], 0.02, mirror=mir, uv="shoe")
+    cube(boot, "toe_" + side, [X(0.3, 3.4), 0, -3.6], [3.4, 1.3, 1.4], 0.04, mirror=mir, uv="toe")
+PAL = dict(rotation=[0, 0, 45], pivot=[-4.2, 6.5, -3.5])
+cube("armorRightLeg", "palitsa", [-6.2, 4.5, -3.8], [4, 4, 0.6], 0.0, **PAL)
+cube("armorRightLeg", "palitsa_o", [-6.2, 4.5, -3.8], [4, 4, 0.6], 0.15, **PAL)
+cube("armorRightLeg", "palitsa_gem", [-4.7, 6.0, -4.15], [1, 1, 0.5], 0.0, **PAL)
 
 # ---------- раскладка UV (box UV, размеры округляются вниз, как в библиотеке) ----------
 def fsz(s): return [int(math.floor(v)) for v in s]
@@ -348,6 +351,19 @@ def p_skirt_low_o(f):
         band(r, r[3] - 3, outl=False); row(r, r[3] - 1, G0)
         row(r, r[3] - 4, G0)
 paint("skirt_low", p_skirt_low); paint("skirt_low_o", p_skirt_low_o)
+LEA = (46, 36, 32); LEAL = (78, 64, 56); LEAD = (26, 20, 18)
+def p_shoe(f):
+    for n, r in f.items():
+        fill(r, LEA); row(r, 0, LEAL)
+        if r[3] >= 2: row(r, r[3] - 1, LEAD)
+    fill(f["down"], LEAD)
+def p_toe(f):
+    for n, r in f.items():
+        fill(r, LEA); row(r, 0, G3)                      # золотой кант
+        if r[3] >= 2: row(r, r[3] - 1, LEAD)
+    px(f["north"], f["north"][2] // 2, 0, G5)
+    fill(f["up"], LEAL); col(f["up"], 0, G1) if f["up"][2] > 1 else None
+paint("shoe", p_shoe); paint("toe", p_toe)
 
 # ---------- низ фелони (сзади и по бокам) ----------
 def p_back_low(f):
