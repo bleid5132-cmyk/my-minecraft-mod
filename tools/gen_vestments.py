@@ -52,9 +52,6 @@ def cube(bone, key, origin, size, inflate=0.0, rotation=None, pivot=None, mirror
                       rotation=rotation, pivot=pivot, mirror=mirror, uv_key=uv or key))
 
 # --- ВОРОТНИК (слот головы): низкий спереди, высокий жёсткий сзади, отогнут наружу ---
-cube("armorHead", "collar_front", [-5.3, 23.5, -5.3], [10.6, 2, 1])
-cube("armorHead", "collar_front_o", [-5.3, 23.5, -5.3], [10.6, 2, 1], 0.2)
-cube("armorHead", "collar_gem", [-0.6, 24.1, -5.75], [1.2, 1, 0.5])
 for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
                       ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
     cube("armorHead", k, o, [1, 3, 8.6], 0.0, mirror=mir, uv=uv)
@@ -66,9 +63,9 @@ cube("armorHead", "collar_back_o", [-5.3, 23.5, 4.3], [10.6, 5, 1], 0.2, **CB)
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
 cube("armorBody", "phel_top_o", [-5, 16, -3], [10, 9, 6], 0.22)
-BU = dict(rotation=[3, 0, 0], pivot=[0, 25.5, 3.5])
-cube("armorBody", "back_up", [-5.5, 12, 3], [11, 13.5, 1], 0.03, **BU)
-cube("armorBody", "back_up_o", [-5.5, 12, 3], [11, 13.5, 1], 0.22, **BU)
+BU = dict(rotation=[8, 0, 0], pivot=[0, 25.5, 3.7])
+cube("armorBody", "back_up", [-5.5, 0.5, 3.2], [11, 25, 1], 0.03, **BU)     # цельный плащ от плеч
+cube("armorBody", "back_up_o", [-5.5, 0.5, 3.2], [11, 25, 1], 0.22, **BU)
 cube("armorBody", "cross_v", [-0.75, 15.5, -3.8], [1.5, 5.5, 1])            # наперсный крест
 cube("armorBody", "cross_h", [-2, 18.5, -3.75], [4, 1.5, 1], 0.01)
 cube("armorBody", "cross_gem", [-0.5, 18.75, -4.1], [1, 1, 0.5])             # красный камень
@@ -96,21 +93,18 @@ for side, mir in (("l", False), ("r", True)):
     def X(x0, w): return x0 if side == "l" else -(x0 + w)
     hip = [2 * sx, 12, 0]
     e = 0.01 if side == "r" else 0.0          # против мерцания в месте стыка половин
-    cube(bone, "skirt_up_" + side, [X(-0.6, 5.2), 4, -2.6], [5.2, 8, 5.2], 0.05 + e, mirror=mir, uv="skirt_up",
+    cube(bone, "skirt_up_" + side, [X(-1.4, 6), 4, -2.6], [6, 8, 5.2], 0.05 + e, mirror=mir, uv="skirt_up",
          rotation=[0, 0, -4 * sx], pivot=hip)
-    cube(bone, "skirt_low_" + side, [X(-1.0, 6), 0, -3.0], [6, 5, 6], 0.1 + e, mirror=mir, uv="skirt_low",
+    cube(bone, "skirt_low_" + side, [X(-3.2, 8.2), 0, -3.0], [8.2, 5, 6], 0.1 + e, mirror=mir, uv="skirt_low",
          rotation=[0, 0, -9 * sx], pivot=hip)
-    cube(bone, "skirt_low_o_" + side, [X(-1.0, 6), 0, -3.0], [6, 5, 6], 0.28 + e, mirror=mir, uv="skirt_low_o",
+    cube(bone, "skirt_low_o_" + side, [X(-3.2, 8.2), 0, -3.0], [8.2, 5, 6], 0.28 + e, mirror=mir, uv="skirt_low_o",
          rotation=[0, 0, -9 * sx], pivot=hip)
-    BL = dict(rotation=[4, 0, -5 * sx], pivot=hip)
-    cube(bone, "back_low_" + side, [X(-1.2, 6.4), 0.5, 3.2], [6.4, 11.5, 1], 0.03 + e, mirror=mir, uv="back_low", **BL)
-    cube(bone, "back_low_o_" + side, [X(-1.2, 6.4), 0.5, 3.2], [6.4, 11.5, 1], 0.2 + e, mirror=mir, uv="back_low_o", **BL)
     SD = dict(rotation=[0, 0, -7 * sx], pivot=hip)
     cube(bone, "side_low_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.0, mirror=mir, uv="side_low", **SD)
     cube(bone, "side_low_o_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.18, mirror=mir, uv="side_low_o", **SD)
-    EP = dict(rotation=[0, 0, -4 * sx], pivot=hip)
-    cube(bone, "epi_low_" + side, [X(0, 2.4), 0.4, -3.6], [2.4, 11.6, 0.8], 0.0, mirror=mir, uv="epi_low", **EP)
-    cube(bone, "epi_low_o_" + side, [X(0, 2.4), 0.4, -3.6], [2.4, 11.6, 0.8], 0.12, mirror=mir, uv="epi_low_o", **EP)
+    EP = dict()                                # епитрахиль висит прямо, без зазора по центру
+    cube(bone, "epi_low_" + side, [X(-0.05, 2.45), 0.4, -3.6], [2.45, 11.6, 0.8], 0.0 + e, mirror=mir, uv="epi_low", **EP)
+    cube(bone, "epi_low_o_" + side, [X(-0.05, 2.45), 0.4, -3.6], [2.45, 11.6, 0.8], 0.12 + e, mirror=mir, uv="epi_low_o", **EP)
 PAL = dict(rotation=[0, 0, 45], pivot=[-4.6, 6.5, -3.9])
 cube("armorRightLeg", "palitsa", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.0, **PAL)
 cube("armorRightLeg", "palitsa_o", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.15, **PAL)
@@ -233,7 +227,7 @@ def p_collar_o(f):
         row(r, 0, G0)
         if r[3] >= 3: row(r, 1, G3); [px(r, xx, 1, G4) for xx in range(1, r[2], 3)]
     fill(f["up"], G3)
-for k in ("collar_front", "collar_side_l", "collar_back"):
+for k in ("collar_side_l", "collar_back"):
     paint(k, p_collar); paint(k + "_o", p_collar_o)
 def p_collar_back_extra(f):
     s, n = f["south"], f["north"]
@@ -242,7 +236,6 @@ def p_collar_back_extra(f):
         for yy in range(1, 4): px(r, cx, yy, G4)
         px(r, cx - 1, 2, G4); px(r, cx + 1, 2, G4)
 paint("collar_back", p_collar_back_extra)
-paint("collar_gem", lambda f: [gem(r) for r in f.values()])
 
 # ---------- фелонь: верх ----------
 def p_phel_top(f):
@@ -270,15 +263,18 @@ def p_back_up_o(f):
     col(s, 0, G0); col(s, 1, G3); col(s, w - 1, G0); col(s, w - 2, G1)
     band(s, 3, outl=False)
     cx = w // 2                                          # большой вышитый крест с обводкой
-    for y in range(6, h):
+    for y in range(6, 18):
         px(s, cx - 2, y, G0); px(s, cx + 2, y, G0)
+    row(s, 18, G0) if False else None
+    px(s, cx - 1, 18, G0); px(s, cx, 18, G0); px(s, cx + 1, 18, G0)
     for x in range(cx - 5, cx + 6):
         px(s, x, 7, G0); px(s, x, 11, G0)
     px(s, cx - 5, 8, G0); px(s, cx - 5, 9, G0); px(s, cx - 5, 10, G0)
     px(s, cx + 5, 8, G0); px(s, cx + 5, 9, G0); px(s, cx + 5, 10, G0)
     px(s, cx - 1, 6, G0); px(s, cx, 6, G0); px(s, cx + 1, 6, G0)
-    for y in range(7, h):
+    for y in range(7, 18):
         px(s, cx, y, G4); px(s, cx - 1, y, G3); px(s, cx + 1, y, G1)
+    band(s, h - 4, outl=False); row(s, h - 2, G1); row(s, h - 1, G0)   # кайма плаща
     for x in range(cx - 4, cx + 5):
         px(s, x, 8, G3); px(s, x, 9, G4); px(s, x, 10, G1)
     px(s, cx, 9, RED); px(s, cx, 8, REDL)
@@ -363,7 +359,6 @@ def p_back_low_o(f):
     col(s, w - 1, G0); col(s, w - 2, G3)                  # кант по внешнему краю
     band(s, h - 4, outl=False); row(s, h - 2, G1); row(s, h - 1, G0)
     for n in ("east", "west"): col(f[n], 0, G0)
-paint("back_low", p_back_low); paint("back_low_o", p_back_low_o)
 
 def p_side_low(f):
     for n in ("east", "west"): metal(f[n], seed=8)
