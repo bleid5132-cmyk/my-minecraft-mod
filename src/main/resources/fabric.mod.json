@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "vestments",
+  "version": "${version}",
+  "name": "Priest Vestments",
+  "description": "Золотое облачение священника: воротник, фелонь и подризник с 3D-моделью.",
+  "authors": ["bleid5132"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.bleid.vestments.Vestments"],
+    "client": ["com.bleid.vestments.client.VestmentsClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*",
+    "armor_model_api": ">=1.0.0"
+  }
+}
