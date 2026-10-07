@@ -90,6 +90,7 @@ public final class StaffRibbons {
                     || chain.lastEntityPos.squaredDistanceTo(entityPos) > 4.0 || now - chain.lastUsed > 1_000_000_000L) {
                 chain.reset(anchorWorld);                // первый кадр, телепорт или долгий перерыв
                 chain.lastNanos = now;
+                chain.lastEntityPos = entityPos;
             }
             Vec3d moved = entityPos.subtract(chain.lastEntityPos);
             chain.lastEntityPos = entityPos;
