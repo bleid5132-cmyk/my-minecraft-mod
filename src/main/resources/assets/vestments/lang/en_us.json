@@ -9,5 +9,8 @@
   "tooltip.vestments.boots": "Walk on water for up to 15 seconds (SHIFT to sink)",
   "tooltip.vestments.full_set": "Works only with the full set equipped",
   "message.vestments.water_walk": "Water walking: %s s",
-  "message.vestments.water_walk_end": "Strength spent — stand on solid ground to recharge"
+  "message.vestments.water_walk_end": "Strength spent — stand on solid ground to recharge",
+  "item.vestments.staff_of_light": "Staff of Light",
+  "tooltip.vestments.staff_of_light.damage": "Hits enemies for 3 hearts",
+  "tooltip.vestments.staff_of_light.heal": "Hitting players and peaceful mobs heals them for 3 hearts"
 }

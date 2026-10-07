@@ -26,6 +26,10 @@ public class Vestments implements ModInitializer {
     /** Ботинки с нижним ярусом подола (слот обуви). */
     public static final Item BOOTS = register("boots", ArmorItem.Type.BOOTS, "tooltip.vestments.boots");
 
+    /** Посох Света — основное оружие. */
+    public static final Item STAFF_OF_LIGHT = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "staff_of_light"),
+            new StaffOfLightItem(new FabricItemSettings().maxDamage(500).rarity(Rarity.RARE)));
+
     private static Item register(String name, ArmorItem.Type type, String abilityKey) {
         return Registry.register(
                 Registries.ITEM,
@@ -41,8 +45,10 @@ public class Vestments implements ModInitializer {
             entries.add(PHELONION);
             entries.add(PODRIZNIK);
             entries.add(BOOTS);
+            entries.add(STAFF_OF_LIGHT);
         });
         SetBonus.register();
+        StaffOfLightItem.registerEvents();
         LOGGER.info("Priest Vestments загружен");
     }
 }
