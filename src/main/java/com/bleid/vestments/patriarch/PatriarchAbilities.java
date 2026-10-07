@@ -97,7 +97,7 @@ public final class PatriarchAbilities {
             if (entity instanceof MobEntity mob && mob.getCommandTags().contains(FROZEN_TAG)
                     && !FROZEN.containsKey(mob.getUuid())) {
                 mob.setAiDisabled(false);
-                mob.removeCommandTag(FROZEN_TAG);
+                mob.removeScoreboardTag(FROZEN_TAG);
             }
         });
     }
@@ -249,7 +249,7 @@ public final class PatriarchAbilities {
             if (t >= e.getValue().end || ent == null) {
                 if (ent instanceof MobEntity mob) {
                     mob.setAiDisabled(e.getValue().hadNoAi);
-                    mob.removeCommandTag(FROZEN_TAG);
+                    mob.removeScoreboardTag(FROZEN_TAG);
                 }
                 it.remove();
                 continue;

@@ -37,6 +37,8 @@ public final class ServicePoints {
     public static final Identifier SYNC = new Identifier(Vestments.MOD_ID, "service_sync");
     /** Огоньки: int id цели, double x, y, z откуда летят, int сколько очков, int новый итог (-1 для чужих). */
     public static final Identifier ORBS = new Identifier(Vestments.MOD_ID, "service_orbs");
+    /** Душа убитого священником моба: int id сущности, long зерно случайности. */
+    public static final Identifier SOUL = new Identifier(Vestments.MOD_ID, "soul");
 
     private ServicePoints() { }
 
@@ -49,6 +51,16 @@ public final class ServicePoints {
             if (!(source.getAttacker() instanceof ServerPlayerEntity player)) return;
             int pts = pointsForKill(entity);
             add(player, pts, entity.getPos().add(0, entity.getHeight() * 0.6, 0));
+            if (canServe(player)) {
+                // душа убитого моба: клиенты рядом рисуют её полёт в небо
+                for (ServerPlayerEntity viewer : player.getServerWorld().getPlayers()) {
+                    if (viewer.squaredDistanceTo(entity) > 96 * 96) continue;
+                    PacketByteBuf buf = PacketByteBufs.create();
+                    buf.writeVarInt(entity.getId());
+                    buf.writeLong(entity.getUuid().getLeastSignificantBits());
+                    ServerPlayNetworking.send(viewer, SOUL, buf);
+                }
+            }
         });
 
         // команды для проверки: /vestments points add|set <n>
