@@ -14,11 +14,12 @@ OUT = os.path.join(HERE, "out")
 os.makedirs(OUT, exist_ok=True)
 
 # ---------- палитра ----------
-OUTL = (70, 42, 8)
-D = (150, 98, 14)       # тень золота
-M = (212, 158, 26)      # золото
-L = (246, 204, 54)      # светлое золото
-HL = (255, 238, 140)    # блик
+OUTL = (78, 50, 14)
+D = (128, 88, 26)       # тень золота
+M = (186, 140, 52)      # золото (глубокое, не кислотное)
+L = (214, 174, 84)      # светлое золото
+HL = (232, 204, 128)    # блик (приглушённый)
+DD = (104, 70, 20)      # тёмный край
 LIN = (168, 138, 92)    # подкладка
 LIND = (120, 94, 58)
 WH = (238, 234, 224)    # белый подризник
@@ -61,8 +62,8 @@ cube("armorHead", "collar_side_r", [-5.3, 23.5, -4.3], [1, 2.5, 8.6], mirror=Tru
 
 # --- ФЕЛОНЬ (слот груди) ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])                       # плечи, спереди до пояса
-cube("armorBody", "phel_back", [-5, 1, 2.2], [10, 15, 1], 0.02,
-     rotation=[6, 0, 0], pivot=[0, 16, 2.7])                                  # длинная спина почти до пят
+cube("armorBody", "phel_back", [-5.5, 1, 3], [11, 24.5, 1], 0.03,
+     rotation=[3, 0, 0], pivot=[0, 25.5, 3.5])                                # цельная спина от плеч почти до пят
 cube("armorBody", "phel_side_l", [4.2, 1.5, -3], [1, 11, 6])                  # боковые полы
 cube("armorBody", "phel_side_r", [-5.2, 1.5, -3], [1, 11, 6], mirror=True, uv="phel_side_l")
 cube("armorBody", "cross_v", [-0.5, 16.5, -3.6], [1, 4, 1])                   # наперсный крест
@@ -139,16 +140,21 @@ def col(r, x, c):
     for y in range(r[3]): px(r, x, y, c)
 
 def brocade(r, seed=0):
-    """Золотая парча с узором из крестиков."""
+    """Спокойная золотая парча: редкие четырёхлистники, мягкая тень книзу."""
     fill(r, M)
     x0, y0, w, h = r
     for yy in range(h):
         for xx in range(w):
-            gx, gy = (xx + seed) % 5, (yy + seed * 2) % 5
-            if (gx == 2 and gy in (1, 2, 3)) or (gy == 2 and gx in (1, 3)):
+            gx, gy = (xx + seed) % 6, (yy + seed * 3) % 6
+            if (gx, gy) in ((2, 1), (1, 2), (3, 2), (2, 3)):
                 px(r, xx, yy, L)
-            elif gx == 0 and gy == 0:
+            elif (gx, gy) == (2, 2):
                 px(r, xx, yy, D)
+            elif (gx + gy) % 6 == 5 and gx == 5:
+                px(r, xx, yy, D)
+    if h >= 6:
+        for xx in range(w):      # тень у нижнего края
+            if P[x0 + xx, y0 + h - 1][:3] == M: px(r, xx, h - 1, D)
 
 def small_cross(r, cx, cy, c=HL):
     for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -162,8 +168,8 @@ def big_cross(r, cx, top, h, arm_y, arm_w, c=HL, edge=L):
     px(r, cx, arm_y, c)
 
 def galloon(r, y):
-    """Полоса галуна: светлая середина, тёмные края."""
-    row(r, y - 1, D); row(r, y, HL); row(r, y + 1, L)
+    """Тонкий галун: тёмная кромка и светлая нить."""
+    row(r, y, L); row(r, y + 1, D)
 
 def edge_outline(r):
     x0, y0, w, h = r
@@ -177,79 +183,86 @@ def paint(key, fn):
 # --- воротник ---
 def p_collar(f):
     for n, r in f.items():
-        fill(r, L)
-        if r[3] >= 2:
-            row(r, 0, HL); row(r, r[3] - 1, D)
-        for xx in range(1, r[2] - 1, 3):
-            px(r, xx, r[3] // 2, M)
-    fill(f["up"], HL)
+        fill(r, M)
+        row(r, 0, L)
+        if r[3] >= 2: row(r, r[3] - 1, D)
+        for xx in range(2, r[2] - 1, 4):
+            if r[3] >= 3: px(r, xx, r[3] // 2, L)
+    fill(f["up"], L)
     fill(f["down"], D)
 for k in ("collar_front", "collar_back", "collar_side_l"):
     paint(k, p_collar)
 
-# --- фелонь, верх ---
+# --- фелонь, верх (плечи и перед до пояса) ---
 def p_phel_top(f):
     for n in ("north", "east", "west", "south"):
         brocade(f[n], seed=1)
-        galloon(f[n], 2)
-        galloon(f[n], 6)
+        galloon(f[n], 3)                      # одна полоса галуна на плечах
     n = f["north"]
-    # цепочка креста — V от плеч к кресту
-    for i in range(5):
-        px(n, 3 + i // 2, i, SILD)
-        px(n, 6 - i // 2, i, SILD)
-    row(n, n[3] - 1, HL)           # кайма переднего подола
-    row(n, n[3] - 2, L)
+    row(n, 0, L)                              # кант по вырезу
+    for (xx, yy) in ((2, 1), (3, 2), (4, 3)):  # тонкая цепочка креста
+        px(n, xx, yy, L); px(n, 9 - xx, yy, L)
+    row(n, n[3] - 2, L); row(n, n[3] - 1, DD) # кайма переднего подола
     brocade(f["up"], seed=2)
-    for xx in range(f["up"][2]): px(f["up"], xx, 0, L)
     fill(f["down"], LIN)
 paint("phel_top", p_phel_top)
 
+# --- спина: цельное полотно от плеч до пят ---
 def p_phel_back(f):
     s = f["south"]
     brocade(s, seed=3)
-    col(s, 0, L); col(s, s[2] - 1, L)
-    big_cross(s, 5, 2, 9, 5, 3)
-    row(s, s[3] - 2, L); row(s, s[3] - 1, HL)
+    col(s, 0, L); col(s, 1, D); col(s, s[2] - 1, L); col(s, s[2] - 2, D)   # кант по краям
+    galloon(s, 3)
+    # вышитый крест в верхней части спины
+    cx = s[2] // 2
+    for y in range(6, 15):
+        px(s, cx, y, L)
+        px(s, cx - 1, y, D); px(s, cx + 1, y, D)
+    for x in range(cx - 3, cx + 4):
+        px(s, x, 9, L); px(s, x, 8, D); px(s, x, 10, D)
+    px(s, cx, 9, HL)
+    row(s, s[3] - 3, D); row(s, s[3] - 2, L); row(s, s[3] - 1, DD)       # кайма подола
     fill(f["north"], LIN)
     for n in ("east", "west", "up", "down"):
-        fill(f[n], L)
+        fill(f[n], M); row(f[n], 0, L)
 paint("phel_back", p_phel_back)
 
 def p_phel_side(f):
     for n in ("east", "west"):
         brocade(f[n], seed=4)
-        col(f[n], 0, L); col(f[n], f[n][2] - 1, L)
-        row(f[n], f[n][3] - 1, HL)
-        small_cross(f[n], 3, 4, L)
+        col(f[n], 0, L); col(f[n], f[n][2] - 1, D)
+        row(f[n], f[n][3] - 2, L); row(f[n], f[n][3] - 1, DD)
     for n in ("north", "south", "up", "down"):
-        fill(f[n], L)
-    row(f["north"], f["north"][3] - 1, HL)
+        fill(f[n], M); col(f[n], 0, L)
 paint("phel_side_l", p_phel_side)
 
+# --- наперсный крест (золотой) ---
 def p_cross(f):
-    for r in f.values(): fill(r, SIL)
-    for n in ("north",):
-        col(f[n], f[n][2] - 1, SILD)
-        row(f[n], f[n][3] - 1, SILD)
+    for r in f.values():
+        fill(r, L)
+    for n in ("north", "south"):
+        r = f[n]
+        col(r, r[2] - 1, D); row(r, r[3] - 1, D)
+        if r[2] >= 3 and r[3] >= 1: px(r, r[2] // 2, 0, HL)
 paint("cross_v", p_cross)
 paint("cross_h", p_cross)
 
+# --- фелонь на руках ---
 def p_arm(f):
     for n in ("north", "east", "west", "south"):
         brocade(f[n], seed=0)
-        galloon(f[n], 2)
-        galloon(f[n], 6)
-        row(f[n], f[n][3] - 1, HL)
+        galloon(f[n], 3)
+        row(f[n], f[n][3] - 2, L); row(f[n], f[n][3] - 1, DD)
     brocade(f["up"]); fill(f["down"], LIN)
 paint("arm", p_arm)
 
+# --- поручи ---
 def p_cuff(f):
     for n in ("north", "east", "west", "south"):
         r = f[n]
-        fill(r, L); row(r, 0, HL); row(r, r[3] - 1, D)
-        px(r, r[2] // 2 - 1, 1, M); px(r, r[2] // 2, 1, HL); px(r, r[2] // 2 + 1, 1, M) if r[2] > 3 else None
-    fill(f["up"], L); fill(f["down"], D)
+        fill(r, M); row(r, 0, L); row(r, r[3] - 1, D)
+        px(r, r[2] // 2, 1, L)
+    fill(f["up"], M); fill(f["down"], D)
 paint("cuff", p_cuff)
 
 # --- подризник, епитрахиль, пояс, палица ---
@@ -261,47 +274,43 @@ paint("torso", p_torso)
 
 def p_epi(f):
     for r in f.values():
-        fill(r, M); col(r, 0, L); col(r, r[2] - 1, L)
-        for yy in range(1, r[3], 4): px(r, r[2] // 2, yy, HL)
+        fill(r, M); col(r, r[2] - 1, D)
+        for yy in range(1, r[3], 3): px(r, r[2] // 2, yy, L)
 paint("epi_top", p_epi)
 
 def p_belt(f):
     for r in f.values():
-        fill(r, L); row(r, 0, HL)
+        fill(r, M); row(r, 0, L)
     n = f["north"]
-    px(n, n[2] // 2 - 1, 0, SIL); px(n, n[2] // 2, 0, SIL)
+    px(n, n[2] // 2 - 1, 0, HL); px(n, n[2] // 2, 0, HL)
 paint("belt", p_belt)
 
 def p_skirt(f):
     for n, r in f.items():
         fill(r, WH)
-        for xx in range(1, r[2], 2): col(r, xx, WHD)     # складки
+        for xx in range(2, r[2], 4): col(r, xx, WHD)     # редкие мягкие складки
         if n in ("north", "east", "west", "south"):
-            row(r, r[3] - 3, D); row(r, r[3] - 2, M); row(r, r[3] - 1, L)   # золотая кайма
-            for xx in range(0, r[2], 2): px(r, xx, r[3] - 2, HL)
+            row(r, r[3] - 2, M); row(r, r[3] - 1, D)   # золотая кайма
     fill(f["down"], WHS)
 paint("skirt", p_skirt)
 
 def p_epi_low(f):
     for n, r in f.items():
         fill(r, M)
-        col(r, r[2] - 1, L)
+        col(r, r[2] - 1, D)
     n = f["north"]
-    for yy in (1, 5, 9):
+    for yy in (2, 6, 10):
         px(n, 0, yy, BTN)            # пуговицы по шву
-    for yy in (3, 7):
-        px(n, 1, yy, HL)
-    row(n, n[3] - 1, HL)             # бахрома
-    row(n, n[3] - 2, L)
+    for yy in (4, 8):
+        px(n, 1, yy, L)
+    row(n, n[3] - 2, L); row(n, n[3] - 1, D)   # кайма внизу
 paint("epi_low", p_epi_low)
 
 def p_palitsa(f):
     for r in f.values():
-        fill(r, M)
+        fill(r, L)
     n = f["north"]
-    for i in range(3):
-        px(n, i, 0, HL); px(n, 0, i, HL); px(n, i, 2, D); px(n, 2, i, D)
-    px(n, 1, 1, HL)
+    px(n, 1, 1, M)
 paint("palitsa", p_palitsa)
 
 tex.save(os.path.join(OUT, "priest_vestments.png"))
@@ -353,6 +362,7 @@ def face_quads(c, texture):
     quads = {   # TL, TR, BL, BR в координатах текстуры
         "north": ((x0, y1, z0), (x1, y1, z0), (x0, y0, z0), (x1, y0, z0)),
         "south": ((x1, y1, z1), (x0, y1, z1), (x1, y0, z1), (x0, y0, z1)),
+        "west": ((x1, y1, z1), (x1, y1, z0), (x1, y0, z1), (x1, y0, z0)),   # грань +x (вид сбоку)
     }
     out = []
     for n, (tl, tr, bl, br) in quads.items():
@@ -395,18 +405,26 @@ def render(view):
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     def to2d(p):
         x, y, z = p
-        sx = x if view == "front" else -x
+        sx = x if view == "front" else (-x if view == "back" else -z)
         return (W / 2 + sx * S, (33 - y) * S)
     items = []
     for o, s, fimg, bimg in BODY:
         x0, y0, z0 = o; x1, y1, z1 = x0 + s[0], y0 + s[1], z0 + s[2]
         if view == "front": items.append((z0, (x0, y1, z0), (x1, y1, z0), (x0, y0, z0), fimg))
-        else: items.append((-z1, (x1, y1, z1), (x0, y1, z1), (x1, y0, z1), bimg))
+        elif view == "back": items.append((-z1, (x1, y1, z1), (x0, y1, z1), (x1, y0, z1), bimg))
+        else:
+            side = bimg if s[0] == 8 and s[1] == 8 else fimg
+            items.append((-x1, (x1, y1, z1), (x1, y1, z0), (x1, y0, z1), side.resize((s[2], s[1]))))
     for c in CUBES:
         for n, tl, tr, bl, im in face_quads(c, tex):
-            if (view == "front") != (n == "north"): continue
-            depth = (tl[2] + tr[2] + bl[2]) / 3
-            items.append((depth if view == "front" else -depth, tl, tr, bl, im))
+            want = {"front": "north", "back": "south", "side": "west"}[view]
+            if n != want: continue
+            if view == "side":
+                depth = -(tl[0] + tr[0] + bl[0]) / 3
+            else:
+                depth = (tl[2] + tr[2] + bl[2]) / 3
+                if view == "back": depth = -depth
+            items.append((depth, tl, tr, bl, im))
     items.sort(key=lambda t: -t[0])   # дальние первыми
     for _, tl, tr, bl, im in items:
         P0, P1, P2 = to2d(tl), to2d(tr), to2d(bl)
@@ -435,17 +453,17 @@ def render(view):
         img.alpha_composite(warped, (bx0, by0))
     return img
 
-front, back = render("front"), render("back")
-cw, ch = front.width * 2 + 60, front.height + 70
+front, back, side = render("front"), render("back"), render("side")
+cw, ch = front.width * 3 + 80, front.height + 70
 can = Image.new("RGBA", (cw, ch))
 dr = ImageDraw.Draw(can)
 for yy in range(ch):
     t = yy / ch
     dr.line([(0, yy), (cw, yy)], fill=(int(140 + 60 * t), int(190 + 30 * t), int(235 - 10 * t), 255))
 dr.rectangle([0, ch - 56, cw, ch], fill=(110, 160, 70, 255))
-can.alpha_composite(front, (20, 10)); can.alpha_composite(back, (40 + front.width, 10))
+can.alpha_composite(front, (20, 10)); can.alpha_composite(back, (40 + front.width, 10)); can.alpha_composite(side, (60 + 2 * front.width, 10))
 fnt = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 26)
-for txt, x0 in (("Спереди", 20), ("Сзади", 40 + front.width)):
+for txt, x0 in (("Спереди", 20), ("Сзади", 40 + front.width), ("Сбоку", 60 + 2 * front.width)):
     tw = dr.textlength(txt, font=fnt)
     dr.text((x0 + front.width / 2 - tw / 2, ch - 46), txt, font=fnt, fill="white", stroke_width=2, stroke_fill=(40, 40, 40))
 can.convert("RGB").save(os.path.join(OUT, "preview.png"))
