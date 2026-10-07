@@ -11,6 +11,7 @@
   "message.vestments.water_walk": "Water walking: %s s",
   "message.vestments.water_walk_end": "Strength spent — stand on solid ground to recharge",
   "item.vestments.staff_of_light": "Staff of Light",
-  "tooltip.vestments.staff_of_light.damage": "Hits enemies for 3 hearts",
-  "tooltip.vestments.staff_of_light.heal": "Hitting players and peaceful mobs heals them for 3 hearts"
+  "tooltip.vestments.staff_of_light.damage": "Hits hostile mobs for 3 hearts",
+  "tooltip.vestments.staff_of_light.peace": "Will not strike players, peaceful or neutral mobs",
+  "message.vestments.staff_refuses": "The Staff of Light will not strike the peaceful"
 }

@@ -11,6 +11,7 @@
   "message.vestments.water_walk": "Хождение по воде: %s с",
   "message.vestments.water_walk_end": "Силы иссякли — встаньте на землю, чтобы восстановить",
   "item.vestments.staff_of_light": "Посох Света",
-  "tooltip.vestments.staff_of_light.damage": "Удар по врагам: 3 сердца урона",
-  "tooltip.vestments.staff_of_light.heal": "Удар по игрокам и мирным мобам лечит их на 3 сердца"
+  "tooltip.vestments.staff_of_light.damage": "Удар по враждебным мобам: 3 сердца урона",
+  "tooltip.vestments.staff_of_light.peace": "Не поднимается на игроков, мирных и нейтральных мобов",
+  "message.vestments.staff_refuses": "Посох Света не поднимается на мирных"
 }
