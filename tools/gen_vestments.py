@@ -38,6 +38,8 @@ BONES = {
     "armorWaist": dict(parent="bipedBody", pivot=[0, 24, 0]),
     # отдельная кость плаща: в игре её наклон меняет код мода (CapeAnimator) в зависимости от скорости
     "vestments_cape": dict(parent="armorBody", pivot=[0, 25.5, 3.7], rotation=[8, 0, 0]),
+    "vestments_cape2": dict(parent="vestments_cape", pivot=[0, 17.5, 3.7]),
+    "vestments_cape3": dict(parent="vestments_cape2", pivot=[0, 9.5, 3.7]),
     "bipedLeftArm": dict(parent=None, pivot=[5, 22, 0]),
     "armorLeftArm": dict(parent="bipedLeftArm", pivot=[5, 22, 0]),
     "bipedRightArm": dict(parent=None, pivot=[-5, 22, 0]),
@@ -68,8 +70,11 @@ cube("armorHead", "collar_floor", [-4.3, 23.6, -1.0], [8.6, 0, 5.3])
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
 cube("armorBody", "phel_top_o", [-5, 16, -3], [10, 9, 6], 0.22)
-cube("vestments_cape", "back_up", [-5.5, 0.5, 3.2], [11, 25, 1], 0.03)     # цельный плащ от плеч
-cube("vestments_cape", "back_up_o", [-5.5, 0.5, 3.2], [11, 25, 1], 0.22)
+# плащ из трёх частей на шарнирах: верх 8 px, середина 8 px, низ 9 px
+CAPE_SEGS = [("vestments_cape", 17.5, 8), ("vestments_cape2", 9.5, 8), ("vestments_cape3", 0.5, 9)]
+for i, (bone, y0, h) in enumerate(CAPE_SEGS):
+    cube(bone, f"cape{i}", [-5.5, y0, 3.2], [11, h, 1], 0.03)
+    cube(bone, f"cape{i}_o", [-5.5, y0, 3.2], [11, h, 1], 0.22 + 0.01 * i)
 cube("armorBody", "cross_v", [-0.75, 15.5, -3.8], [1.5, 5.5, 1])            # наперсный крест
 cube("armorBody", "cross_h", [-2, 18.5, -3.75], [4, 1.5, 1], 0.01)
 cube("armorBody", "cross_gem", [-0.5, 18.75, -4.1], [1, 1, 0.5])             # красный камень
@@ -291,7 +296,35 @@ def p_back_up_o(f):
         px(s, x, 8, G3); px(s, x, 9, G4); px(s, x, 10, G1)
     px(s, cx, 9, RED); px(s, cx, 8, REDL)
     for n in ("east", "west"): col(f[n], 0, G0)
-paint("back_up", p_back_up); paint("back_up_o", p_back_up_o)
+def paint_cape_segments():
+    """Рисует плащ целиком (11x25) теми же кистями, потом раскладывает полосы по сегментам."""
+    global P
+    full = {}
+    for key, fn in (("base", p_back_up), ("over", p_back_up_o)):
+        scratch = Image.new("RGBA", (128, 128), T)
+        saved = P
+        P = scratch.load()
+        # виртуальная развёртка куба 11x25x1 в точке (0,0)
+        w, h, d = 11, 25, 1
+        f = {"up": (d, 0, w, d), "down": (d + w, 0, w, d), "east": (0, d, d, h),
+             "north": (d, d, w, h), "west": (d + w, d, d, h), "south": (2 * d + w, d, w, h)}
+        fn(f)
+        P = saved
+        full[key] = (scratch, f)
+    y_top = 0
+    for i, (bone, y0, h) in enumerate(CAPE_SEGS):
+        for key, suffix in (("base", ""), ("over", "_o")):
+            scratch, f = full[key]
+            seg = faces(f"cape{i}{suffix}", [11, h, 1])
+            for n in ("north", "south", "east", "west"):
+                sx, sy, sw, sh = f[n]
+                crop = scratch.crop((sx, sy + y_top, sx + sw, sy + y_top + h))
+                tex.paste(crop, (seg[n][0], seg[n][1]))
+            for n, src in (("up", "up"), ("down", "down")):
+                sx, sy, sw, sh = f[src]
+                tex.paste(scratch.crop((sx, sy, sx + sw, sy + sh)), (seg[n][0], seg[n][1]))
+        y_top += h
+paint_cape_segments()
 
 def p_cross(f):
     for r in f.values():
