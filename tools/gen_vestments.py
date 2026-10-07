@@ -58,10 +58,13 @@ for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
                       ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
     cube("armorHead", k, o, [1, 4, 9.6], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
     cube("armorHead", k + "_o", o, [1, 4, 9.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
-cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 8.5, 1])         # высокая спинка между боковинами
-cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 8.5, 1], 0.17)
+cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 5.5, 1])         # высокая спинка между боковинами
+cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 5.5, 1], 0.17)
 
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
+# накладка за шеей: на туловище, не двигается с головой — закрывает низ затылка при наклоне
+cube("armorBody", "neck_guard", [-4.8, 23.0, 5.8], [9.6, 5, 1])
+cube("armorBody", "neck_guard_o", [-4.8, 23.0, 5.8], [9.6, 5, 1], 0.15)
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
 cube("armorBody", "phel_top_o", [-5, 16, -3], [10, 9, 6], 0.22)
 BU = dict(rotation=[8, 0, 0], pivot=[0, 25.5, 3.7])
@@ -222,7 +225,7 @@ def clear(f):
 # ---------- воротник ----------
 def p_collar(f):
     for n in SIDES: metal(f[n], seed=1, motifs=False)
-    fill(f["up"], G3); fill(f["down"], G1)
+    fill(f["up"], G3); fill(f["down"], LINR)
     for n in SIDES: outline(f[n], bottom=True, sides=False)
 def p_collar_o(f):
     for n in SIDES:
@@ -239,6 +242,17 @@ def p_collar_back_extra(f):
         for yy in range(1, 4): px(r, cx, yy, G4)
         px(r, cx - 1, 2, G4); px(r, cx + 1, 2, G4)
 paint("collar_back", p_collar_back_extra)
+
+def p_neck_guard(f):
+    for n in SIDES: metal(f[n], seed=4, motifs=False)
+    fill(f["up"], G3); fill(f["down"], G1)
+def p_neck_guard_o(f):
+    for n in SIDES:
+        r = f[n]
+        row(r, 0, G3); [px(r, xx, 0, G4) for xx in range(1, r[2], 3)]
+        row(r, r[3] - 1, G0)
+    fill(f["up"], G3)
+paint("neck_guard", p_neck_guard); paint("neck_guard_o", p_neck_guard_o)
 
 # ---------- фелонь: верх ----------
 def p_phel_top(f):
