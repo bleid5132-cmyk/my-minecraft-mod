@@ -18,5 +18,6 @@ public class VestmentsClient implements ClientModInitializer {
         WaterWalkClient.register();
         StaffBeamRenderer.register();
         AbilityHud.register();
+        StaffModel.register();
     }
 }
