@@ -54,12 +54,13 @@ def cube(bone, key, origin, size, inflate=0.0, rotation=None, pivot=None, mirror
                       rotation=rotation, pivot=pivot, mirror=mirror, uv_key=uv or key))
 
 # --- ВОРОТНИК (слот головы): низкий спереди, высокий жёсткий сзади, отогнут наружу ---
-for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
-                      ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
-    cube("armorHead", k, o, [1, 4, 9.6], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
-    cube("armorHead", k + "_o", o, [1, 4, 9.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
-cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 5.5, 1])         # высокая спинка между боковинами
-cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 5.5, 1], 0.17)
+# цельная подкова вокруг шеи: одинаковая высота, отступ 1 px от головы
+for k, o, mir, uv in (("collar_side_l", [5.0, 23.5, -5.0], False, None),
+                      ("collar_side_r", [-6.0, 23.5, -5.0], True, "collar_side_l")):
+    cube("armorHead", k, o, [1, 4.5, 11], 0.0, mirror=mir, uv=uv)
+    cube("armorHead", k + "_o", o, [1, 4.5, 11], 0.15, mirror=mir, uv=(uv or k) + "_o")
+cube("armorHead", "collar_back", [-5.0, 23.5, 5.0], [10, 4.5, 1])
+cube("armorHead", "collar_back_o", [-5.0, 23.5, 5.0], [10, 4.5, 1], 0.15)
 
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
@@ -219,27 +220,25 @@ SIDES = ("north", "east", "west", "south")
 def clear(f):
     pass
 
-# ---------- воротник ----------
+# ---------- воротник: одна сплошная деталь ----------
 def p_collar(f):
     for n in SIDES: metal(f[n], seed=1, motifs=False)
     fill(f["up"], G3); fill(f["down"], LINR)
-    for n in SIDES: outline(f[n], bottom=True, sides=False)
 def p_collar_o(f):
-    for n in SIDES:
+    for n in SIDES:                  # одна полоса галуна по всему воротнику, без обводок на стыках
         r = f[n]
-        row(r, 0, G0)
-        if r[3] >= 3: row(r, 1, G3); [px(r, xx, 1, G4) for xx in range(1, r[2], 3)]
+        row(r, 0, G3); row(r, 1, G1)
+        for xx in range(1, r[2], 3): px(r, xx, 0, G4)
+        row(r, r[3] - 1, G0)
     fill(f["up"], G3)
 for k in ("collar_side_l", "collar_back"):
     paint(k, p_collar); paint(k + "_o", p_collar_o)
 def p_collar_back_extra(f):
-    s, n = f["south"], f["north"]
-    for r in (s, n):                                  # вышитый крестик на высокой части
+    for r in (f["south"], f["north"]):                # вышитый крестик на спинке
         cx = r[2] // 2
-        for yy in range(1, 4): px(r, cx, yy, G4)
+        for yy in range(2, 4): px(r, cx, yy, G4)
         px(r, cx - 1, 2, G4); px(r, cx + 1, 2, G4)
 paint("collar_back", p_collar_back_extra)
-
 # ---------- фелонь: верх ----------
 def p_phel_top(f):
     for n in SIDES: metal(f[n], seed=1)
