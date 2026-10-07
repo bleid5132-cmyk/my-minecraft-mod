@@ -22,22 +22,18 @@ import net.minecraft.util.math.BlockPos;
 
 /**
  * Способности облачения. Работают, только когда надеты все 4 предмета:
- * воротник — Регенерация I; мантия — сопротивление отбрасыванию и лечение игроков рядом;
- * поножи — +50% скорости на песке душ; сандалии — плавное падение (вдвое меньше урона от падения,
- * само замедление падения делает клиент, см. client/SlowFallClient).
+ * воротник — Регенерация I; мантия — лечение игроков рядом;
+ * поножи — +50% скорости на песке душ; сандалии — хождение по воде до 15 секунд
+ * (само движение по воде делает клиент, см. client/WaterWalkClient; здесь — отмена урона
+ * от падения на воду).
  */
 public final class SetBonus {
-    private static final UUID KNOCKBACK_ID = UUID.fromString("6b1f5c2e-6a54-4c39-9d4e-0f7d2b1a9c01");
     private static final UUID SOUL_SAND_SPEED_ID = UUID.fromString("6b1f5c2e-6a54-4c39-9d4e-0f7d2b1a9c02");
 
-    private static final double KNOCKBACK_RESISTANCE = 0.6;   // 60%
     private static final double SOUL_SAND_SPEED = 0.5;        // +50%
     private static final int HEAL_INTERVAL = 60;               // 3 секунды
-    private static final float HEAL_AMOUNT = 1.0f;             // полсердечка
-    private static final double HEAL_RADIUS = 3.0;
-    private static final float FALL_DAMAGE_MULTIPLIER = 0.5f;
-
-    private static boolean reapplyingFallDamage = false;
+    private static final float HEAL_AMOUNT = 2.0f;             // 1 сердечко
+    private static final double HEAL_RADIUS = 5.0;
 
     private SetBonus() { }
 
@@ -59,32 +55,17 @@ public final class SetBonus {
             }
         });
 
-        // Сандалии паломника: урон от падения вдвое меньше
+        // Сандалии паломника: приземление на воду, по которой идёшь, не наносит урона от падения
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
-            if (reapplyingFallDamage || !(entity instanceof PlayerEntity) || !source.isOf(DamageTypes.FALL)
-                    || !hasFullSet(entity)) {
+            if (!(entity instanceof PlayerEntity) || !source.isOf(DamageTypes.FALL) || !hasFullSet(entity)) {
                 return true;
             }
-            float reduced = amount * FALL_DAMAGE_MULTIPLIER;
-            if (reduced >= 0.5f) {
-                reapplyingFallDamage = true;
-                try {
-                    entity.damage(source, reduced);
-                } finally {
-                    reapplyingFallDamage = false;
-                }
-            }
-            return false; // исходный (полный) урон отменяем
+            return !overWater(entity);
         });
     }
 
     private static void tick(ServerPlayerEntity player) {
         boolean full = hasFullSet(player) && player.isAlive();
-
-        // Мантия: сопротивление отбрасыванию
-        setModifier(player, EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, KNOCKBACK_ID,
-                "Vestments knockback resistance", KNOCKBACK_RESISTANCE,
-                EntityAttributeModifier.Operation.ADDITION, full);
 
         // Поножи: +50% скорости на песке душ
         setModifier(player, EntityAttributes.GENERIC_MOVEMENT_SPEED, SOUL_SAND_SPEED_ID,
@@ -99,11 +80,11 @@ public final class SetBonus {
             player.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 220, 0, true, false, true));
         }
 
-        // Мантия: раз в 3 секунды лечит игроков рядом на полсердечка
+        // Мантия: раз в 3 секунды лечит всех игроков в радиусе 5 блоков (и себя) на 1 сердечко
         if (player.age % HEAL_INTERVAL == 0) {
             ServerWorld world = player.getServerWorld();
             for (PlayerEntity other : world.getPlayers()) {
-                if (other == player || !other.isAlive() || other.isSpectator()) continue;
+                if (!other.isAlive() || other.isSpectator()) continue;
                 if (other.squaredDistanceTo(player) > HEAL_RADIUS * HEAL_RADIUS) continue;
                 if (other.getHealth() >= other.getMaxHealth()) continue;
                 other.heal(HEAL_AMOUNT);
@@ -111,6 +92,13 @@ public final class SetBonus {
                         other.getZ(), 2, 0.3, 0.1, 0.3, 0.0);
             }
         }
+    }
+
+    /** Под ногами (или на уровне ног) вода. */
+    private static boolean overWater(LivingEntity entity) {
+        BlockPos pos = entity.getBlockPos();
+        return !entity.getWorld().getFluidState(pos).isEmpty() && entity.getWorld().getFluidState(pos).isIn(net.minecraft.registry.tag.FluidTags.WATER)
+                || entity.getWorld().getFluidState(pos.down()).isIn(net.minecraft.registry.tag.FluidTags.WATER);
     }
 
     private static boolean onSoulSand(PlayerEntity player) {

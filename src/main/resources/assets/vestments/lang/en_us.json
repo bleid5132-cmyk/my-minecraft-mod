@@ -4,8 +4,10 @@
   "item.vestments.podriznik": "Leggings of Faith",
   "item.vestments.boots": "Pilgrim's Sandals",
   "tooltip.vestments.collar": "Regeneration I",
-  "tooltip.vestments.phelonion": "Knockback resistance; heals nearby players (3 blocks) by ½ heart every 3 s",
+  "tooltip.vestments.phelonion": "Every 3 s heals all players within 5 blocks by 1 heart",
   "tooltip.vestments.podriznik": "+50% speed on soul sand",
-  "tooltip.vestments.boots": "Gentle slow falling, half fall damage",
-  "tooltip.vestments.full_set": "Works only with the full set equipped"
+  "tooltip.vestments.boots": "Walk on water for up to 15 seconds (SHIFT to sink)",
+  "tooltip.vestments.full_set": "Works only with the full set equipped",
+  "message.vestments.water_walk": "Water walking: %s s",
+  "message.vestments.water_walk_end": "Strength spent — stand on solid ground to recharge"
 }

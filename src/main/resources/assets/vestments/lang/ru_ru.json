@@ -4,8 +4,10 @@
   "item.vestments.podriznik": "Поножи веры",
   "item.vestments.boots": "Сандалии паломника",
   "tooltip.vestments.collar": "Регенерация I",
-  "tooltip.vestments.phelonion": "Сопротивление отбрасыванию; лечит игроков рядом (3 блока) на ½ сердца раз в 3 сек.",
+  "tooltip.vestments.phelonion": "Раз в 3 сек. лечит всех игроков в радиусе 5 блоков на 1 сердце",
   "tooltip.vestments.podriznik": "+50% скорости на песке душ",
-  "tooltip.vestments.boots": "Лёгкое плавное падение, вдвое меньше урона от падения",
-  "tooltip.vestments.full_set": "Действует, только если надет весь комплект"
+  "tooltip.vestments.boots": "Хождение по воде до 15 секунд (SHIFT — уйти под воду)",
+  "tooltip.vestments.full_set": "Действует, только если надет весь комплект",
+  "message.vestments.water_walk": "Хождение по воде: %s с",
+  "message.vestments.water_walk_end": "Силы иссякли — встаньте на землю, чтобы восстановить"
 }
