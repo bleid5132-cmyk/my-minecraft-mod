@@ -32,7 +32,7 @@ import net.minecraft.world.Heightmap;
 
 /**
  * Православный храм по чертежу data/vestments/church/church.json (его рисует church_design.py):
- * колокольня с шатром, главкой и колоколом над входом, наличники на окнах, трапезная, четверик с барабаном и
+ * колокольня с шатром, главкой и колоколом над входом, трапезная, четверик с барабаном и
  * луковичной главой, полукруглая алтарная апсида. Материалы — по стилю деревни (ChurchStyle).
  * Внутри: Священный алтарь, зельеварка, кафедра, свечи, паникадила и житель-священник.
  * Разрушенная версия — без глав, колокола и убранства, с обрушенной кровлей, проломами и паутиной.
@@ -85,8 +85,6 @@ public final class ChurchBuilder {
             case "wall" -> s.wall();
             case "pillar" -> s.pillar();
             case "trim" -> s.trim();
-            case "trim_stairs" -> s.trimStairs();
-            case "trim_slab" -> s.trimSlab();
             case "glass" -> Blocks.GLASS_PANE;
             case "roof_stairs" -> s.roofStairs();
             case "roof_slab" -> s.roofSlab();
@@ -204,7 +202,6 @@ public final class ChurchBuilder {
                 return st;
             }
             case "base" -> { return r.nextFloat() < 0.4f ? s.mossyBase().getDefaultState() : st; }
-            case "trim" -> { return r.nextFloat() < 0.3f ? null : st; }
             case "pillar" -> { return e.y >= 8 && r.nextFloat() < 0.4f ? null : st; }
             case "glass" -> { return r.nextFloat() < 0.8f ? null : st; }
             case "floor" -> {
