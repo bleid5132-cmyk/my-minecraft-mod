@@ -1,0 +1,27 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  " C ",
+  "IFI",
+  "LIL"
+ ],
+ "key": {
+  "C": {
+   "item": "minecraft:chain"
+  },
+  "I": {
+   "item": "minecraft:iron_ingot"
+  },
+  "F": {
+   "tag": "minecraft:coals"
+  },
+  "L": {
+   "item": "minecraft:lapis_lazuli"
+  }
+ },
+ "result": {
+  "item": "vestments:silver_censer",
+  "count": 1
+ }
+}

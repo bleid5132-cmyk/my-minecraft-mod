@@ -27,7 +27,7 @@ import net.minecraft.world.World;
  */
 @Environment(EnvType.CLIENT)
 public final class WaterWalkClient {
-    private static final int MAX_TICKS = 15 * 20;   // 15 секунд
+    private static int MAX_TICKS = 15 * 20;          // зависит от комплекта (у Патриарха 15 секунд)
 
     private static int usedTicks = 0;               // сколько потрачено в текущем сеансе
     private static boolean session = false;         // ушли на воду и ещё не вернулись на землю
@@ -39,11 +39,13 @@ public final class WaterWalkClient {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ClientPlayerEntity player = client.player;
             if (player == null) return;
-            if (!SetBonus.hasFullSet(player)) {
+            var set = SetBonus.activeSet(player);
+            if (set == null || set.waterWalkSec <= 0) {
                 usedTicks = 0;
                 session = false;
                 return;
             }
+            MAX_TICKS = set.waterWalkSec * 20;
             World world = player.getWorld();
             Double surface = waterSurface(world, player.getPos());
 

@@ -4,7 +4,6 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.Blocks;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
@@ -14,38 +13,31 @@ import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
+import com.bleid.vestments.gear.GearSet;
+import com.bleid.vestments.gear.RankGear;
+import com.bleid.vestments.service.RankView;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 
 /**
- * Способности облачения. Работают, только когда надеты все 4 предмета:
- * воротник — Регенерация I; мантия — лечение игроков рядом;
- * поножи — +50% скорости на песке душ; сандалии — хождение по воде до 15 секунд
- * (само движение по воде делает клиент, см. client/WaterWalkClient; здесь — отмена урона
- * от падения на воду).
+ * Способности облачения санов. Работают, только когда надеты все 4 части одного сана и сан достигнут:
+ * шлем — Регенерация I (у Патриарха постоянно, у остальных — короткими вспышками);
+ * грудь — лечение игроков рядом; поножи — скорость на песке душ;
+ * ботинки — хождение по воде (само движение делает клиент, см. client/WaterWalkClient;
+ * здесь — отмена урона от падения на воду). Числа — в gear/RankGear.
  */
 public final class SetBonus {
     private static final UUID SOUL_SAND_SPEED_ID = UUID.fromString("6b1f5c2e-6a54-4c39-9d4e-0f7d2b1a9c02");
 
-    private static final double SOUL_SAND_SPEED = 0.5;        // +50%
-    private static final int HEAL_INTERVAL = 60;               // 3 секунды
-    private static final float HEAL_AMOUNT = 2.0f;             // 1 сердечко
-    private static final double HEAL_RADIUS = 5.0;
-
     private SetBonus() { }
 
-    public static boolean hasFullSet(LivingEntity entity) {
-        return isWearing(entity, EquipmentSlot.HEAD, Vestments.COLLAR)
-                && isWearing(entity, EquipmentSlot.CHEST, Vestments.PHELONION)
-                && isWearing(entity, EquipmentSlot.LEGS, Vestments.PODRIZNIK)
-                && isWearing(entity, EquipmentSlot.FEET, Vestments.BOOTS);
-    }
-
-    private static boolean isWearing(LivingEntity entity, EquipmentSlot slot, Item item) {
-        return entity.getEquippedStack(slot).isOf(item);
+    /** Действующий комплект: полный и сан достигнут; иначе null. */
+    public static GearSet activeSet(LivingEntity entity) {
+        GearSet set = RankGear.fullSet(entity);
+        if (set == null || !(entity instanceof PlayerEntity p) || !RankView.has(p, set.rank)) return null;
+        return set;
     }
 
     public static void register() {
@@ -55,39 +47,47 @@ public final class SetBonus {
             }
         });
 
-        // Сандалии паломника: приземление на воду, по которой идёшь, не наносит урона от падения
+        // хождение по воде: приземление на воду, по которой идёшь, не наносит урона от падения
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
-            if (!(entity instanceof PlayerEntity) || !source.isOf(DamageTypes.FALL) || !hasFullSet(entity)) {
-                return true;
-            }
+            if (!(entity instanceof PlayerEntity) || !source.isOf(DamageTypes.FALL)) return true;
+            GearSet set = activeSet(entity);
+            if (set == null || set.waterWalkSec <= 0) return true;
             return !overWater(entity);
         });
     }
 
     private static void tick(ServerPlayerEntity player) {
-        boolean full = hasFullSet(player) && player.isAlive();
+        GearSet set = player.isAlive() ? activeSet(player) : null;
 
-        // Поножи: +50% скорости на песке душ
+        // скорость на песке душ
+        double bonus = set != null && onSoulSand(player) ? set.soulSand : 0.0;
         setModifier(player, EntityAttributes.GENERIC_MOVEMENT_SPEED, SOUL_SAND_SPEED_ID,
-                "Vestments soul sand speed", SOUL_SAND_SPEED,
-                EntityAttributeModifier.Operation.MULTIPLY_TOTAL, full && onSoulSand(player));
+                "Vestments soul sand speed", bonus, EntityAttributeModifier.Operation.MULTIPLY_TOTAL, bonus > 0);
 
-        if (!full) return;
+        if (set == null) return;
 
-        // Воротник: Регенерация I. Продлеваем заранее, чтобы таймер эффекта шёл и лечение срабатывало.
-        StatusEffectInstance regen = player.getStatusEffect(StatusEffects.REGENERATION);
-        if (regen == null || (regen.getAmplifier() == 0 && regen.getDuration() <= 40)) {
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 220, 0, true, false, true));
+        // Регенерация I
+        if (set.regenEvery < 0) {
+            StatusEffectInstance regen = player.getStatusEffect(StatusEffects.REGENERATION);
+            if (regen == null || (regen.getAmplifier() == 0 && regen.getDuration() <= 40)) {
+                player.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 220, 0, true, false, true));
+            }
+        } else if (set.regenEvery > 0 && player.age % set.regenEvery == 0) {
+            StatusEffectInstance regen = player.getStatusEffect(StatusEffects.REGENERATION);
+            if (regen == null || regen.getDuration() < set.regenFor) {
+                player.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, set.regenFor, 0, true, false, true));
+            }
         }
 
-        // Мантия: раз в 3 секунды лечит всех игроков в радиусе 5 блоков (и себя) на 1 сердечко
-        if (player.age % HEAL_INTERVAL == 0) {
+        // лечение игроков рядом (и себя)
+        if (set.auraInterval > 0 && player.age % set.auraInterval == 0) {
             ServerWorld world = player.getServerWorld();
+            double r = set.auraRadius;
             for (PlayerEntity other : world.getPlayers()) {
                 if (!other.isAlive() || other.isSpectator()) continue;
-                if (other.squaredDistanceTo(player) > HEAL_RADIUS * HEAL_RADIUS) continue;
+                if (other.squaredDistanceTo(player) > r * r) continue;
                 if (other.getHealth() >= other.getMaxHealth()) continue;
-                other.heal(HEAL_AMOUNT);
+                other.heal(set.auraHeal);
                 world.spawnParticles(ParticleTypes.HEART, other.getX(), other.getY() + other.getHeight() + 0.3,
                         other.getZ(), 2, 0.3, 0.1, 0.3, 0.0);
             }
@@ -97,7 +97,7 @@ public final class SetBonus {
     /** Под ногами (или на уровне ног) вода. */
     private static boolean overWater(LivingEntity entity) {
         BlockPos pos = entity.getBlockPos();
-        return !entity.getWorld().getFluidState(pos).isEmpty() && entity.getWorld().getFluidState(pos).isIn(net.minecraft.registry.tag.FluidTags.WATER)
+        return entity.getWorld().getFluidState(pos).isIn(net.minecraft.registry.tag.FluidTags.WATER)
                 || entity.getWorld().getFluidState(pos.down()).isIn(net.minecraft.registry.tag.FluidTags.WATER);
     }
 
@@ -111,11 +111,13 @@ public final class SetBonus {
                                     double value, EntityAttributeModifier.Operation operation, boolean active) {
         EntityAttributeInstance instance = player.getAttributeInstance(attribute);
         if (instance == null) return;
-        boolean present = instance.getModifier(id) != null;
-        if (active && !present) {
-            instance.addTemporaryModifier(new EntityAttributeModifier(id, name, value, operation));
-        } else if (!active && present) {
+        EntityAttributeModifier present = instance.getModifier(id);
+        if (present != null && (!active || present.getValue() != value)) {
             instance.removeModifier(id);
+            present = null;
+        }
+        if (active && present == null) {
+            instance.addTemporaryModifier(new EntityAttributeModifier(id, name, value, operation));
         }
     }
 }

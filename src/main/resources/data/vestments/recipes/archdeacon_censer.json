@@ -1,0 +1,27 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  " C ",
+  "GFG",
+  "RGR"
+ ],
+ "key": {
+  "C": {
+   "item": "minecraft:chain"
+  },
+  "G": {
+   "item": "minecraft:gold_ingot"
+  },
+  "F": {
+   "tag": "minecraft:coals"
+  },
+  "R": {
+   "item": "minecraft:redstone"
+  }
+ },
+ "result": {
+  "item": "vestments:archdeacon_censer",
+  "count": 1
+ }
+}

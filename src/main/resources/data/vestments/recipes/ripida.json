@@ -1,0 +1,24 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "FIF",
+  " S ",
+  " S "
+ ],
+ "key": {
+  "F": {
+   "item": "minecraft:feather"
+  },
+  "I": {
+   "item": "minecraft:iron_ingot"
+  },
+  "S": {
+   "item": "minecraft:stick"
+  }
+ },
+ "result": {
+  "item": "vestments:ripida",
+  "count": 1
+ }
+}

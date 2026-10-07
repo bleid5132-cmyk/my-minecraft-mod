@@ -55,6 +55,9 @@ public class StaffOfLightItem extends Item {
     private static final float PULSE_UNDEAD_DAMAGE = 3.0f;     // 1.5 сердца за импульс
     private static final int UNDEAD_FIRE_SECONDS = 2;
 
+    /** Посох Света — оружие Патриарха. */
+    public static final int REQUIRED_RANK = 14;
+
     private final Multimap<EntityAttribute, EntityAttributeModifier> modifiers;
 
     public StaffOfLightItem(Settings settings) {
@@ -75,6 +78,13 @@ public class StaffOfLightItem extends Item {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
+        if (!com.bleid.vestments.service.RankView.has(player, REQUIRED_RANK)) {   // Благословение — только Патриарху
+            if (world.isClient) {
+                player.sendMessage(Text.translatable("message.vestments.rank_required",
+                        Text.translatable(com.bleid.vestments.service.Ranks.nameKey(REQUIRED_RANK))).formatted(Formatting.RED), true);
+            }
+            return TypedActionResult.fail(stack);
+        }
         player.setCurrentHand(hand);   // начинаем держать луч
         if (!world.isClient) {
             world.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -194,7 +204,11 @@ public class StaffOfLightItem extends Item {
         return Optional.of(new SmallTooltipData(List.of(
                 Text.translatable("tooltip.vestments.staff_of_light.peace").formatted(Formatting.YELLOW),
                 Text.translatable("tooltip.vestments.staff_of_light.blessing").formatted(Formatting.GOLD),
-                Text.translatable("tooltip.vestments.staff_of_light.blessing_desc").formatted(Formatting.GRAY))));
+                Text.translatable("tooltip.vestments.staff_of_light.blessing_desc").formatted(Formatting.GRAY),
+                Text.translatable("tooltip.vestments.requires_rank",
+                        Text.translatable(com.bleid.vestments.service.Ranks.nameKey(REQUIRED_RANK)))
+                        .formatted(com.bleid.vestments.service.RankView.clientRank() >= REQUIRED_RANK
+                                ? Formatting.DARK_AQUA : Formatting.RED))));
     }
 
     /**
@@ -210,7 +224,10 @@ public class StaffOfLightItem extends Item {
 
     public static void registerEvents() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (!player.getStackInHand(hand).isOf(Vestments.STAFF_OF_LIGHT) || player.isSpectator() || canHit(entity)) {
+            ItemStack held = player.getStackInHand(hand);
+            boolean liturgical = held.isOf(Vestments.STAFF_OF_LIGHT)
+                    || held.getItem() instanceof com.bleid.vestments.weapon.LiturgicalWeaponItem;
+            if (!liturgical || player.isSpectator() || canHit(entity)) {
                 return ActionResult.PASS;
             }
             // удар по игроку, мирному или нейтральному мобу не проходит

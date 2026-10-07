@@ -25,7 +25,21 @@ public final class StaffModel {
     private StaffModel() { }
 
     public static void register() {
-        ModelLoadingPlugin.register(context -> context.addModels(ID, AIM_ID));
+        ModelLoadingPlugin.register(context -> {
+            context.addModels(ID, AIM_ID);
+            for (var w : com.bleid.vestments.gear.RankGear.WEAPONS) context.addModels(weaponModel(w));
+        });
+    }
+
+    /** 3D-модель оружия сана для руки: item/<id>_3d. */
+    public static Identifier weaponModel(net.minecraft.item.Item item) {
+        Identifier id = net.minecraft.registry.Registries.ITEM.getId(item);
+        return new Identifier(id.getNamespace(), "item/" + id.getPath() + "_3d");
+    }
+
+    public static BakedModel getWeapon(MinecraftClient client, net.minecraft.item.Item item) {
+        BakedModel model = ((FabricBakedModelManager) client.getBakedModelManager()).getModel(weaponModel(item));
+        return model == null || model == client.getBakedModelManager().getMissingModel() ? null : model;
     }
 
     public static BakedModel get(MinecraftClient client, boolean aiming) {

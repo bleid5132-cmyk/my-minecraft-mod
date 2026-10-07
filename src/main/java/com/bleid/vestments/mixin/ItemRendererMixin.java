@@ -60,11 +60,15 @@ public abstract class ItemRendererMixin {
             method = "renderItem(Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;IILnet/minecraft/client/render/model/BakedModel;)V",
             at = @At("HEAD"), argsOnly = true)
     private BakedModel vestments$staffInHand(BakedModel model, ItemStack stack, ModelTransformationMode mode) {
-        if (!stack.isOf(Vestments.STAFF_OF_LIGHT)) return model;
         if (mode == ModelTransformationMode.GUI || mode == ModelTransformationMode.GROUND
                 || mode == ModelTransformationMode.FIXED) {
             return model;
         }
+        if (stack.getItem() instanceof com.bleid.vestments.weapon.LiturgicalWeaponItem) {
+            BakedModel weapon = StaffModel.getWeapon(MinecraftClient.getInstance(), stack.getItem());
+            return weapon != null ? weapon : model;
+        }
+        if (!stack.isOf(Vestments.STAFF_OF_LIGHT)) return model;
         boolean firstPerson = mode == ModelTransformationMode.FIRST_PERSON_RIGHT_HAND
                 || mode == ModelTransformationMode.FIRST_PERSON_LEFT_HAND;
         boolean aiming = firstPerson && StaffModel.isAiming(StaffModel.currentEntity);

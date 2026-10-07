@@ -28,7 +28,7 @@ public class Vestments implements ModInitializer {
 
     /** Посох Света — основное оружие. */
     public static final Item STAFF_OF_LIGHT = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "staff_of_light"),
-            new StaffOfLightItem(new FabricItemSettings().maxDamage(500).rarity(Rarity.RARE)));
+            new StaffOfLightItem(new FabricItemSettings().maxDamage(500).rarity(Rarity.EPIC)));
 
     /** Священный алтарь — подношения за очки служения. */
     public static final net.minecraft.block.Block HOLY_ALTAR = Registry.register(Registries.BLOCK,
@@ -53,17 +53,23 @@ public class Vestments implements ModInitializer {
                 Registries.ITEM,
                 new Identifier(MOD_ID, name),
                 new VestmentArmorItem(VestmentMaterial.INSTANCE, type,
-                        new FabricItemSettings().rarity(Rarity.UNCOMMON), abilityKey));
+                        new FabricItemSettings().rarity(Rarity.EPIC)));
     }
 
     @Override
     public void onInitialize() {
+        com.bleid.vestments.gear.RankGear.init();
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(entries -> {
             entries.add(COLLAR);
             entries.add(PHELONION);
             entries.add(PODRIZNIK);
             entries.add(BOOTS);
             entries.add(STAFF_OF_LIGHT);
+            for (var set : com.bleid.vestments.gear.RankGear.SETS) {
+                if (set == com.bleid.vestments.gear.RankGear.PATRIARCH) continue;
+                set.items().forEach(entries::add);
+            }
+            com.bleid.vestments.gear.RankGear.WEAPONS.forEach(entries::add);
         });
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(HOLY_ALTAR_ITEM));
         SetBonus.register();
@@ -71,6 +77,7 @@ public class Vestments implements ModInitializer {
         com.bleid.vestments.classes.PlayerClasses.register();
         com.bleid.vestments.service.ServicePoints.register();
         com.bleid.vestments.altar.AltarSpawner.register();
+        com.bleid.vestments.weapon.IncenseClouds.register();
         LOGGER.info("Priest Vestments загружен");
     }
 }

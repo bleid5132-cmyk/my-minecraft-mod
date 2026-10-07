@@ -59,6 +59,8 @@ public final class ServiceClient {
             client.execute(() -> {
                 hasClass = priest;
                 serverPoints = total;
+                com.bleid.vestments.service.RankView.clientPriest = priest;
+                com.bleid.vestments.service.RankView.clientPoints = total;
                 pending = 0;
                 shownRank = Ranks.rankFor(total);
                 synced = true;
@@ -77,6 +79,8 @@ public final class ServiceClient {
             synced = false;
             hasClass = false;
             serverPoints = 0;
+            com.bleid.vestments.service.RankView.clientPriest = false;
+            com.bleid.vestments.service.RankView.clientPoints = 0;
             pending = 0;
             shownBar = 0;
         });
@@ -90,6 +94,8 @@ public final class ServiceClient {
         boolean mine = total >= 0 && client.player != null && target == client.player;
         if (mine) {
             serverPoints = total;
+            com.bleid.vestments.service.RankView.clientPriest = true;
+            com.bleid.vestments.service.RankView.clientPoints = total;
             pending += amount;
             synced = true;
         }
