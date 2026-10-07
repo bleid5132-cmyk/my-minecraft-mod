@@ -73,7 +73,7 @@ public final class ChurchSpawner {
         boolean abandoned = zombies > 0 && villagers == 0;
         VillagerType type = VillagerType.forBiome(world.getBiome(bell));
 
-        for (int radius = 12; radius <= 40; radius += 2) {
+        for (int radius = 16; radius <= 44; radius += 2) {
             int start = random.nextInt(24);
             for (int k = 0; k < 24; k++) {
                 double a = (start + k) * Math.PI * 2 / 24;
@@ -82,7 +82,11 @@ public final class ChurchSpawner {
                 if (front.getAxis().isVertical()) front = Direction.NORTH;
                 Integer floor = ChurchBuilder.siteFloor(world, center, front);
                 if (floor == null || Math.abs(floor - bell.getY()) > 8) continue;
-                ChurchBuilder.build(world, center, floor, front, type, abandoned, random);
+                BlockPos churchBell = ChurchBuilder.build(world, center, floor, front, type, abandoned, random);
+                if (churchBell != null) {                      // колокол церкви — не новая деревня
+                    state.done.add(churchBell.asLong());
+                    state.markDirty();
+                }
                 Vestments.LOGGER.info("{} церковь поставлена у {}", abandoned ? "Разрушенная" : "Новая", center.withY(floor));
                 return;
             }
