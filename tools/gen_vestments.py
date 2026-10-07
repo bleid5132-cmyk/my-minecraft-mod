@@ -58,8 +58,8 @@ for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
                       ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
     cube("armorHead", k, o, [1, 4, 9.6], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
     cube("armorHead", k + "_o", o, [1, 4, 9.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
-cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 5.5, 1])         # высокая спинка между боковинами
-cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 5.5, 1], 0.17)
+cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 8.5, 1])         # высокая спинка между боковинами
+cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 8.5, 1], 0.17)
 
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
@@ -222,7 +222,7 @@ def clear(f):
 # ---------- воротник ----------
 def p_collar(f):
     for n in SIDES: metal(f[n], seed=1, motifs=False)
-    fill(f["up"], G3); fill(f["down"], LINR)
+    fill(f["up"], G3); fill(f["down"], G1)
     for n in SIDES: outline(f[n], bottom=True, sides=False)
 def p_collar_o(f):
     for n in SIDES:
