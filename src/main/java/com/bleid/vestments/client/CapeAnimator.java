@@ -37,10 +37,10 @@ public final class CapeAnimator {
     private static final float IDLE_WAVE_SPEED = 1.7f;  // радиан в секунду
     private static final float IDLE_WAVE_PHASE = 0.55f; // сдвиг фазы между соседними частями
     // прыжок
-    private static final float JUMP_DIP = 14f;          // на взлёте плащ прижимается, градусы
+    private static final float JUMP_DIP = 25f;          // на взлёте плащ прижимается, градусы
     private static final float FALL_LIFT = 32f;        // в падении всплывает, градусы (максимум)
-    private static final float LAND_KICK = 120f;        // толчок при приземлении, град/с (максимум)
-    private static final float TAKEOFF_KICK = -50f;    // толчок в момент отрыва, град/с
+    private static final float LAND_KICK = 320f;        // толчок при приземлении, град/с (максимум)
+    private static final float TAKEOFF_KICK = -105f;    // толчок в момент отрыва, град/с
 
     /** Сущность, броня которой рисуется сейчас (ставит ArmorRenderDispatcherMixin). */
     public static LivingEntity current;
@@ -123,14 +123,14 @@ public final class CapeAnimator {
             }
             if (!onGround) s.minVy = Math.min(s.minVy, s.vy);
             if (!s.wasOnGround && onGround) {
-                kick = MathHelper.clamp(-s.minVy * 650f, 0f, LAND_KICK);
+                kick = MathHelper.clamp(-s.minVy * 1450f, 0f, LAND_KICK);
                 s.minVy = 0f;
             }
             s.wasOnGround = onGround;
 
             float back = MathHelper.clamp(s.speed * 160f, 0f, 48f);
             float lift = MathHelper.clamp(-s.vy * 75f, 0f, FALL_LIFT);           // в падении всплывает
-            float dip = MathHelper.clamp(s.vy * 60f, 0f, JUMP_DIP);              // на взлёте прижимается
+            float dip = MathHelper.clamp(s.vy * 130f, 0f, JUMP_DIP);              // на взлёте прижимается
             float limbPos = e.limbAnimator.getPos(td);
             float limbSpeed = e.limbAnimator.getSpeed(td);
             float sway = MathHelper.sin(limbPos * 0.6662f) * 3.5f * limbSpeed;
