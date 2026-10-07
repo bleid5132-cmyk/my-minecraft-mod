@@ -74,7 +74,6 @@
   "item.vestments.archdeacon_chest": "Archdeacon's Sticharion with Double Orarion",
   "item.vestments.archdeacon_legs": "Archdeacon's Sticharion Hem",
   "item.vestments.archdeacon_boots": "Archdeacon's Boots",
-  "item.vestments.ripida": "Ripidion",
   "ability.vestments.incense": "Prayer Veil",
   "ability.vestments.wave": "Seraph's Breath",
   "tooltip.vestments.weapon.use": "RMB — “%s” (cooldown %s s)",
@@ -105,5 +104,6 @@
   "item.vestments.deacon_staff": "Deacon's Staff",
   "item.vestments.protodeacon_staff": "Protodeacon's Staff",
   "item.vestments.archdeacon_staff": "Archdeacon's Staff",
-  "tooltip.vestments.incense.undead": "Undead in the radiance lose %s ♥ per second"
+  "tooltip.vestments.incense.undead": "Undead in the radiance lose %s ♥ per second",
+  "item.vestments.hierodeacon_staff": "Hierodeacon's Staff"
 }

@@ -48,7 +48,7 @@ public final class RankGear {
 
         armor(2, "hierodeacon", new int[] { 2, 4, 3, 1 }, 0f, 9, Items.IRON_INGOT, Rarity.UNCOMMON,
                 1.0f, 3.0, 100, 300, 60, 0.15, 0);
-        weapon("ripida", 2, 5.0, 1.0, 320, Items.IRON_INGOT, Rarity.UNCOMMON,
+        weapon("hierodeacon_staff", 2, 5.0, 1.0, 320, Items.IRON_INGOT, Rarity.UNCOMMON,
                 new WaveAbility(5.0, 70.0, 3.0f, 1.2f, 3), 240, "ripida");
 
         armor(3, "archdeacon", new int[] { 2, 5, 3, 2 }, 0f, 10, Items.GOLD_INGOT, Rarity.UNCOMMON,

@@ -2,23 +2,23 @@
  "type": "minecraft:crafting_shaped",
  "category": "equipment",
  "pattern": [
-  "FIF",
-  " S ",
-  " S "
+  "FLF",
+  " SF",
+  "S  "
  ],
  "key": {
   "F": {
    "item": "minecraft:feather"
   },
-  "I": {
-   "item": "minecraft:iron_ingot"
+  "L": {
+   "item": "minecraft:lapis_lazuli"
   },
   "S": {
    "item": "minecraft:stick"
   }
  },
  "result": {
-  "item": "vestments:ripida",
+  "item": "vestments:hierodeacon_staff",
   "count": 1
  }
 }

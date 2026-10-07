@@ -74,7 +74,6 @@
   "item.vestments.archdeacon_chest": "Стихарь архидиакона с двойным орарем",
   "item.vestments.archdeacon_legs": "Подол стихаря архидиакона",
   "item.vestments.archdeacon_boots": "Сапоги архидиакона",
-  "item.vestments.ripida": "Рипида",
   "ability.vestments.incense": "Молитвенный покров",
   "ability.vestments.wave": "Веяние серафима",
   "tooltip.vestments.weapon.use": "ПКМ — «%s» (перезарядка %s с)",
@@ -105,5 +104,6 @@
   "item.vestments.deacon_staff": "Посох диакона",
   "item.vestments.protodeacon_staff": "Посох протодиакона",
   "item.vestments.archdeacon_staff": "Посох архидиакона",
-  "tooltip.vestments.incense.undead": "Нежить в сиянии теряет %s ♥ в секунду"
+  "tooltip.vestments.incense.undead": "Нежить в сиянии теряет %s ♥ в секунду",
+  "item.vestments.hierodeacon_staff": "Посох иеродиакона"
 }

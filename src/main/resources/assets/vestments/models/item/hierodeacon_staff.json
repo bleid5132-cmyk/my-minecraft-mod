@@ -1,6 +1,6 @@
 {
  "parent": "item/handheld",
  "textures": {
-  "layer0": "vestments:item/ripida"
+  "layer0": "vestments:item/hierodeacon_staff"
  }
 }
