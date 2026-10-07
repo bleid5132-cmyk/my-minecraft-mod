@@ -15,5 +15,6 @@ public class VestmentsClient implements ClientModInitializer {
                 new Identifier(Vestments.MOD_ID, "geo/priest_vestments.geo.json"),
                 new Identifier(Vestments.MOD_ID, "textures/armor/priest_vestments.png"));
         ArmorRenderers.register(renderer, Vestments.COLLAR, Vestments.PHELONION, Vestments.PODRIZNIK, Vestments.BOOTS);
+        SlowFallClient.register();
     }
 }

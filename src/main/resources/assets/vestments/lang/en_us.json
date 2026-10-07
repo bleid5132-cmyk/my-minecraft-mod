@@ -2,5 +2,10 @@
   "item.vestments.collar": "Sacred Collar",
   "item.vestments.phelonion": "Priest's Mantle",
   "item.vestments.podriznik": "Leggings of Faith",
-  "item.vestments.boots": "Pilgrim's Sandals"
+  "item.vestments.boots": "Pilgrim's Sandals",
+  "tooltip.vestments.collar": "Regeneration I",
+  "tooltip.vestments.phelonion": "Knockback resistance; heals nearby players (3 blocks) by ½ heart every 3 s",
+  "tooltip.vestments.podriznik": "+50% speed on soul sand",
+  "tooltip.vestments.boots": "Gentle slow falling, half fall damage",
+  "tooltip.vestments.full_set": "Works only with the full set equipped"
 }
