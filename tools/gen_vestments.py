@@ -44,7 +44,6 @@ BONES = {
     "armorLeftLeg": dict(parent="bipedLeftLeg", pivot=[2, 12, 0]),
     "bipedRightLeg": dict(parent=None, pivot=[-2, 12, 0]),
     "armorRightLeg": dict(parent="bipedRightLeg", pivot=[-2, 12, 0]),
-    "palitsa": dict(parent="armorRightLeg", pivot=[-3.7, 6, -3.45]),
 }
 
 CUBES = []
@@ -52,52 +51,70 @@ def cube(bone, key, origin, size, inflate=0.0, rotation=None, pivot=None, mirror
     CUBES.append(dict(bone=bone, key=key, origin=origin, size=size, inflate=inflate,
                       rotation=rotation, pivot=pivot, mirror=mirror, uv_key=uv or key))
 
-# --- ВОРОТНИК (слот головы): кольцо вокруг шеи + выпуклые кромки ---
-for k, o, sz, mir, uv in (("collar_front", [-5.3, 23.5, -5.3], [10.6, 2, 1], False, None),
-                          ("collar_back", [-5.3, 23.5, 4.3], [10.6, 3.5, 1], False, None),
-                          ("collar_side_l", [4.3, 23.5, -4.3], [1, 2.5, 8.6], False, None),
-                          ("collar_side_r", [-5.3, 23.5, -4.3], [1, 2.5, 8.6], True, "collar_side_l")):
-    cube("armorHead", k, o, sz, 0.0, mirror=mir, uv=uv)
-    cube("armorHead", k + "_o", o, sz, 0.2, mirror=mir, uv=(uv or k) + "_o")
+# --- ВОРОТНИК (слот головы): низкий спереди, высокий жёсткий сзади, отогнут наружу ---
+cube("armorHead", "collar_front", [-5.3, 23.5, -5.3], [10.6, 2, 1])
+cube("armorHead", "collar_front_o", [-5.3, 23.5, -5.3], [10.6, 2, 1], 0.2)
+cube("armorHead", "collar_gem", [-0.6, 24.1, -5.75], [1.2, 1, 0.5])
+for k, o, mir, uv in (("collar_side_l", [4.3, 23.5, -4.3], False, None),
+                      ("collar_side_r", [-5.3, 23.5, -4.3], True, "collar_side_l")):
+    cube("armorHead", k, o, [1, 3, 8.6], 0.0, mirror=mir, uv=uv)
+    cube("armorHead", k + "_o", o, [1, 3, 8.6], 0.2, mirror=mir, uv=(uv or k) + "_o")
+CB = dict(rotation=[-12, 0, 0], pivot=[0, 23.5, 4.8])
+cube("armorHead", "collar_back", [-5.3, 23.5, 4.3], [10.6, 5, 1], **CB)
+cube("armorHead", "collar_back_o", [-5.3, 23.5, 4.3], [10.6, 5, 1], 0.2, **CB)
 
-# --- ФЕЛОНЬ (слот груди) ---
-cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])                       # плечи, перед до пояса
-cube("armorBody", "phel_top_o", [-5, 16, -3], [10, 9, 6], 0.22)               # накладной галун и кайма
-BACK = dict(rotation=[3, 0, 0], pivot=[0, 25.5, 3.5])
-cube("armorBody", "phel_back", [-5.5, 1, 3], [11, 24.5, 1], 0.03, **BACK)    # спина от плеч до пят
-cube("armorBody", "phel_back_o", [-5.5, 1, 3], [11, 24.5, 1], 0.22, **BACK)  # кант, вышитый крест, кайма
-cube("armorBody", "phel_side_l", [4.2, 1.5, -3], [1, 11, 6])                  # боковые полы
-cube("armorBody", "phel_side_l_o", [4.2, 1.5, -3], [1, 11, 6], 0.18)
-cube("armorBody", "phel_side_r", [-5.2, 1.5, -3], [1, 11, 6], mirror=True, uv="phel_side_l")
-cube("armorBody", "phel_side_r_o", [-5.2, 1.5, -3], [1, 11, 6], 0.18, mirror=True, uv="phel_side_l_o")
-cube("armorBody", "cross_v", [-0.5, 16.5, -3.6], [1, 4, 1])                   # наперсный крест
-cube("armorBody", "cross_h", [-1.5, 18.5, -3.55], [3, 1, 1], 0.01)
-for side, x0, mir in (("", 4, False), ("_r", -8, True)):
-    bone = "armorLeftArm" if side == "" else "armorRightArm"
-    cube(bone, "sleeve" + side, [x0, 13, -2], [4, 4, 4], 0.4, mirror=mir, uv="sleeve")    # рукав подризника
-    cube(bone, "arm" + side, [x0, 16, -2], [4, 9, 4], 0.6, mirror=mir, uv="arm")          # фелонь на руке
-    cube(bone, "arm_o" + side, [x0, 16, -2], [4, 9, 4], 0.85, mirror=mir, uv="arm_o")     # её кайма
-    cube(bone, "cuff" + side, [x0, 12, -2], [4, 2, 4], 0.5, mirror=mir, uv="cuff")        # поручи
-    cube(bone, "cuff_o" + side, [x0, 12, -2], [4, 2, 4], 0.68, mirror=mir, uv="cuff_o")
+# --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
+cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
+cube("armorBody", "phel_top_o", [-5, 16, -3], [10, 9, 6], 0.22)
+BU = dict(rotation=[3, 0, 0], pivot=[0, 25.5, 3.5])
+cube("armorBody", "back_up", [-5.5, 12, 3], [11, 13.5, 1], 0.03, **BU)
+cube("armorBody", "back_up_o", [-5.5, 12, 3], [11, 13.5, 1], 0.22, **BU)
+cube("armorBody", "cross_v", [-0.75, 15.5, -3.8], [1.5, 5.5, 1])            # наперсный крест
+cube("armorBody", "cross_h", [-2, 18.5, -3.75], [4, 1.5, 1], 0.01)
+cube("armorBody", "cross_gem", [-0.5, 18.75, -4.1], [1, 1, 0.5])             # красный камень
+for side, mir in (("l", False), ("r", True)):
+    bone = "armorLeftArm" if side == "l" else "armorRightArm"
+    sx = 1 if side == "l" else -1
+    def X(x0, w): return x0 if side == "l" else -(x0 + w)
+    SH = dict(rotation=[0, 0, -9 * sx], pivot=[5 * sx, 25, 0])
+    cube(bone, "mantle_" + side, [X(3.3, 5.8), 16.5, -3.3], [5.8, 8.8, 6.6], 0.0, mirror=mir, uv="mantle", **SH)
+    cube(bone, "mantle_o_" + side, [X(3.3, 5.8), 16.5, -3.3], [5.8, 8.8, 6.6], 0.2, mirror=mir, uv="mantle_o", **SH)
+    cube(bone, "sleeve_" + side, [X(4, 4), 13, -2], [4, 5, 4], 0.35, mirror=mir, uv="sleeve")
+    CF = dict()
+    cube(bone, "cuff_" + side, [X(3.5, 5), 11.3, -2.5], [5, 3, 5], 0.0, mirror=mir, uv="cuff", **CF)
+    cube(bone, "cuff_o_" + side, [X(3.5, 5), 11.3, -2.5], [5, 3, 5], 0.18, mirror=mir, uv="cuff_o", **CF)
 
-# --- ПОДРИЗНИК с епитрахилью, поясом и палицей (слот ног) ---
-cube("armorWaist", "torso", [-4, 12, -2], [8, 4, 4], 0.45)                   # подризник на поясе
-cube("armorWaist", "epi_top", [-1.5, 12, -2.95], [3, 4, 0.5])               # епитрахиль из-под фелони
-cube("armorWaist", "belt", [-5, 13, -3], [10, 1, 6], 0.02)                    # пояс
+# --- ПОДРИЗНИК + низ фелони (слот ног) ---
+cube("armorWaist", "torso", [-4, 12, -2], [8, 4, 4], 0.45)
+cube("armorWaist", "epi_top", [-1.75, 12, -3.05], [3.5, 4, 0.6])
+cube("armorWaist", "belt", [-5, 13, -3], [10, 1, 6], 0.02)
 cube("armorWaist", "belt_o", [-5, 13, -3], [10, 1, 6], 0.15)
-SK_L = dict(rotation=[0, 0, -5], pivot=[2, 12, 0])
-SK_R = dict(rotation=[0, 0, 5], pivot=[-2, 12, 0])
-cube("armorLeftLeg", "skirt", [-0.5, 0, -2.5], [5, 12, 5], 0.05, **SK_L)
-cube("armorLeftLeg", "skirt_o", [-0.5, 0, -2.5], [5, 12, 5], 0.2, **SK_L)    # накладная кайма подола
-cube("armorLeftLeg", "epi_low", [0, 0.5, -3.1], [2, 11.5, 0.5], **SK_L)
-cube("armorLeftLeg", "epi_low_o", [0, 0.5, -3.1], [2, 11.5, 0.5], 0.12, **SK_L)
-cube("armorRightLeg", "skirt_r", [-4.5, 0, -2.5], [5, 12, 5], 0.06, mirror=True, uv="skirt", **SK_R)
-cube("armorRightLeg", "skirt_r_o", [-4.5, 0, -2.5], [5, 12, 5], 0.21, mirror=True, uv="skirt_o", **SK_R)
-cube("armorRightLeg", "epi_low_r", [-2, 0.5, -3.1], [2, 11.5, 0.5], mirror=True, uv="epi_low", **SK_R)
-cube("armorRightLeg", "epi_low_r_o", [-2, 0.5, -3.1], [2, 11.5, 0.5], 0.12, mirror=True, uv="epi_low_o", **SK_R)
-PAL = dict(rotation=[0, 0, 45], pivot=[-3.7, 6, -3.45])
-cube("palitsa", "palitsa", [-5.2, 4.5, -3.7], [3, 3, 0.5], 0.0, **PAL)       # палица (ромб)
-cube("palitsa", "palitsa_o", [-5.2, 4.5, -3.7], [3, 3, 0.5], 0.12, **PAL)
+cube("armorWaist", "buckle", [-1, 12.6, -3.45], [2, 1.8, 0.5])
+for side, mir in (("l", False), ("r", True)):
+    bone = "armorLeftLeg" if side == "l" else "armorRightLeg"
+    sx = 1 if side == "l" else -1
+    def X(x0, w): return x0 if side == "l" else -(x0 + w)
+    hip = [2 * sx, 12, 0]
+    e = 0.01 if side == "r" else 0.0          # против мерцания в месте стыка половин
+    cube(bone, "skirt_up_" + side, [X(-0.6, 5.2), 4, -2.6], [5.2, 8, 5.2], 0.05 + e, mirror=mir, uv="skirt_up",
+         rotation=[0, 0, -4 * sx], pivot=hip)
+    cube(bone, "skirt_low_" + side, [X(-1.0, 6), 0, -3.0], [6, 5, 6], 0.1 + e, mirror=mir, uv="skirt_low",
+         rotation=[0, 0, -9 * sx], pivot=hip)
+    cube(bone, "skirt_low_o_" + side, [X(-1.0, 6), 0, -3.0], [6, 5, 6], 0.28 + e, mirror=mir, uv="skirt_low_o",
+         rotation=[0, 0, -9 * sx], pivot=hip)
+    BL = dict(rotation=[4, 0, -5 * sx], pivot=hip)
+    cube(bone, "back_low_" + side, [X(-1.2, 6.4), 0.5, 3.2], [6.4, 11.5, 1], 0.03 + e, mirror=mir, uv="back_low", **BL)
+    cube(bone, "back_low_o_" + side, [X(-1.2, 6.4), 0.5, 3.2], [6.4, 11.5, 1], 0.2 + e, mirror=mir, uv="back_low_o", **BL)
+    SD = dict(rotation=[0, 0, -7 * sx], pivot=hip)
+    cube(bone, "side_low_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.0, mirror=mir, uv="side_low", **SD)
+    cube(bone, "side_low_o_" + side, [X(4.6, 1), 0.8, -3.2], [1, 11.2, 7.2], 0.18, mirror=mir, uv="side_low_o", **SD)
+    EP = dict(rotation=[0, 0, -4 * sx], pivot=hip)
+    cube(bone, "epi_low_" + side, [X(0, 2.4), 0.4, -3.6], [2.4, 11.6, 0.8], 0.0, mirror=mir, uv="epi_low", **EP)
+    cube(bone, "epi_low_o_" + side, [X(0, 2.4), 0.4, -3.6], [2.4, 11.6, 0.8], 0.12, mirror=mir, uv="epi_low_o", **EP)
+PAL = dict(rotation=[0, 0, 45], pivot=[-4.6, 6.5, -3.9])
+cube("armorRightLeg", "palitsa", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.0, **PAL)
+cube("armorRightLeg", "palitsa_o", [-6.6, 4.5, -4.2], [4, 4, 0.6], 0.15, **PAL)
+cube("armorRightLeg", "palitsa_gem", [-5.1, 6.0, -4.55], [1, 1, 0.5], 0.0, **PAL)
 
 # ---------- раскладка UV (box UV, размеры округляются вниз, как в библиотеке) ----------
 def fsz(s): return [int(math.floor(v)) for v in s]
@@ -152,206 +169,239 @@ def row(r, y, c):
 def col(r, x, c):
     for y in range(r[3]): px(r, x, y, c)
 
+RED = (196, 36, 48); REDL = (244, 110, 104); REDD = (118, 16, 26)
+LINR = (134, 30, 40); LINRD = (98, 20, 30)          # тёмно-красная подкладка
 LIGHTER = {G0: G1, G1: G2, G2: G3, G3: G4, G4: G5, G5: G5}
+import random as _rnd
 
 def metal(r, seed=0, motifs=True):
-    """Металлическое золото: светлее сверху, тёплая тень снизу, выпуклый узор с искрами,
-    диагональный отблеск."""
+    """Объёмная золотая парча: зернистость, светлый верх, тень снизу, тиснёный узор."""
+    rng = _rnd.Random(seed * 7919 + r[0] * 131 + r[1])
     x0, y0, w, h = r
     for yy in range(h):
-        t = yy / max(1, h - 1)
-        base = G3 if (yy == 0 and h >= 4) else (G1 if t > 0.9 and h >= 6 else G2)
         for xx in range(w):
-            px(r, xx, yy, base)
-    if motifs:
+            q = rng.random()
+            c = G1 if q < 0.06 else (G3 if q > 0.95 else G2)
+            if yy == 0 and h >= 4: c = G3
+            if yy == h - 1 and h >= 5: c = G1
+            px(r, xx, yy, c)
+    if motifs and w >= 4 and h >= 4:
         for yy in range(h):
             for xx in range(w):
                 gx, gy = (xx + seed) % 6, (yy + seed * 3) % 6
-                if (gx, gy) in ((2, 1), (1, 2), (3, 2), (2, 3)):
-                    px(r, xx, yy, G3)
-                elif (gx, gy) == (2, 2):
-                    px(r, xx, yy, G5)
-                elif (gx, gy) in ((3, 3), (2, 4)):
-                    px(r, xx, yy, G1)           # тень под узором — эффект тиснения
-    for yy in range(h):                          # диагональный отблеск металла
-        for xx in range(w):
-            if (xx - yy + seed) % 17 == 0:
-                c = P[x0 + xx, y0 + yy][:3]
-                px(r, xx, yy, LIGHTER.get(c, c))
+                if (gx, gy) in ((2, 1), (1, 2), (3, 2), (2, 3)): px(r, xx, yy, G3)
+                elif (gx, gy) == (2, 2): px(r, xx, yy, G4)
+                elif (gx, gy) in ((3, 3), (2, 4)): px(r, xx, yy, G1)
 
-def band(r, y):
-    """Выпуклая полоса галуна в 3 ряда: блик, свет, тень."""
-    row(r, y + 1, G3); row(r, y + 2, G1)
-    for xx in range(1, r[2], 3): px(r, xx, y + 1, G4)    # бусины
+def outline(r, top=False, bottom=True, sides=True):
+    w, h = r[2], r[3]
+    if sides and w >= 3: col(r, 0, G0); col(r, w - 1, G0)
+    if bottom and h >= 3: row(r, h - 1, G0)
+    if top and h >= 3: row(r, 0, G0)
 
-def vband(r, x, c_out=G4, c_in=G1):
-    col(r, x, c_out); col(r, x + (1 if x == 0 else -1), c_in)
+def band(r, y, outl=True):
+    """Накладной галун: светлая нить с бусинами, тень и тёмная обводка."""
+    row(r, y, G3); row(r, y + 1, G1)
+    for xx in range(1, r[2], 3): px(r, xx, y, G4)
+    if outl: row(r, y + 2, G0); row(r, y - 1, G0)
+
+def gem(r):
+    fill(r, RED)
+    px(r, 0, 0, REDL)
+    if r[2] > 1: px(r, r[2] - 1, r[3] - 1, REDD)
+
+def linen(r, folds=4):
+    fill(r, WH)
+    for xx in range(2, r[2], folds): col(r, xx, WHD)
 
 def paint(key, fn):
     size = next(c["size"] for c in CUBES if c["uv_key"] == key)
     fn(faces(key, size))
 
 SIDES = ("north", "east", "west", "south")
+def clear(f):
+    pass
 
 # ---------- воротник ----------
 def p_collar(f):
-    for n, r in f.items():
-        metal(r, seed=1, motifs=r[3] >= 3)
-    fill(f["up"], G3); fill(f["down"], G1)
-def p_collar_o(f):            # выпуклые кромки сверху и снизу
+    for n in SIDES: metal(f[n], seed=1, motifs=False)
+    fill(f["up"], G3); fill(f["down"], LINR)
+    for n in SIDES: outline(f[n], bottom=True, sides=False)
+def p_collar_o(f):
     for n in SIDES:
         r = f[n]
-        if r[3] >= 1: row(r, 0, G3)
-        if r[3] >= 2: row(r, r[3] - 1, G1)
-        for xx in range(1, r[2], 3): px(r, xx, 0, G4)
+        row(r, 0, G0)
+        if r[3] >= 3: row(r, 1, G3); [px(r, xx, 1, G4) for xx in range(1, r[2], 3)]
     fill(f["up"], G3)
-for k in ("collar_front", "collar_back", "collar_side_l"):
+for k in ("collar_front", "collar_side_l", "collar_back"):
     paint(k, p_collar); paint(k + "_o", p_collar_o)
+def p_collar_back_extra(f):
+    s, n = f["south"], f["north"]
+    for r in (s, n):                                  # вышитый крестик на высокой части
+        cx = r[2] // 2
+        for yy in range(1, 4): px(r, cx, yy, G4)
+        px(r, cx - 1, 2, G4); px(r, cx + 1, 2, G4)
+paint("collar_back", p_collar_back_extra)
+paint("collar_gem", lambda f: [gem(r) for r in f.values()])
 
-# ---------- фелонь: плечи и перед ----------
+# ---------- фелонь: верх ----------
 def p_phel_top(f):
-    for n in SIDES:
-        metal(f[n], seed=1)
+    for n in SIDES: metal(f[n], seed=1)
     n = f["north"]
-    for (xx, yy) in ((2, 1), (3, 2), (4, 3)):   # тонкая цепочка креста
+    for (xx, yy) in ((2, 1), (3, 2), (4, 3)):           # цепочка креста
         px(n, xx, yy, G4); px(n, 9 - xx, yy, G4)
     metal(f["up"], seed=2)
-    fill(f["down"], LIN)
+    fill(f["down"], LINR)
 def p_phel_top_o(f):
-    for n in SIDES:
-        band(f[n], 2)                            # галун на плечах
+    for n in ("east", "west", "south"):
+        band(f[n], 3, outl=False)
     n = f["north"]
-    row(n, 0, G3)                                # кант по вырезу
-    band(n, n[3] - 3)                            # кайма переднего подола
+    band(n, 3, outl=False)
+    band(n, n[3] - 3, outl=False); row(n, n[3] - 1, G0)  # кайма подола с обводкой
+    u = f["up"]; row(u, 0, G0)
 paint("phel_top", p_phel_top); paint("phel_top_o", p_phel_top_o)
 
-# ---------- фелонь: спина от плеч до пят ----------
-def p_phel_back(f):
-    metal(f["south"], seed=3)
-    fill(f["north"], LIN)
-    for xx in range(0, f["north"][2], 3): col(f["north"], xx, LIND)
-    for n in ("east", "west", "up", "down"):
-        fill(f[n], G2)
-def p_phel_back_o(f):
-    s = f["south"]
-    w, h = s[2], s[3]
-    col(s, 0, G3); col(s, w - 1, G1)                                      # кант
-    band(s, 2)
-    cx = w // 2                                  # выпуклый вышитый крест
-    for y in range(6, 17):
-        px(s, cx, y, G3); px(s, cx + 1, y, G1)
-    for x in range(cx - 3, cx + 4):
-        px(s, x, 11, G3 if x != cx else G4); px(s, x, 12, G1)
-    band(s, h - 4)
-    row(s, h - 1, G0)
-    for n in ("east", "west"):
-        col(f[n], 0, G3)
-paint("phel_back", p_phel_back); paint("phel_back_o", p_phel_back_o)
+def p_back_up(f):
+    s = f["south"]; metal(s, seed=3)
+    fill(f["north"], LINR); [col(f["north"], xx, LINRD) for xx in range(0, f["north"][2], 3)]
+    for n in ("east", "west", "up", "down"): fill(f[n], G1)
+def p_back_up_o(f):
+    s = f["south"]; w, h = s[2], s[3]
+    col(s, 0, G0); col(s, 1, G3); col(s, w - 1, G0); col(s, w - 2, G1)
+    band(s, 3, outl=False)
+    cx = w // 2                                          # большой вышитый крест с обводкой
+    for y in range(6, h):
+        px(s, cx - 2, y, G0); px(s, cx + 2, y, G0)
+    for x in range(cx - 5, cx + 6):
+        px(s, x, 7, G0); px(s, x, 11, G0)
+    px(s, cx - 5, 8, G0); px(s, cx - 5, 9, G0); px(s, cx - 5, 10, G0)
+    px(s, cx + 5, 8, G0); px(s, cx + 5, 9, G0); px(s, cx + 5, 10, G0)
+    px(s, cx - 1, 6, G0); px(s, cx, 6, G0); px(s, cx + 1, 6, G0)
+    for y in range(7, h):
+        px(s, cx, y, G4); px(s, cx - 1, y, G3); px(s, cx + 1, y, G1)
+    for x in range(cx - 4, cx + 5):
+        px(s, x, 8, G3); px(s, x, 9, G4); px(s, x, 10, G1)
+    px(s, cx, 9, RED); px(s, cx, 8, REDL)
+    for n in ("east", "west"): col(f[n], 0, G0)
+paint("back_up", p_back_up); paint("back_up_o", p_back_up_o)
 
-def p_phel_side(f):
-    for n in ("east", "west"):
-        metal(f[n], seed=4)
-    for n in ("north", "south", "up", "down"):
-        fill(f[n], G2)
-def p_phel_side_o(f):
-    for n in ("east", "west"):
-        r = f[n]
-        col(r, 0, G3); col(r, r[2] - 1, G1)
-        band(r, r[3] - 3)
-    col(f["north"], 0, G3)
-paint("phel_side_l", p_phel_side); paint("phel_side_l_o", p_phel_side_o)
-
-# ---------- наперсный крест ----------
 def p_cross(f):
     for r in f.values():
         fill(r, G4)
-        col(r, r[2] - 1, G1); row(r, r[3] - 1, G1)
+        if r[3] >= 3: row(r, r[3] - 1, G1)
+        if r[2] >= 3: col(r, r[2] - 1, G1)
         px(r, 0, 0, G5)
 paint("cross_v", p_cross); paint("cross_h", p_cross)
+paint("cross_gem", lambda f: [gem(r) for r in f.values()])
 
-# ---------- руки: рукав подризника, фелонь, поручи ----------
-def p_sleeve(f):
-    for r in f.values():
-        fill(r, WH)
-        for xx in range(1, r[2], 3): col(r, xx, WHD)
-paint("sleeve", p_sleeve)
+# ---------- руки ----------
+def p_mantle(f):
+    for n in SIDES: metal(f[n], seed=5)
+    metal(f["up"], seed=6)
+    fill(f["down"], LINR)
+def p_mantle_o(f):
+    for n in SIDES:
+        r = f[n]
+        band(r, r[3] - 3, outl=False); row(r, r[3] - 1, G0)
+paint("mantle", p_mantle); paint("mantle_o", p_mantle_o)
 
-def p_arm(f):
-    for n in SIDES:
-        metal(f[n], seed=0)
-    metal(f["up"], seed=2); fill(f["down"], LIN)
-def p_arm_o(f):
-    for n in SIDES:
-        band(f[n], f[n][3] - 3)
-paint("arm", p_arm); paint("arm_o", p_arm_o)
+paint("sleeve", lambda f: [linen(r, 3) for r in f.values()])
 
 def p_cuff(f):
-    for n in SIDES:
-        metal(f[n], seed=2, motifs=False)
-    fill(f["up"], G2); fill(f["down"], G1)
+    for n in SIDES: metal(f[n], seed=2, motifs=False)
+    fill(f["up"], G1); fill(f["down"], LINR)
 def p_cuff_o(f):
     for n in SIDES:
         r = f[n]
-        row(r, 0, G3); row(r, r[3] - 1, G1)
-    for n in ("north", "west", "east"):
-        r = f[n]
-        px(r, r[2] // 2, 0, G4)                             # искорка на поручах
+        row(r, 0, G0); row(r, r[3] - 1, G0)
+        cx = r[2] // 2
+        px(r, cx, 1, G4); px(r, cx - 1, 1, G3); px(r, cx + 1, 1, G3)
+    for n in ("north", "east", "west"):
+        r = f[n]; px(r, r[2] // 2, 1, RED)                # камень на поручах
 paint("cuff", p_cuff); paint("cuff_o", p_cuff_o)
 
-# ---------- подризник, пояс, епитрахиль, палица ----------
-def p_torso(f):
-    for r in f.values():
-        fill(r, WH)
-        for xx in range(2, r[2], 4): col(r, xx, WHD)
-paint("torso", p_torso)
-
+# ---------- пояс, епитрахиль ----------
+paint("torso", lambda f: [linen(r) for r in f.values()])
 def p_epi(f):
     for r in f.values():
-        metal(r, seed=5, motifs=False)
-        col(r, 0, G4); col(r, r[2] - 1, G1)
+        metal(r, seed=5, motifs=False); col(r, 0, G3)
+        for yy in range(1, r[3], 3): px(r, r[2] // 2, yy, G4)
 paint("epi_top", p_epi)
-
 def p_belt(f):
-    for r in f.values():
-        metal(r, seed=1, motifs=False)
+    for r in f.values(): metal(r, seed=1, motifs=False)
 def p_belt_o(f):
-    n = f["north"]
-    for xx in (n[2] // 2 - 1, n[2] // 2):     # пряжка
-        px(n, xx, 0, G5)
-paint("belt", p_belt); paint("belt_o", p_belt_o)
-
-def p_skirt(f):
-    for n, r in f.items():
-        fill(r, WH)
-        for xx in range(2, r[2], 4): col(r, xx, WHD)
-    fill(f["down"], WHS)
-def p_skirt_o(f):
     for n in SIDES:
-        band(f[n], f[n][3] - 3)               # накладная золотая кайма подола
-paint("skirt", p_skirt); paint("skirt_o", p_skirt_o)
+        r = f[n]
+        for xx in range(0, r[2], 2): px(r, xx, 0, G0)
+paint("belt", p_belt); paint("belt_o", p_belt_o)
+def p_buckle(f):
+    for r in f.values(): fill(r, G4); outline(r, top=True)
+    px(f["north"], 0, 0, RED); px(f["north"], 1, 0, RED)
+paint("buckle", p_buckle)
 
+# ---------- подризник ----------
+def p_skirt_up(f):
+    for r in f.values(): linen(r)
+paint("skirt_up", p_skirt_up)
+def p_skirt_low(f):
+    for n, r in f.items(): linen(r, 3)
+    fill(f["down"], WHS)
+def p_skirt_low_o(f):
+    for n in SIDES:
+        r = f[n]
+        band(r, r[3] - 3, outl=False); row(r, r[3] - 1, G0)
+        row(r, r[3] - 4, G0)
+paint("skirt_low", p_skirt_low); paint("skirt_low_o", p_skirt_low_o)
+
+# ---------- низ фелони (сзади и по бокам) ----------
+def p_back_low(f):
+    metal(f["south"], seed=7)
+    fill(f["north"], LINR); [col(f["north"], xx, LINRD) for xx in range(0, f["north"][2], 3)]
+    for n in ("east", "west", "up", "down"): fill(f[n], G1)
+def p_back_low_o(f):
+    s = f["south"]; w, h = s[2], s[3]
+    col(s, w - 1, G0); col(s, w - 2, G3)                  # кант по внешнему краю
+    band(s, h - 4, outl=False); row(s, h - 2, G1); row(s, h - 1, G0)
+    for n in ("east", "west"): col(f[n], 0, G0)
+paint("back_low", p_back_low); paint("back_low_o", p_back_low_o)
+
+def p_side_low(f):
+    for n in ("east", "west"): metal(f[n], seed=8)
+    for n in ("north", "south", "up", "down"): fill(f[n], G2)
+    fill(f["east"] if False else f["down"], LINR)
+def p_side_low_o(f):
+    for n in ("east", "west"):
+        r = f[n]
+        col(r, 0, G0); col(r, 1, G3); col(r, r[2] - 1, G0)
+        band(r, r[3] - 3, outl=False); row(r, r[3] - 1, G0)
+    col(f["north"], 0, G3)
+paint("side_low", p_side_low); paint("side_low_o", p_side_low_o)
+
+# ---------- епитрахиль внизу ----------
 def p_epi_low(f):
-    for n, r in f.items():
-        metal(r, seed=6)
+    for n, r in f.items(): metal(r, seed=6)
+    n = f["north"]
+    for yy in (2, 7):                                     # вышитые кресты
+        px(n, 1, yy, G5); px(n, 1, yy - 1, G4); px(n, 1, yy + 1, G4); px(n, 0, yy, G4)
 def p_epi_low_o(f):
     n = f["north"]
-    col(n, n[2] - 1, G4)                       # кант по внешнему краю
-    for yy in (2, 6, 10):
-        px(n, 0, yy, BTN)                      # пуговицы по шву
-    for xx in range(n[2]):                     # бахрома
-        px(n, xx, n[3] - 1, G5 if xx % 2 == 0 else G3)
+    col(n, n[2] - 1, G3)
+    for yy in (4, 9):
+        px(n, 0, yy, BTN)                                 # пуговицы по шву
+    for xx in range(n[2]):                                # бахрома
+        px(n, xx, n[3] - 1, G5 if xx % 2 == 0 else G1)
+    row(n, n[3] - 2, G0)
 paint("epi_low", p_epi_low); paint("epi_low_o", p_epi_low_o)
 
+# ---------- палица ----------
 def p_palitsa(f):
-    for r in f.values():
-        fill(r, G2)
-    px(f["north"], 1, 1, G3)
+    for r in f.values(): metal(r, seed=9, motifs=False)
 def p_palitsa_o(f):
-    n = f["north"]
-    for i in range(3):
-        px(n, i, 0, G4); px(n, 0, i, G4); px(n, i, 2, G1); px(n, 2, i, G1)
-    px(n, 1, 1, G5)
+    n = f["north"]; w, h = n[2], n[3]
+    row(n, 0, G0); row(n, h - 1, G0); col(n, 0, G0); col(n, w - 1, G0)
+    for i in range(1, w - 1): px(n, i, 1, G3); px(n, 1, i, G3)
 paint("palitsa", p_palitsa); paint("palitsa_o", p_palitsa_o)
+paint("palitsa_gem", lambda f: [gem(r) for r in f.values()])
 
 tex.save(os.path.join(OUT, "priest_vestments.png"))
 
