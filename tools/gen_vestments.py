@@ -36,6 +36,8 @@ BONES = {
     "bipedBody": dict(parent=None, pivot=[0, 24, 0]),
     "armorBody": dict(parent="bipedBody", pivot=[0, 24, 0]),
     "armorWaist": dict(parent="bipedBody", pivot=[0, 24, 0]),
+    # отдельная кость плаща: в игре её наклон меняет код мода (CapeAnimator) в зависимости от скорости
+    "vestments_cape": dict(parent="armorBody", pivot=[0, 25.5, 3.7], rotation=[8, 0, 0]),
     "bipedLeftArm": dict(parent=None, pivot=[5, 22, 0]),
     "armorLeftArm": dict(parent="bipedLeftArm", pivot=[5, 22, 0]),
     "bipedRightArm": dict(parent=None, pivot=[-5, 22, 0]),
@@ -67,9 +69,8 @@ cube("armorBody", "neck_guard", [-4.8, 23.0, 5.8], [9.6, 5, 1])
 cube("armorBody", "neck_guard_o", [-4.8, 23.0, 5.8], [9.6, 5, 1], 0.15)
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
 cube("armorBody", "phel_top_o", [-5, 16, -3], [10, 9, 6], 0.22)
-BU = dict(rotation=[8, 0, 0], pivot=[0, 25.5, 3.7])
-cube("armorBody", "back_up", [-5.5, 0.5, 3.2], [11, 25, 1], 0.03, **BU)     # цельный плащ от плеч
-cube("armorBody", "back_up_o", [-5.5, 0.5, 3.2], [11, 25, 1], 0.22, **BU)
+cube("vestments_cape", "back_up", [-5.5, 0.5, 3.2], [11, 25, 1], 0.03)     # цельный плащ от плеч
+cube("vestments_cape", "back_up_o", [-5.5, 0.5, 3.2], [11, 25, 1], 0.22)
 cube("armorBody", "cross_v", [-0.75, 15.5, -3.8], [1.5, 5.5, 1])            # наперсный крест
 cube("armorBody", "cross_h", [-2, 18.5, -3.75], [4, 1.5, 1], 0.01)
 cube("armorBody", "cross_gem", [-0.5, 18.75, -4.1], [1, 1, 0.5])             # красный камень
@@ -436,6 +437,7 @@ bones_out = []
 for name, b in BONES.items():
     bo = {"name": name, "pivot": b["pivot"]}
     if b["parent"]: bo["parent"] = b["parent"]
+    if b.get("rotation"): bo["rotation"] = b["rotation"]
     if name == "palitsa":
         pass
     cs = []
