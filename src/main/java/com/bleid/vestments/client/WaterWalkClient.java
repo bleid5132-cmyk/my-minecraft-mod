@@ -5,7 +5,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.fluid.FluidState;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -15,15 +14,23 @@ import net.minecraft.world.World;
 
 /**
  * Сандалии паломника: хождение по воде до 15 секунд. Движение игрока считает клиент, поэтому
- * держим игрока на поверхности здесь. SHIFT — сразу уйти под воду. Заряд восстанавливается,
- * когда игрок снова стоит на твёрдой земле.
+ * держим игрока на воде здесь.
+ *
+ * <ul>
+ *   <li>Идём по воде на уровне верха блока воды — вровень с берегом, без ступеньки (нет тряски на кромке).</li>
+ *   <li>Если игрок чуть провалился ниже, его плавно поднимает скоростью, а не телепортом.</li>
+ *   <li>Время тратится всё время «сеанса» — с первого шага на воду до возвращения на твёрдую землю,
+ *       включая прыжки. Заряд восстанавливается только на твёрдой земле.</li>
+ *   <li>SHIFT — сразу уйти под воду.</li>
+ * </ul>
  */
 @Environment(EnvType.CLIENT)
 public final class WaterWalkClient {
     private static final int MAX_TICKS = 15 * 20;   // 15 секунд
 
-    private static int usedTicks = 0;               // сколько уже прошёл по воде
-    private static boolean wasWalking = false;
+    private static int usedTicks = 0;               // сколько потрачено в текущем сеансе
+    private static boolean session = false;         // ушли на воду и ещё не вернулись на землю
+    private static boolean exhaustedShown = false;
 
     private WaterWalkClient() { }
 
@@ -33,50 +40,70 @@ public final class WaterWalkClient {
             if (player == null) return;
             if (!SetBonus.hasFullSet(player)) {
                 usedTicks = 0;
-                wasWalking = false;
+                session = false;
                 return;
             }
-            // на твёрдой земле заряд полностью восстанавливается
-            if (player.isOnGround() && !wasWalking && !player.isTouchingWater()) {
+            World world = player.getWorld();
+            Double surface = waterSurface(world, player.getPos());
+
+            // на твёрдой земле (не над водой) — сеанс закончен, заряд восстановлен
+            if (player.isOnGround() && surface == null && !player.isTouchingWater()) {
+                session = false;
                 usedTicks = 0;
+                exhaustedShown = false;
             }
 
-            boolean walking = false;
-            if (!player.isSneaking() && usedTicks < MAX_TICKS && !player.getAbilities().flying
-                    && !player.isFallFlying() && !player.isSubmergedInWater()) {
-                Double surface = waterSurface(player.getWorld(), player.getPos());
+            // время идёт весь сеанс — и когда стоим на воде, и в прыжке над ней
+            if (session && usedTicks < MAX_TICKS) {
+                usedTicks++;
+            }
+
+            boolean canWalk = usedTicks < MAX_TICKS && !player.isSneaking()
+                    && !player.getAbilities().flying && !player.isFallFlying() && !player.isSubmergedInWater();
+
+            if (canWalk && surface != null) {
                 Vec3d v = player.getVelocity();
-                if (surface != null && player.getY() <= surface + 0.2 && player.getY() >= surface - 0.6 && v.y <= 0.05) {
-                    player.setPosition(player.getX(), surface, player.getZ());
+                double y = player.getY();
+                if (y < surface - 0.001 && y > surface - 0.9) {
+                    // провалились чуть ниже — мягко поднимаем к поверхности
+                    double up = Math.min((surface - y) * 0.6, 0.35);
+                    player.setVelocity(v.x, Math.max(v.y, up), v.z);
+                    session = true;
+                } else if (y <= surface + 0.02 && v.y <= 0.0) {
+                    // стоим на воде
+                    if (y < surface) player.setPosition(player.getX(), surface, player.getZ());
                     player.setVelocity(v.x, 0.0, v.z);
                     player.setOnGround(true);
                     player.fallDistance = 0f;
-                    walking = true;
-                    usedTicks++;
+                    session = true;
                 }
             }
 
-            if (walking) {
-                int left = (MAX_TICKS - usedTicks + 19) / 20;
-                player.sendMessage(Text.translatable("message.vestments.water_walk", left)
-                        .formatted(left <= 3 ? Formatting.RED : Formatting.AQUA), true);
-            } else if (wasWalking && usedTicks >= MAX_TICKS) {
-                player.sendMessage(Text.translatable("message.vestments.water_walk_end")
-                        .formatted(Formatting.GRAY), true);
+            if (session) {
+                int left = Math.max(0, (MAX_TICKS - usedTicks + 19) / 20);
+                if (usedTicks < MAX_TICKS) {
+                    player.sendMessage(Text.translatable("message.vestments.water_walk", left)
+                            .formatted(left <= 3 ? Formatting.RED : Formatting.AQUA), true);
+                } else if (!exhaustedShown) {
+                    player.sendMessage(Text.translatable("message.vestments.water_walk_end")
+                            .formatted(Formatting.GRAY), true);
+                    exhaustedShown = true;
+                }
             }
-            wasWalking = walking;
         });
     }
 
-    /** Высота поверхности воды под игроком (верхний блок воды), или null, если воды нет. */
+    /**
+     * Уровень, на котором стоим над водой: верх верхнего блока воды (вровень с берегом),
+     * или null, если под ногами нет воды.
+     */
     private static Double waterSurface(World world, Vec3d pos) {
         BlockPos feet = BlockPos.ofFloored(pos.x, pos.y - 0.05, pos.z);
         for (BlockPos p : new BlockPos[] { feet, feet.down() }) {
-            FluidState fluid = world.getFluidState(p);
-            if (!fluid.isIn(FluidTags.WATER)) continue;
-            if (world.getFluidState(p.up()).isIn(FluidTags.WATER)) continue;   // это не верхний слой
+            if (!world.getFluidState(p).isIn(FluidTags.WATER)) continue;
+            if (world.getFluidState(p.up()).isIn(FluidTags.WATER)) continue;   // не верхний слой
             if (!world.getBlockState(p.up()).getCollisionShape(world, p.up()).isEmpty()) continue;
-            return p.getY() + (double) fluid.getHeight(world, p);
+            return p.getY() + 1.0;
         }
         return null;
     }
