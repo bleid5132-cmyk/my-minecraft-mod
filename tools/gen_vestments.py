@@ -54,18 +54,12 @@ def cube(bone, key, origin, size, inflate=0.0, rotation=None, pivot=None, mirror
                       rotation=rotation, pivot=pivot, mirror=mirror, uv_key=uv or key))
 
 # --- ВОРОТНИК (слот головы): низкий спереди, высокий жёсткий сзади, отогнут наружу ---
-# боковины лесенкой: от высокой спинки постепенно ниже к переду
-SEG_H = [2, 3.5, 5, 6.5, 8, 9.5]               # высоты сегментов спереди назад
-SEG_L = 1.6                                     # длина сегмента по глубине
-for i, hgt in enumerate(SEG_H):
-    z0 = -4.3 + i * SEG_L
-    infl = 0.2 + 0.01 * (i % 2)                 # чередуем, чтобы соседние накладки не мерцали
-    for side, x0, mir in (("l", 4.3, False), ("r", -5.3, True)):
-        k = f"collar_seg{i}"
-        cube("armorHead", f"{k}_{side}", [x0, 23.5, z0], [1, hgt, SEG_L], 0.0, mirror=mir, uv=k)
-        cube("armorHead", f"{k}_o_{side}", [x0, 23.5, z0], [1, hgt, SEG_L], infl, mirror=mir, uv=k + "_o")
-cube("armorHead", "collar_back", [-4.3, 23.5, 4.3], [8.6, 9.5, 1])        # спинка: верх на 1 px выше головы
-cube("armorHead", "collar_back_o", [-4.3, 23.5, 4.3], [8.6, 9.5, 1], 0.17)
+for k, o, mir, uv in (("collar_side_l", [5.0, 23.5, -5.0], False, None),
+                      ("collar_side_r", [-6.0, 23.5, -5.0], True, "collar_side_l")):
+    cube("armorHead", k, o, [1, 4, 11], 0.0, mirror=mir, uv=uv)          # боковины доходят до спинки
+    cube("armorHead", k + "_o", o, [1, 4, 11], 0.2, mirror=mir, uv=(uv or k) + "_o")
+cube("armorHead", "collar_back", [-5.0, 23.5, 5.0], [10, 5.5, 1])         # высокая спинка между боковинами
+cube("armorHead", "collar_back_o", [-5.0, 23.5, 5.0], [10, 5.5, 1], 0.17)
 
 # --- ФЕЛОНЬ (слот груди): плечи, перед до пояса, спина до пояса, «колокола» на плечах ---
 cube("armorBody", "phel_top", [-5, 16, -3], [10, 9, 6])
@@ -233,10 +227,10 @@ def p_collar(f):
 def p_collar_o(f):
     for n in SIDES:
         r = f[n]
-        row(r, 0, G3); [px(r, xx, 0, G4) for xx in range(1, r[2], 3)]
-        if r[3] >= 3: row(r, 1, G1)
+        row(r, 0, G0)
+        if r[3] >= 3: row(r, 1, G3); [px(r, xx, 1, G4) for xx in range(1, r[2], 3)]
     fill(f["up"], G3)
-for k in [f"collar_seg{i}" for i in range(6)] + ["collar_back"]:
+for k in ("collar_side_l", "collar_back"):
     paint(k, p_collar); paint(k + "_o", p_collar_o)
 def p_collar_back_extra(f):
     s, n = f["south"], f["north"]
