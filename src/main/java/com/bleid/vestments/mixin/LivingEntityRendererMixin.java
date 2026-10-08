@@ -20,6 +20,6 @@ public abstract class LivingEntityRendererMixin {
         if (!SoulAllyClient.isSoul(entity)) return;
         Identifier src = ((LivingEntityRenderer) (Object) this).getTexture(entity);
         Identifier holo = SoulAllyClient.hologram(src);
-        if (holo != null) cir.setReturnValue(RenderLayer.getEntityTranslucent(holo));
+        if (holo != null) cir.setReturnValue(RenderLayer.getEntityTranslucentEmissive(holo));
     }
 }

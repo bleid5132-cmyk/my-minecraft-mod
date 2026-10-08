@@ -52,6 +52,7 @@ public final class SoulAllies {
     public static final Identifier OPEN_SELECT = new Identifier(Vestments.MOD_ID, "souls_open");
     public static final Identifier CHOOSE = new Identifier(Vestments.MOD_ID, "souls_choose");
     public static final Identifier SOUL_IDS = new Identifier(Vestments.MOD_ID, "souls_ids");
+    public static final Identifier SOUL_FADE = new Identifier(Vestments.MOD_ID, "soul_fade");
     public static final String TAG = "vestments_soul_ally";
     public static final int LIFE_TICKS = 50 * 20;
     public static final int MAX_SOULS = 10;
@@ -229,9 +230,18 @@ public final class SoulAllies {
         p.sendMessage(Text.translatable("message.vestments.souls_summoned", count).formatted(Formatting.AQUA), true);
     }
 
+    /** Душа уходит: сущность сразу убирается из мира (больше ни с чем не взаимодействует),
+     *  а у игроков рядом на её месте остаётся неподвижная копия, медленно распадающаяся по пикселям. */
     private static void poof(ServerWorld w, Entity e) {
-        w.spawnParticles(ParticleTypes.SOUL, e.getX(), e.getBodyY(0.5), e.getZ(), 10, 0.3, 0.5, 0.3, 0.03);
-        w.spawnParticles(ParticleTypes.CLOUD, e.getX(), e.getBodyY(0.5), e.getZ(), 6, 0.3, 0.4, 0.3, 0.01);
+        long seed = w.getRandom().nextLong();
+        for (ServerPlayerEntity viewer : net.fabricmc.fabric.api.networking.v1.PlayerLookup.tracking(e)) {
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeVarInt(e.getId());
+            buf.writeLong(seed);
+            ServerPlayNetworking.send(viewer, SOUL_FADE, buf);
+        }
+        w.spawnParticles(ParticleTypes.SOUL, e.getX(), e.getBodyY(0.5), e.getZ(), 4, 0.3, 0.5, 0.3, 0.01);
+        w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.PARTICLE_SOUL_ESCAPE, SoundCategory.NEUTRAL, 1.0f, 0.8f);
     }
 
     // ---------------------------------------------------------- поведение душ

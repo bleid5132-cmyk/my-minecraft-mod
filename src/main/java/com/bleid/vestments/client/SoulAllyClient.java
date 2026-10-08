@@ -69,6 +69,20 @@ public final class SoulAllyClient {
         return h == NONE ? null : h;
     }
 
+    /** Пиксель голограммы (ABGR): яркий серо-голубой, полупрозрачный, каждая 4-я строка — светлая полоса развёртки. */
+    public static int holoPixel(int abgr, int y) {
+        int a = (abgr >>> 24) & 0xFF;
+        if (a == 0) return 0;
+        int r = abgr & 0xFF, g = (abgr >>> 8) & 0xFF, b = (abgr >>> 16) & 0xFF;
+        boolean scan = (y % 4) == 0;
+        float l = (0.3f * r + 0.59f * g + 0.11f * b) / 255f;
+        l = 0.58f + l * 0.42f;
+        if (scan) l = Math.min(1f, l + 0.12f);
+        int nr = (int) (l * 190), ng = (int) (l * 225), nb = (int) (l * 255);
+        int na = Math.min(a, scan ? 145 : 105);
+        return (na << 24) | (nb << 16) | (ng << 8) | nr;
+    }
+
     private static Identifier build(Identifier src) {
         MinecraftClient client = MinecraftClient.getInstance();
         Optional<Resource> res = client.getResourceManager().getResource(src);
@@ -76,21 +90,8 @@ public final class SoulAllyClient {
         try (InputStream in = res.get().getInputStream(); NativeImage base = NativeImage.read(in)) {
             int w = base.getWidth(), hgt = base.getHeight();
             NativeImage img = new NativeImage(w, hgt, true);
-            for (int y = 0; y < hgt; y++) {
-                boolean scan = (y % 4) == 0;                 // полосы развёртки
-                for (int x = 0; x < w; x++) {
-                    int abgr = base.getColor(x, y);
-                    int a = (abgr >>> 24) & 0xFF;
-                    if (a == 0) { img.setColor(x, y, 0); continue; }
-                    int r = abgr & 0xFF, g = (abgr >>> 8) & 0xFF, b = (abgr >>> 16) & 0xFF;
-                    float l = (0.3f * r + 0.59f * g + 0.11f * b) / 255f;
-                    l = 0.4f + l * 0.6f;
-                    if (scan) l = Math.min(1f, l + 0.15f);
-                    int nr = (int) (l * 165), ng = (int) (l * 195), nb = (int) (l * 235);
-                    int na = Math.min(a, scan ? 185 : 150);
-                    img.setColor(x, y, (na << 24) | (nb << 16) | (ng << 8) | nr);
-                }
-            }
+            for (int y = 0; y < hgt; y++)
+                for (int x = 0; x < w; x++) img.setColor(x, y, holoPixel(base.getColor(x, y), y));
             Identifier id = new Identifier(Vestments.MOD_ID, "holo/" + src.getNamespace() + "/" + src.getPath().replace('/', '_'));
             client.getTextureManager().registerTexture(id, new NativeImageBackedTexture(img));
             return id;

@@ -44,12 +44,14 @@ public final class SoulEffects {
     private static final float LIFE = 4.0f;            // секунд
     private static final int STEPS = 12;               // ступеней растворения
     private static final float ALPHA = 0.62f;
+    private static final float FADE_LIFE = 3.0f;      // распад союзной души на месте
 
-    private record Soul(Entity ghost, Vec3d start, Vec3d drift, float yaw, long startNanos, Random rnd) { }
+    private record Soul(Entity ghost, Vec3d start, Vec3d drift, float yaw, long startNanos, Random rnd, boolean fade) { }
 
     private static final List<Soul> SOULS = new ArrayList<>();
     /** Текстура моба → ступени растворения (голубовато-серые, с выпадающими пикселями). */
     private static final Map<Identifier, Identifier[]> DISSOLVE = new HashMap<>();
+    private static final Map<Identifier, Identifier[]> DISSOLVE_HOLO = new HashMap<>();
 
     private SoulEffects() { }
 
@@ -57,13 +59,18 @@ public final class SoulEffects {
         ClientPlayNetworking.registerGlobalReceiver(ServicePoints.SOUL, (client, handler, buf, sender) -> {
             int id = buf.readVarInt();
             long seed = buf.readLong();
-            client.execute(() -> spawn(client, id, seed));
+            client.execute(() -> spawn(client, id, seed, false));
+        });
+        ClientPlayNetworking.registerGlobalReceiver(com.bleid.vestments.patriarch.SoulAllies.SOUL_FADE, (client, handler, buf, sender) -> {
+            int id = buf.readVarInt();
+            long seed = buf.readLong();
+            client.execute(() -> spawn(client, id, seed, true));
         });
         ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> SOULS.clear());
         WorldRenderEvents.AFTER_ENTITIES.register(ctx -> render(ctx.matrixStack(), ctx.consumers(), ctx.tickDelta()));
     }
 
-    private static void spawn(MinecraftClient client, int id, long seed) {
+    private static void spawn(MinecraftClient client, int id, long seed, boolean fade) {
         if (client.world == null) return;
         Entity dead = client.world.getEntityById(id);
         if (dead == null) return;
@@ -86,8 +93,9 @@ public final class SoulEffects {
         Random rnd = Random.create(seed);
         double a = rnd.nextDouble() * Math.PI * 2;
         double side = 0.35 + rnd.nextDouble() * 0.35;      // блоков в секунду вбок
-        Vec3d drift = new Vec3d(Math.cos(a) * side, 1.4 + rnd.nextDouble() * 0.5, Math.sin(a) * side);
-        SOULS.add(new Soul(ghost, dead.getPos(), drift, dead.getYaw(), System.nanoTime(), rnd));
+        Vec3d drift = fade ? Vec3d.ZERO : new Vec3d(Math.cos(a) * side, 1.4 + rnd.nextDouble() * 0.5, Math.sin(a) * side);
+        float yaw = dead instanceof LivingEntity ld ? ld.bodyYaw : dead.getYaw();
+        SOULS.add(new Soul(ghost, dead.getPos(), drift, yaw, System.nanoTime(), rnd, fade));
         if (SOULS.size() > 40) SOULS.remove(0);
     }
 
@@ -100,17 +108,19 @@ public final class SoulEffects {
         for (Iterator<Soul> it = SOULS.iterator(); it.hasNext(); ) {
             Soul s = it.next();
             float t = (now - s.startNanos) / 1_000_000_000f;
-            if (t >= LIFE) { it.remove(); continue; }
-            // плавный разгон вверх, лёгкое покачивание
+            float life = s.fade ? FADE_LIFE : LIFE;
+            if (t >= life) { it.remove(); continue; }
+            // плавный разгон вверх, лёгкое покачивание; союзная душа распадается на месте, не двигаясь
             float ease = t * t * 0.25f + t * 0.6f;
-            Vec3d pos = s.start.add(s.drift.multiply(ease)).add(0, Math.sin(t * 3.0) * 0.05, 0);
+            Vec3d pos = s.fade ? s.start : s.start.add(s.drift.multiply(ease)).add(0, Math.sin(t * 3.0) * 0.05, 0);
             s.ghost.setPosition(pos);
             s.ghost.prevX = pos.x; s.ghost.prevY = pos.y; s.ghost.prevZ = pos.z;
 
-            int step = MathHelper.clamp((int) ((t - 0.6f) / (LIFE - 0.6f) * STEPS), 0, STEPS - 1);
-            Identifier tex = dissolveTexture(client, s.ghost, step);
+            float delay = s.fade ? 0.1f : 0.6f;
+            int step = MathHelper.clamp((int) ((t - delay) / (life - delay) * STEPS), 0, STEPS - 1);
+            Identifier tex = dissolveTexture(client, s.ghost, step, s.fade);
             if (tex == null) { it.remove(); continue; }
-            float alpha = ALPHA * (t < 0.3f ? t / 0.3f : 1f);
+            float alpha = s.fade ? 1f : ALPHA * (t < 0.3f ? t / 0.3f : 1f);
 
             GhostProvider ghostConsumers = new GhostProvider(consumers, RenderLayer.getEntityTranslucent(tex), alpha);
             try {
@@ -132,18 +142,19 @@ public final class SoulEffects {
 
     /** Ступень растворения текстуры моба: обесцвеченная в голубовато-серый, часть пикселей выпала. */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static Identifier dissolveTexture(MinecraftClient client, Entity ghost, int step) {
+    private static Identifier dissolveTexture(MinecraftClient client, Entity ghost, int step, boolean holo) {
         EntityRenderer renderer = client.getEntityRenderDispatcher().getRenderer(ghost);
         Identifier src = renderer.getTexture(ghost);
-        Identifier[] steps = DISSOLVE.get(src);
+        Map<Identifier, Identifier[]> cache = holo ? DISSOLVE_HOLO : DISSOLVE;
+        Identifier[] steps = cache.get(src);
         if (steps == null) {
-            steps = build(client, src);
-            DISSOLVE.put(src, steps);
+            steps = build(client, src, holo);
+            cache.put(src, steps);
         }
         return steps.length == 0 ? null : steps[step];
     }
 
-    private static Identifier[] build(MinecraftClient client, Identifier src) {
+    private static Identifier[] build(MinecraftClient client, Identifier src, boolean holo) {
         Optional<Resource> res = client.getResourceManager().getResource(src);
         if (res.isEmpty()) return new Identifier[0];
         try (InputStream in = res.get().getInputStream(); NativeImage base = NativeImage.read(in)) {
@@ -165,13 +176,14 @@ public final class SoulEffects {
                             img.setColor(x, y, 0);
                             continue;
                         }
+                        if (holo) { img.setColor(x, y, SoulAllyClient.holoPixel(abgr, y)); continue; }
                         float l = (0.3f * r + 0.59f * g + 0.11f * b) / 255f;
                         l = 0.45f + l * 0.55f;                         // светлее, как дымка
                         int nr = (int) (l * 175), ng = (int) (l * 200), nb = (int) (l * 235);
                         img.setColor(x, y, (a << 24) | (nb << 16) | (ng << 8) | nr);
                     }
                 }
-                Identifier id = new Identifier(Vestments.MOD_ID, "soul/" + src.getNamespace() + "/" + src.getPath().replace('/', '_') + "_" + k);
+                Identifier id = new Identifier(Vestments.MOD_ID, (holo ? "soulholo/" : "soul/") + src.getNamespace() + "/" + src.getPath().replace('/', '_') + "_" + k);
                 client.getTextureManager().registerTexture(id, new NativeImageBackedTexture(img));
                 out[k] = id;
             }
