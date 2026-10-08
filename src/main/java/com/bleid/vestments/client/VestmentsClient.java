@@ -33,6 +33,8 @@ public class VestmentsClient implements ClientModInitializer {
         PatriarchClient.register();
         SoulEffects.register();
         AltarScreen.register();
+        SoulAllyClient.register();
+        SoulSelectScreen.register();
         net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(
                 Vestments.HOLY_ALTAR, net.minecraft.client.render.RenderLayer.getCutout());
     }

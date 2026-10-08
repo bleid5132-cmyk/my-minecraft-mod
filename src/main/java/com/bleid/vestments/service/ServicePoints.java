@@ -119,7 +119,27 @@ public final class ServicePoints {
             Text msg = Text.translatable("message.vestments.rank_up", player.getDisplayName(),
                     Text.translatable(Ranks.nameKey(newRank)).formatted(Formatting.GOLD));
             server.getPlayerManager().broadcast(msg, false);
+            bibleRankUp(player, oldRank, newRank);
         }
+    }
+
+    /** Библия: при новом сане — новые способности; при открытии ульты — выбор душ. */
+    private static void bibleRankUp(ServerPlayerEntity player, int oldRank, int newRank) {
+        if (!com.bleid.vestments.patriarch.Mana.learned(player.getServer(), player.getUuid())) return;
+        int degree = Ranks.degreeOf(newRank);
+        boolean newDegree = degree != Ranks.degreeOf(oldRank);
+        int unlocked = com.bleid.vestments.patriarch.BibleAbilities.unlocked(newRank);
+        int before = newDegree ? 0 : com.bleid.vestments.patriarch.BibleAbilities.unlocked(oldRank);
+        if (newDegree) {
+            player.sendMessage(Text.translatable("message.vestments.bible_new_degree",
+                    Text.translatable(Ranks.degreeKey(degree))).formatted(Formatting.LIGHT_PURPLE), false);
+        }
+        for (int slot = before; slot < unlocked; slot++) {
+            String id = com.bleid.vestments.patriarch.BibleAbilities.abilityAt(degree, slot);
+            player.sendMessage(Text.translatable("message.vestments.ability_unlocked",
+                    Text.translatable("ability.vestments." + id)).formatted(Formatting.GOLD), false);
+        }
+        if (unlocked >= 3 && before < 3) com.bleid.vestments.patriarch.SoulAllies.openSelection(player);
     }
 
     public static void sync(ServerPlayerEntity player) {

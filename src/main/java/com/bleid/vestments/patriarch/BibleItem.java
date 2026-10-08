@@ -1,8 +1,8 @@
 package com.bleid.vestments.patriarch;
 
 import com.bleid.vestments.SmallTooltipData;
-import com.bleid.vestments.service.RankView;
 import com.bleid.vestments.service.Ranks;
+import com.bleid.vestments.service.ServicePoints;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -19,9 +19,9 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 
-/** Книга Патриарха: прочитавший Патриарх навсегда получает три способности (клавиши Z, X, C). */
-public class PatriarchBookItem extends Item {
-    public PatriarchBookItem(Settings settings) {
+/** Библия: прочитавший священник любой степени навсегда получает способности своей степени (Z, V, B). */
+public class BibleItem extends Item {
+    public BibleItem(Settings settings) {
         super(settings);
     }
 
@@ -34,8 +34,8 @@ public class PatriarchBookItem extends Item {
     public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
         if (world.isClient || !(player instanceof ServerPlayerEntity sp)) return TypedActionResult.success(stack, true);
-        if (!RankView.has(sp, PatriarchAbilities.REQUIRED_RANK)) {
-            sp.sendMessage(Text.translatable("message.vestments.book_only_patriarch").formatted(Formatting.RED), true);
+        if (!ServicePoints.canServe(sp)) {
+            sp.sendMessage(Text.translatable("message.vestments.bible_only_priest").formatted(Formatting.RED), true);
             return TypedActionResult.fail(stack);
         }
         if (Mana.learned(sp.getServer(), sp.getUuid())) {
@@ -46,7 +46,10 @@ public class PatriarchBookItem extends Item {
         Mana.sync(sp);
         world.playSound(null, sp.getX(), sp.getY(), sp.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 1f, 1f);
         world.playSound(null, sp.getX(), sp.getY(), sp.getZ(), SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.PLAYERS, 1f, 1f);
-        sp.sendMessage(Text.translatable("message.vestments.book_learned").formatted(Formatting.GOLD), false);
+        sp.sendMessage(Text.translatable("message.vestments.bible_learned").formatted(Formatting.GOLD), false);
+        if (BibleAbilities.unlocked(ServicePoints.rank(sp)) >= 3 && Mana.chosen(sp.getServer(), sp.getUuid()).isEmpty()) {
+            SoulAllies.openSelection(sp);
+        }
         if (!sp.getAbilities().creativeMode) stack.decrement(1);
         return TypedActionResult.success(stack, false);
     }
@@ -54,16 +57,16 @@ public class PatriarchBookItem extends Item {
     @Override
     public Optional<TooltipData> getTooltipData(ItemStack stack) {
         List<Text> lines = new ArrayList<>();
-        for (int i = 0; i < PatriarchAbilities.COUNT; i++) {
-            String id = PatriarchAbilities.IDS[i];
-            lines.add(Text.translatable("ability.vestments." + id).formatted(Formatting.GOLD));
-            lines.add(Text.translatable("tooltip.vestments." + id, (int) PatriarchAbilities.MANA[i],
-                    PatriarchAbilities.COOLDOWN[i] / 20).formatted(Formatting.GRAY));
+        for (int d = 0; d < 3; d++) {
+            lines.add(Text.translatable(Ranks.degreeKey(d)).formatted(Formatting.YELLOW));
+            for (int s = 0; s < 3; s++) {
+                String id = BibleAbilities.abilityAt(d, s);
+                lines.add(Text.literal("  ").append(Text.translatable("ability.vestments." + id))
+                        .append(Text.literal(" — ").append(Text.translatable(Ranks.nameKey(BibleAbilities.unlockRank(d, s)))))
+                        .formatted(s == 2 ? Formatting.LIGHT_PURPLE : Formatting.GOLD));
+            }
         }
-        lines.add(Text.translatable("tooltip.vestments.book_use").formatted(Formatting.YELLOW));
-        boolean ok = RankView.clientRank() >= PatriarchAbilities.REQUIRED_RANK;
-        lines.add(Text.translatable("tooltip.vestments.requires_rank", Text.translatable(Ranks.nameKey(PatriarchAbilities.REQUIRED_RANK)))
-                .formatted(ok ? Formatting.DARK_AQUA : Formatting.RED));
+        lines.add(Text.translatable("tooltip.vestments.book_use").formatted(Formatting.GRAY));
         return Optional.of(new SmallTooltipData(lines));
     }
 }
