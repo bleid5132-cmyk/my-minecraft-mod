@@ -1,0 +1,21 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "W W",
+  "WMW",
+  "WWW"
+ ],
+ "key": {
+  "W": {
+   "item": "minecraft:light_gray_wool"
+  },
+  "M": {
+   "item": "minecraft:gold_ingot"
+  }
+ },
+ "result": {
+  "item": "vestments:episcopate_chest",
+  "count": 1
+ }
+}

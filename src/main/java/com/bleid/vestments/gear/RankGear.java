@@ -35,18 +35,13 @@ public final class RankGear {
     private RankGear() { }
 
     public static void init() {
-        // ───────────── I. Диаконат ─────────────
-        armor(0, "deacon", new int[] { 1, 3, 2, 1 }, 0f, 7, Items.IRON_INGOT, Rarity.COMMON,
-                1.0f, 2.0, 120, 0, 0, 0.0, 0);
-
-        armor(1, "protodeacon", new int[] { 1, 4, 3, 1 }, 0f, 8, Items.GOLD_INGOT, Rarity.COMMON,
+        // ───────────── Облачение степеней (I — простое, II — богаче, III — самое богатое) ─────────────
+        armor(0, "diaconate", new int[] { 1, 3, 2, 1 }, 0f, 8, Items.STRING, Rarity.COMMON,
                 1.0f, 3.0, 100, 0, 0, 0.10, 0);
-
-        armor(2, "hierodeacon", new int[] { 2, 4, 3, 1 }, 0f, 9, Items.IRON_INGOT, Rarity.UNCOMMON,
-                1.0f, 3.0, 100, 300, 60, 0.15, 0);
-
-        armor(3, "archdeacon", new int[] { 2, 5, 3, 2 }, 0f, 10, Items.GOLD_INGOT, Rarity.UNCOMMON,
-                1.0f, 3.0, 80, 240, 60, 0.20, 3);
+        armor(4, "presbyterate", new int[] { 2, 6, 4, 2 }, 1f, 15, Items.GOLD_INGOT, Rarity.UNCOMMON,
+                1.0f, 4.0, 80, 240, 60, 0.25, 5);
+        armor(10, "episcopate", new int[] { 3, 7, 6, 3 }, 2f, 25, Items.GOLD_INGOT, Rarity.RARE,
+                2.0f, 4.5, 80, 160, 80, 0.35, 9);
 
         // ───────────── Посохи степеней (по одному на степень; у Патриарха — Посох Света) ─────────────
         weapon("diaconate_staff", 0, 4.0, 1.1, 220, Items.STICK, Rarity.COMMON,

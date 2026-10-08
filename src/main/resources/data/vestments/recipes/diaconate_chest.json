@@ -1,0 +1,21 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "W W",
+  "WMW",
+  "WWW"
+ ],
+ "key": {
+  "W": {
+   "item": "minecraft:white_wool"
+  },
+  "M": {
+   "item": "minecraft:string"
+  }
+ },
+ "result": {
+  "item": "vestments:diaconate_chest",
+  "count": 1
+ }
+}
