@@ -17,6 +17,7 @@
     "TradeOfferMixin",
     "VillagerEntityMixin",
     "StructurePoolAccessor",
-    "MobEntityAccessor"
+    "MobEntityAccessor",
+    "MobEntitySoulMixin"
   ]
 }

@@ -197,8 +197,10 @@ public final class SoulAllies {
             mob.setCanPickUpLoot(false);
             mob.addCommandTag(TAG);
             mob.setPersistent();
-            w.spawnEntity(mob);
-            SOULS.add(new Soul(mob.getUuid(), p.getUuid(), w.getRegistryKey(), now(w) + LIFE_TICKS));
+            // сначала регистрируем душу, иначе ENTITY_LOAD при спавне сочтёт её «потерянной» и уберёт
+            Soul soul = new Soul(mob.getUuid(), p.getUuid(), w.getRegistryKey(), now(w) + LIFE_TICKS);
+            SOULS.add(soul);
+            if (!w.spawnEntity(mob)) { SOULS.remove(soul); continue; }
             w.spawnParticles(ParticleTypes.SOUL, mob.getX(), mob.getBodyY(0.5), mob.getZ(), 12, 0.3, 0.6, 0.3, 0.02);
         }
         // не больше 10 душ у одного священника — лишние (старые) растворяются
