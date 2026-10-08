@@ -61,6 +61,9 @@ public final class SoulAllies {
 
     private static final List<Soul> SOULS = new ArrayList<>();
     private static final Map<UUID, Enemy> ENEMY = new HashMap<>();
+    /** Обидчик конкретной души: она отвечает ему, даже если священник ни с кем не дерётся. */
+    private static final Map<UUID, Enemy> SOUL_ENEMY = new HashMap<>();
+    private static final double AGGRO_RANGE = 16;
     private static boolean dirty;
 
     private SoulAllies() { }
@@ -109,6 +112,14 @@ public final class SoulAllies {
             if (attacker != null && attacker.getCommandTags().contains(TAG)) {
                 UUID owner = ownerOf(attacker.getUuid());
                 if (owner != null && (target.getUuid().equals(owner) || isSoulOf(target, owner))) return false;
+            }
+            // душу ударили — она отвечает обидчику
+            if (target.getCommandTags().contains(TAG) && attacker instanceof LivingEntity
+                    && !attacker.getCommandTags().contains(TAG)) {
+                UUID owner = ownerOf(target.getUuid());
+                if (owner != null && !attacker.getUuid().equals(owner)) {
+                    SOUL_ENEMY.put(target.getUuid(), new Enemy(attacker.getUuid(), now(target.getWorld()) + 30 * 20));
+                }
             }
             if (target instanceof ServerPlayerEntity p && attacker instanceof LivingEntity && attacker != p
                     && !isSoulOf(attacker, p.getUuid())) {
@@ -232,14 +243,16 @@ public final class SoulAllies {
             ServerWorld w = server.getWorld(s.world);
             Entity e = w != null ? w.getEntity(s.entity) : null;
             ServerPlayerEntity owner = server.getPlayerManager().getPlayer(s.owner);
-            if (e == null || !e.isAlive()) { it.remove(); dirty = true; continue; }
+            if (e == null || !e.isAlive()) { it.remove(); SOUL_ENEMY.remove(s.entity); dirty = true; continue; }
             if (t >= s.expire || owner == null) {
-                poof(w, e); e.discard(); it.remove(); dirty = true; continue;
+                poof(w, e); e.discard(); it.remove(); SOUL_ENEMY.remove(s.entity); dirty = true; continue;
             }
             MobEntity mob = (MobEntity) e;
             mob.extinguish();                                   // души не горят на солнце
+            if (t % 10 == 0) provokeHostiles(w, mob);
             if (t % 5 != 0) continue;
             LivingEntity target = enemyOf(server, owner);
+            if (target == null) target = soulEnemy(w, mob, t);
             if (target != null && target.getWorld() == mob.getWorld() && target.squaredDistanceTo(mob) < 40 * 40) {
                 if (mob.getTarget() != target) mob.setTarget(target);
             } else {
@@ -259,6 +272,28 @@ public final class SoulAllies {
             dirty = false;
             syncIds(server);
         }
+    }
+
+    /** Враждебные мобы рядом, у которых нет цели, нападают на душу — как на игрока. */
+    private static void provokeHostiles(ServerWorld w, MobEntity soul) {
+        for (MobEntity m : w.getEntitiesByClass(MobEntity.class, soul.getBoundingBox().expand(AGGRO_RANGE),
+                m -> m instanceof Monster && !(m instanceof Angerable) && m.isAlive() && !m.getCommandTags().contains(TAG) && !m.isAiDisabled())) {
+            LivingEntity cur = m.getTarget();
+            if (cur != null && cur.isAlive()) continue;
+            if (!m.canSee(soul)) continue;
+            m.setTarget(soul);
+        }
+    }
+
+    private static LivingEntity soulEnemy(ServerWorld w, MobEntity soul, long t) {
+        Enemy en = SOUL_ENEMY.get(soul.getUuid());
+        if (en == null) return null;
+        Entity e = w.getEntity(en.entity);
+        if (t > en.until || !(e instanceof LivingEntity le) || !le.isAlive() || le.squaredDistanceTo(soul) > 40 * 40) {
+            SOUL_ENEMY.remove(soul.getUuid());
+            return null;
+        }
+        return le;
     }
 
     private static LivingEntity enemyOf(MinecraftServer server, ServerPlayerEntity owner) {
