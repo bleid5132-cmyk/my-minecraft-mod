@@ -74,12 +74,13 @@ public final class PatriarchClient {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity player = client.player;
         if (!synced || player == null || client.options.hudHidden || client.interactionManager == null
-                || !client.interactionManager.hasStatusBars()) return;
+                || player.isSpectator()) return;
+        boolean bars = client.interactionManager.hasStatusBars();     // в творческом шкал голода нет
         int w = ctx.getScaledWindowWidth(), h = ctx.getScaledWindowHeight();
 
         // мана над голодом (как шкала голода — справа налево); если видны пузырьки воздуха — ещё выше
         int right = w / 2 + 91;
-        int y = h - 39 - 10;
+        int y = bars ? h - 39 - 10 : h - 39;
         if (player.isSubmergedInWater() || player.getAir() < player.getMaxAir()) y -= 10;
         if (player.getVehicle() != null) y -= 10;
         float perIcon = max / 10f;
@@ -90,7 +91,8 @@ public final class PatriarchClient {
             ctx.drawTexture(MANA_TEX, x, y, u, 0, 9, 9, 27, 9);
         }
 
-        if (!learned) return;
+        boolean patriarch = com.bleid.vestments.service.RankView.clientRank() >= PatriarchAbilities.REQUIRED_RANK;
+        if (!learned && !patriarch) return;
         // иконки способностей Патриарха — в ряд слева от иконки способности посоха, как у посоха
         TextRenderer font = client.textRenderer;
         int size = 24, margin = 6, gap = 6;
@@ -101,7 +103,10 @@ public final class PatriarchClient {
             Identifier icon = new Identifier(Vestments.MOD_ID, "textures/gui/" + PatriarchAbilities.IDS[i] + ".png");
             ctx.drawTexture(icon, x, iy, 0, 0, size, size, size, size);
             boolean noMana = mana < PatriarchAbilities.MANA[i];
-            if (cooldown[i] > 0) {
+            if (!learned) {                                      // Патриарх, но книга ещё не прочитана
+                ctx.fill(x, iy, x + size, iy + size, 0xC0000000);
+                ctx.drawText(font, "?", x + size / 2 - font.getWidth("?") / 2, iy + size / 2 - 4, 0xFFFFD24A, true);
+            } else if (cooldown[i] > 0) {
                 float f = cooldown[i] / (float) PatriarchAbilities.COOLDOWN[i];
                 ctx.fill(x, iy, x + size, iy + MathHelper.ceil(size * f), 0xB0000000);
                 String sec = String.valueOf(MathHelper.ceil(cooldown[i] / 20f));
