@@ -1,6 +1,6 @@
 {
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "vestments:item/boots"
-  }
+ "parent": "item/generated",
+ "textures": {
+  "layer0": "vestments:item/boots"
+ }
 }

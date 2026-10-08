@@ -1,6 +1,6 @@
 {
  "parent": "item/generated",
  "textures": {
-  "layer0": "vestments:item/phelonion"
+  "layer0": "vestments:item/presbyterate_legs"
  }
 }
