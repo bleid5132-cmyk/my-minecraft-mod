@@ -113,14 +113,14 @@
   "tooltip.vestments.seal": "Seal on the ground for 10 s (radius 5): cleanses allies, slows enemies. Mana %s, cooldown %s s",
   "tooltip.vestments.fortitude": "Invulnerability shield for 5 s on the aimed player (or yourself). Mana %s, cooldown %s s",
   "tooltip.vestments.blinding": "Freezes all mobs within 15 blocks for 5 s. Mana %s, cooldown %s s",
-  "tooltip.vestments.book_use": "RMB — read and learn the abilities forever (keys Z, X, C)",
+  "tooltip.vestments.book_use": "RMB — read and learn the abilities forever (keys Z, V, B)",
   "message.vestments.book_only_patriarch": "Only the Patriarch can read this book",
   "message.vestments.book_already": "You already know these abilities",
-  "message.vestments.book_learned": "You learned the Patriarch's Book: Z — Seal of Purity, X — Blessing of Fortitude, C — Blinding",
+  "message.vestments.book_learned": "You learned the Patriarch's Book: Z — Seal of Purity, V — Blessing of Fortitude, B — Blinding",
   "message.vestments.book_not_learned": "Read the Patriarch's Book first",
   "message.vestments.no_mana": "Not enough mana",
   "message.vestments.fortitude_given": "%s blessed you: invulnerable for 5 seconds",
-  "key.vestments.seal": "Seal of Purity",
-  "key.vestments.fortitude": "Blessing of Fortitude",
-  "key.vestments.blinding": "Blinding"
+  "key.vestments.patriarch_seal": "Seal of Purity",
+  "key.vestments.patriarch_fortitude": "Blessing of Fortitude",
+  "key.vestments.patriarch_blinding": "Blinding"
 }

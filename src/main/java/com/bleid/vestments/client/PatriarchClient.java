@@ -30,7 +30,8 @@ import org.lwjgl.glfw.GLFW;
 @Environment(EnvType.CLIENT)
 public final class PatriarchClient {
     private static final Identifier MANA_TEX = new Identifier(Vestments.MOD_ID, "textures/gui/mana.png");
-    private static final int[] KEYS = { GLFW.GLFW_KEY_Z, GLFW.GLFW_KEY_X, GLFW.GLFW_KEY_C };
+    // X и C в игре заняты (загрузить/сохранить панель), поэтому Z, V, B
+    private static final int[] KEYS = { GLFW.GLFW_KEY_Z, GLFW.GLFW_KEY_V, GLFW.GLFW_KEY_B };
     private static final KeyBinding[] BINDINGS = new KeyBinding[PatriarchAbilities.COUNT];
 
     private static boolean synced, learned;
@@ -42,7 +43,7 @@ public final class PatriarchClient {
     public static void register() {
         for (int i = 0; i < PatriarchAbilities.COUNT; i++) {
             BINDINGS[i] = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                    "key.vestments." + PatriarchAbilities.IDS[i], InputUtil.Type.KEYSYM, KEYS[i], "key.categories.vestments"));
+                    "key.vestments.patriarch_" + PatriarchAbilities.IDS[i], InputUtil.Type.KEYSYM, KEYS[i], "key.categories.vestments"));
         }
         ClientPlayNetworking.registerGlobalReceiver(Mana.SYNC, (client, handler, buf, sender) -> {
             float m = buf.readFloat(), mx = buf.readFloat();
@@ -90,12 +91,13 @@ public final class PatriarchClient {
         }
 
         if (!learned) return;
-        // иконки способностей Патриарха — над иконкой посоха справа внизу
+        // иконки способностей Патриарха — в ряд слева от иконки способности посоха, как у посоха
         TextRenderer font = client.textRenderer;
-        int size = 20;
+        int size = 24, margin = 6, gap = 6;
         for (int i = 0; i < PatriarchAbilities.COUNT; i++) {
-            int x = w - 6 - size - (PatriarchAbilities.COUNT - 1 - i) * (size + 4);
-            int iy = h - 6 - 24 - 14 - size;
+            int slot = PatriarchAbilities.COUNT - i;            // справа — место иконки посоха
+            int x = w - margin - size - slot * (size + gap);
+            int iy = h - margin - size;
             Identifier icon = new Identifier(Vestments.MOD_ID, "textures/gui/" + PatriarchAbilities.IDS[i] + ".png");
             ctx.drawTexture(icon, x, iy, 0, 0, size, size, size, size);
             boolean noMana = mana < PatriarchAbilities.MANA[i];
@@ -103,7 +105,7 @@ public final class PatriarchClient {
                 float f = cooldown[i] / (float) PatriarchAbilities.COOLDOWN[i];
                 ctx.fill(x, iy, x + size, iy + MathHelper.ceil(size * f), 0xB0000000);
                 String sec = String.valueOf(MathHelper.ceil(cooldown[i] / 20f));
-                ctx.drawText(font, sec, x + size / 2 - font.getWidth(sec) / 2, iy + 6, 0xFFFFFFFF, true);
+                ctx.drawText(font, sec, x + size / 2 - font.getWidth(sec) / 2, iy + size / 2 - 4, 0xFFFFFFFF, true);
             } else if (noMana) {
                 ctx.fill(x, iy, x + size, iy + size, 0x803060C0);
             }
@@ -111,7 +113,8 @@ public final class PatriarchClient {
             ctx.getMatrices().push();
             ctx.getMatrices().translate(x + size / 2f, iy - 7f, 0);
             ctx.getMatrices().scale(0.75f, 0.75f, 1f);
-            ctx.drawText(font, key, -font.getWidth(key) / 2, 0, cooldown[i] > 0 ? 0xFFAAAAAA : 0xFF8FC8FF, true);
+            int col = cooldown[i] > 0 || noMana ? 0xFFAAAAAA : 0xFFFFD24A;
+            ctx.drawText(font, key, -font.getWidth(key) / 2, 0, col, true);
             ctx.getMatrices().pop();
         }
     }
