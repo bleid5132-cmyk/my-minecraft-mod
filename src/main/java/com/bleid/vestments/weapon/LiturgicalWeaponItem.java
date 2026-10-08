@@ -35,18 +35,21 @@ public class LiturgicalWeaponItem extends Item {
     public final int rank;
     public final WeaponAbility ability;
     public final int cooldownTicks;
+    /** Сколько маны тратит способность. */
+    public final int manaCost;
     public final Identifier hudIcon;
     private final double damage, speed;
     private final Multimap<EntityAttribute, EntityAttributeModifier> modifiers;
 
     public LiturgicalWeaponItem(Settings settings, int rank, double damage, double speed, WeaponAbility ability,
-                                int cooldownTicks, Identifier hudIcon) {
+                                int cooldownTicks, int manaCost, Identifier hudIcon) {
         super(settings);
         this.rank = rank;
         this.damage = damage;
         this.speed = speed;
         this.ability = ability;
         this.cooldownTicks = cooldownTicks;
+        this.manaCost = manaCost;
         this.hudIcon = hudIcon;
         this.modifiers = ImmutableMultimap.<EntityAttribute, EntityAttributeModifier>builder()
                 .put(EntityAttributes.GENERIC_ATTACK_DAMAGE, new EntityAttributeModifier(ATTACK_DAMAGE_MODIFIER_ID,
@@ -73,6 +76,11 @@ public class LiturgicalWeaponItem extends Item {
             return TypedActionResult.fail(stack);
         }
         if (!world.isClient && player instanceof ServerPlayerEntity sp) {
+            if (!com.bleid.vestments.patriarch.Mana.spend(sp, manaCost)) {
+                sp.sendMessage(Text.translatable("message.vestments.no_mana").formatted(Formatting.AQUA), true);
+                return TypedActionResult.fail(stack);
+            }
+            com.bleid.vestments.patriarch.Mana.sync(sp);
             ability.activate((ServerWorld) world, sp, ServicePoints.power(sp));
             player.getItemCooldownManager().set(this, cooldownTicks);
             if (!player.getAbilities().creativeMode) {
@@ -100,6 +108,7 @@ public class LiturgicalWeaponItem extends Item {
         lines.add(Text.translatable("tooltip.vestments.weapon.use", Text.translatable(ability.nameKey()),
                 cooldownTicks / 20).formatted(Formatting.GOLD));
         lines.addAll(ability.describe());
+        lines.add(Text.translatable("tooltip.vestments.weapon.mana", manaCost).formatted(Formatting.AQUA));
         boolean ok = RankView.clientRank() >= rank;
         lines.add(Text.translatable("tooltip.vestments.requires_rank", Text.translatable(Ranks.nameKey(rank)))
                 .formatted(ok ? Formatting.DARK_AQUA : Formatting.RED));

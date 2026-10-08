@@ -75,7 +75,7 @@
   "item.vestments.archdeacon_legs": "Archdeacon's Sticharion Hem",
   "item.vestments.archdeacon_boots": "Archdeacon's Boots",
   "ability.vestments.incense": "Prayer Veil",
-  "ability.vestments.wave": "Seraph's Breath",
+  "ability.vestments.wave": "Seraph's Light",
   "tooltip.vestments.weapon.use": "RMB — “%s” (cooldown %s s)",
   "tooltip.vestments.incense.heal": "Golden radiance for %s s, radius %s: heals allies %s ♥ per second",
   "tooltip.vestments.incense.slow": "Hostiles in the radiance: Slowness %s",
@@ -101,11 +101,7 @@
   "name.vestments.priest.serafim": "Seraphim",
   "message.vestments.church_discount": "Church discount for a priest: %s%%",
   "message.vestments.church_free": "For a bishop everything sold for emeralds is free",
-  "item.vestments.deacon_staff": "Deacon's Staff",
-  "item.vestments.protodeacon_staff": "Protodeacon's Staff",
-  "item.vestments.archdeacon_staff": "Archdeacon's Staff",
   "tooltip.vestments.incense.undead": "Undead in the radiance lose %s ♥ per second",
-  "item.vestments.hierodeacon_staff": "Hierodeacon's Staff",
   "item.vestments.patriarch_book": "Patriarch's Book",
   "ability.vestments.seal": "“Seal of Purity”",
   "ability.vestments.fortitude": "“Blessing of Fortitude”",
@@ -122,5 +118,9 @@
   "message.vestments.fortitude_given": "%s blessed you: invulnerable for 5 seconds",
   "key.vestments.patriarch_seal": "Seal of Purity",
   "key.vestments.patriarch_fortitude": "Blessing of Fortitude",
-  "key.vestments.patriarch_blinding": "Blinding"
+  "key.vestments.patriarch_blinding": "Blinding",
+  "item.vestments.diaconate_staff": "Deacon's Staff",
+  "item.vestments.presbyterate_staff": "Priest's Staff",
+  "item.vestments.episcopate_staff": "Bishop's Crozier",
+  "tooltip.vestments.weapon.mana": "Mana: %s"
 }

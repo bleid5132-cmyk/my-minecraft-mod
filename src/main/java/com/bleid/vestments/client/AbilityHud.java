@@ -91,6 +91,8 @@ public final class AbilityHud {
         if (!allowed) {
             ctx.fill(x, y, x + SIZE, y + SIZE, 0xB0300000);
             drawCentered(ctx, font, "✖", x + SIZE / 2, y + SIZE / 2 - 4, 0xFFFF6060);
+        } else if (cooldown <= 0f && PatriarchClient.mana() < weapon.manaCost) {
+            ctx.fill(x, y, x + SIZE, y + SIZE, 0x803060C0);                  // не хватает маны
         } else if (cooldown > 0f) {
             int dark = MathHelper.ceil(SIZE * cooldown);
             ctx.fill(x, y, x + SIZE, y + dark, 0xB0000000);

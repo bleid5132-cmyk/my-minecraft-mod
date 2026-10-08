@@ -2,23 +2,23 @@
  "type": "minecraft:crafting_shaped",
  "category": "equipment",
  "pattern": [
-  " GR",
-  " SG",
+  " BC",
+  " SB",
   "S  "
  ],
  "key": {
-  "G": {
-   "item": "minecraft:gold_ingot"
-  },
-  "R": {
-   "item": "minecraft:redstone"
-  },
   "S": {
    "item": "minecraft:stick"
+  },
+  "B": {
+   "item": "minecraft:copper_ingot"
+  },
+  "C": {
+   "item": "minecraft:gold_nugget"
   }
  },
  "result": {
-  "item": "vestments:protodeacon_staff",
+  "item": "vestments:presbyterate_staff",
   "count": 1
  }
 }

@@ -38,23 +38,23 @@ public final class RankGear {
         // ───────────── I. Диаконат ─────────────
         armor(0, "deacon", new int[] { 1, 3, 2, 1 }, 0f, 7, Items.IRON_INGOT, Rarity.COMMON,
                 1.0f, 2.0, 120, 0, 0, 0.0, 0);
-        weapon("deacon_staff", 0, 4.0, 1.2, 250, Items.IRON_INGOT, Rarity.COMMON,
-                new IncenseAbility(3.0, 4, 1.0f, 0, false, 0f), 400, "prayer");
 
         armor(1, "protodeacon", new int[] { 1, 4, 3, 1 }, 0f, 8, Items.GOLD_INGOT, Rarity.COMMON,
                 1.0f, 3.0, 100, 0, 0, 0.10, 0);
-        weapon("protodeacon_staff", 1, 4.5, 1.2, 300, Items.GOLD_INGOT, Rarity.COMMON,
-                new IncenseAbility(3.5, 5, 1.0f, 0, true, 0f), 400, "prayer");
 
         armor(2, "hierodeacon", new int[] { 2, 4, 3, 1 }, 0f, 9, Items.IRON_INGOT, Rarity.UNCOMMON,
                 1.0f, 3.0, 100, 300, 60, 0.15, 0);
-        weapon("hierodeacon_staff", 2, 5.0, 1.0, 320, Items.IRON_INGOT, Rarity.UNCOMMON,
-                new WaveAbility(5.0, 70.0, 3.0f, 1.2f, 3), 240, "ripida");
 
         armor(3, "archdeacon", new int[] { 2, 5, 3, 2 }, 0f, 10, Items.GOLD_INGOT, Rarity.UNCOMMON,
                 1.0f, 3.0, 80, 240, 60, 0.20, 3);
-        weapon("archdeacon_staff", 3, 5.0, 1.2, 350, Items.GOLD_INGOT, Rarity.UNCOMMON,
-                new IncenseAbility(4.0, 5, 1.5f, 1, true, 1.0f), 360, "prayer");
+
+        // ───────────── Посохи степеней (по одному на степень; у Патриарха — Посох Света) ─────────────
+        weapon("diaconate_staff", 0, 4.0, 1.1, 220, Items.STICK, Rarity.COMMON,
+                new IncenseAbility(3.0, 4, 1.0f, 0, false, 0f), 400, 25, "prayer");
+        weapon("presbyterate_staff", 4, 5.0, 1.1, 420, Items.COPPER_INGOT, Rarity.UNCOMMON,
+                new WaveAbility(6.0, 70.0, 4.0f, 1.4f, 4), 240, 30, "ripida");
+        weapon("episcopate_staff", 10, 5.5, 1.1, 700, Items.IRON_INGOT, Rarity.RARE,
+                new IncenseAbility(4.5, 6, 2.0f, 1, true, 1.5f), 360, 40, "prayer");
 
         // ───────────── Патриарх (облачение из первой версии мода) ─────────────
         PATRIARCH = new GearSet(14, "patriarch", 2.0f, 5.0, 60, -1, 0, 0.5, 15);
@@ -91,9 +91,9 @@ public final class RankGear {
     }
 
     private static void weapon(String id, int rank, double damage, double speed, int durability, Item repair,
-                               Rarity rarity, WeaponAbility ability, int cooldown, String icon) {
+                               Rarity rarity, WeaponAbility ability, int cooldown, int mana, String icon) {
         LiturgicalWeaponItem item = new LiturgicalWeaponItem(new FabricItemSettings().maxDamage(durability).rarity(rarity),
-                rank, damage, speed, ability, cooldown, new Identifier(Vestments.MOD_ID, "textures/gui/" + icon + ".png")) {
+                rank, damage, speed, ability, cooldown, mana, new Identifier(Vestments.MOD_ID, "textures/gui/" + icon + ".png")) {
             @Override
             public boolean canRepair(net.minecraft.item.ItemStack stack, net.minecraft.item.ItemStack ingredient) {
                 return ingredient.isOf(repair) || super.canRepair(stack, ingredient);

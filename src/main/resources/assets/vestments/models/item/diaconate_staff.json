@@ -1,6 +1,6 @@
 {
  "parent": "item/handheld",
  "textures": {
-  "layer0": "vestments:item/deacon_staff"
+  "layer0": "vestments:item/diaconate_staff"
  }
 }

@@ -75,7 +75,7 @@
   "item.vestments.archdeacon_legs": "Подол стихаря архидиакона",
   "item.vestments.archdeacon_boots": "Сапоги архидиакона",
   "ability.vestments.incense": "Молитвенный покров",
-  "ability.vestments.wave": "Веяние серафима",
+  "ability.vestments.wave": "Свет серафима",
   "tooltip.vestments.weapon.use": "ПКМ — «%s» (перезарядка %s с)",
   "tooltip.vestments.incense.heal": "Золотое сияние на %s с, радиус %s бл.: лечит своих на %s ♥ в секунду",
   "tooltip.vestments.incense.slow": "Враждебные в сиянии: Медлительность %s",
@@ -101,11 +101,7 @@
   "name.vestments.priest.serafim": "Серафим",
   "message.vestments.church_discount": "Скидка священнику в церкви: %s%%",
   "message.vestments.church_free": "Архиерею всё за изумруды — бесплатно",
-  "item.vestments.deacon_staff": "Посох диакона",
-  "item.vestments.protodeacon_staff": "Посох протодиакона",
-  "item.vestments.archdeacon_staff": "Посох архидиакона",
   "tooltip.vestments.incense.undead": "Нежить в сиянии теряет %s ♥ в секунду",
-  "item.vestments.hierodeacon_staff": "Посох иеродиакона",
   "item.vestments.patriarch_book": "Книга Патриарха",
   "ability.vestments.seal": "«Печать чистоты»",
   "ability.vestments.fortitude": "«Благословение стойкости»",
@@ -122,5 +118,9 @@
   "message.vestments.fortitude_given": "%s благословил вас: неуязвимость на 5 секунд",
   "key.vestments.patriarch_seal": "Печать чистоты",
   "key.vestments.patriarch_fortitude": "Благословение стойкости",
-  "key.vestments.patriarch_blinding": "Ослепление"
+  "key.vestments.patriarch_blinding": "Ослепление",
+  "item.vestments.diaconate_staff": "Посох диакона",
+  "item.vestments.presbyterate_staff": "Посох иерея",
+  "item.vestments.episcopate_staff": "Архиерейский жезл",
+  "tooltip.vestments.weapon.mana": "Мана: %s"
 }

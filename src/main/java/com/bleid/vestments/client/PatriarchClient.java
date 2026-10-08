@@ -40,6 +40,11 @@ public final class PatriarchClient {
 
     private PatriarchClient() { }
 
+    /** Текущая мана (для иконок способностей). */
+    public static float mana() {
+        return mana;
+    }
+
     public static void register() {
         for (int i = 0; i < PatriarchAbilities.COUNT; i++) {
             BINDINGS[i] = KeyBindingHelper.registerKeyBinding(new KeyBinding(
