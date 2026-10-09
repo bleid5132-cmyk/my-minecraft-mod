@@ -11,6 +11,13 @@ base {
 
 repositories {
     maven {
+        name = 'KosmX'
+        url = 'https://maven.kosmx.dev/'
+        content {
+            includeGroup 'io.github.kosmx.bendy-lib'
+        }
+    }
+    maven {
         name = 'Modrinth'
         url = 'https://api.modrinth.com/maven'
         content {
@@ -25,6 +32,9 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     modImplementation "maven.modrinth:armor-model-api:${project.armor_model_api_version}"
+    // настоящий изгиб рук и ног (локти, колени); вшивается в мод — ставить отдельно не нужно
+    modImplementation "io.github.kosmx.bendy-lib:bendy-lib-fabric:${project.bendy_lib_version}"
+    include "io.github.kosmx.bendy-lib:bendy-lib-fabric:${project.bendy_lib_version}"
 }
 
 processResources {

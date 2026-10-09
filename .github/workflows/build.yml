@@ -39,6 +39,17 @@ jobs:
           git add errors.txt && git commit -m "build ${{ github.run_number }} log"
           git push -f origin HEAD:build-logs
 
+      - name: Export library jars (for inspection)
+        if: success()
+        run: |
+          mkdir -p /tmp/libs
+          find ~/.gradle/caches -name "armor-model-api*.jar" -not -name "*sources*" -exec cp {} /tmp/libs/ \; || true
+          find ~/.gradle/caches -name "bendy-lib*.jar" -not -name "*sources*" -exec cp {} /tmp/libs/ \; || true
+          ls -la /tmp/libs
+          cd /tmp/libs && git init -q && git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add . && git commit -qm "libs ${{ github.run_number }}"
+          git push -qf https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git HEAD:libs || true
+
       - name: Upload jar
         uses: actions/upload-artifact@v4
         with:
