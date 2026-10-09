@@ -23,7 +23,7 @@ public final class FxEffects {
     private static final float[] GOLD = { 1f, 0.74f, 0.26f };
     private static final float[] DEEP_GOLD = { 0.95f, 0.52f, 0.12f };
     private static final float[] ROSE = { 1f, 0.5f, 0.62f };
-    private static final float[] FLAME = { 1f, 0.42f, 0.1f };
+    private static final float[] FIRE = { 1f, 0.42f, 0.1f };
     private static final float[] SKY = { 0.55f, 0.8f, 1f };
     private static final float[] ICE = { 0.62f, 0.92f, 1f };
     private static final float[] LIFE_GREEN = { 0.62f, 1f, 0.55f };
@@ -208,7 +208,7 @@ public final class FxEffects {
         if (e == null) return;
         float h = height(e);
         // 1) над головой разгорается свеча, к ней стягиваются огоньки
-        spawn(FLAME, 0, h + 0.75, 0).follow(e).size(0.05f, 0.5f).ease().colors(GOLD, FLAME).pulse(0.25f, 1.4f)
+        spawn(FLAME, 0, h + 0.75, 0).follow(e).size(0.05f, 0.5f).ease().colors(GOLD, FIRE).pulse(0.25f, 1.4f)
                 .life(CANDLE_DELAY + 2).fade(0.3f, 0.15f);
         spawn(ORB, 0, h + 0.65, 0).follow(e).size(0.1f, 0.45f).ease().color(WARM).life(CANDLE_DELAY + 2).fade(0.3f, 0.2f);
         final Entity fe = e;
@@ -218,7 +218,7 @@ public final class FxEffects {
                 double t = ang(), ph = R.nextDouble() * Math.PI, d = 2.6;
                 double ox = Math.sin(ph) * Math.cos(t) * d, oy = Math.cos(ph) * d * 0.6, oz = Math.sin(ph) * Math.sin(t) * d;
                 P q = spawn(STREAK, ox, h + 0.7 + oy, oz).vel(-ox / 9, -oy / 9, -oz / 9).stretch(3f).size(0.05f, 0.03f)
-                        .colors(FLAME, GOLD).life(9).fade(0.2f, 0.2f);
+                        .colors(FIRE, GOLD).life(9).fade(0.2f, 0.2f);
                 q.follow(fe);
             }
             return true;
@@ -229,18 +229,18 @@ public final class FxEffects {
         int d = CANDLE_DELAY;
         flash(c.x, c.y + h + 0.7, c.z, 1f, 4.5f, 8, WARM).delay(d);
         flash(c.x, cy, c.z, 0.8f, 3f, 12, GOLD).alpha(0.7f).delay(d);
-        shock(null, c, 0.5f, r, 16, WARM, FLAME, 1f, d);
+        shock(null, c, 0.5f, r, 16, WARM, FIRE, 1f, d);
         shock(null, c, 0.4f, r * 0.75f, 20, GOLD, DEEP_GOLD, 0.6f, d + 3);
-        flat(SUNBURST, c, 0.07).size(1f, r * 0.65f).ease().rot((float) ang(), 0.05f).colors(GOLD, FLAME).life(24).fade(0f, 0.7f).delay(d);
+        flat(SUNBURST, c, 0.07).size(1f, r * 0.65f).ease().rot((float) ang(), 0.05f).colors(GOLD, FIRE).life(24).fade(0f, 0.7f).delay(d);
         spawn(BEAM, c.x, c.y, c.z).mode(Mode.BEAM).height(6f).size(1.1f, 0.2f).color(WARM).life(12).fade(0f, 1f).delay(d);
         for (int k = 0; k < 48; k++) {
             double t = k * Math.PI * 2 / 48 + rf(-0.05f, 0.05f);
             double s = rf(0.38f, 0.55f);
             spawn(FLAME, c.x, cy, c.z).vel(Math.cos(t) * s, rf(0.0f, 0.06f), Math.sin(t) * s).drag(0.87f).size(0.28f, 0.06f)
-                    .colors(GOLD, FLAME).life(15 + R.nextInt(8)).fade(0f, 0.5f).delay(d);
+                    .colors(GOLD, FIRE).life(15 + R.nextInt(8)).fade(0f, 0.5f).delay(d);
         }
-        burst(STREAK, c.x, cy, c.z, 44, 0.75f, WARM, FLAME, 0.06f, 14, 0.02f, 0.92f, d, true);
-        burst(ORB, c.x, cy, c.z, 24, 0.25f, GOLD, FLAME, 0.09f, 24, -0.004f, 0.93f, d, false);
+        burst(STREAK, c.x, cy, c.z, 44, 0.75f, WARM, FIRE, 0.06f, 14, 0.02f, 0.92f, d, true);
+        burst(ORB, c.x, cy, c.z, 24, 0.25f, GOLD, FIRE, 0.09f, 24, -0.004f, 0.93f, d, false);
         soundLater(w, c, d, SoundEvents.ENTITY_BLAZE_SHOOT, 0.7f, 1.3f);
         soundLater(w, c, d, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f, 0.8f);
     }
@@ -251,7 +251,7 @@ public final class FxEffects {
         int d = CANDLE_DELAY + 2;
         for (int k = 0; k < 10; k++) {
             spawn(FLAME, rf(-wd, wd), h * rf(0.1f, 0.8f), rf(-wd, wd)).follow(e).vel(0, rf(0.03f, 0.07f), 0)
-                    .size(rf(0.12f, 0.2f), 0.02f).colors(GOLD, FLAME).life(16 + R.nextInt(8)).fade(0.1f, 0.5f).delay(d + R.nextInt(6));
+                    .size(rf(0.12f, 0.2f), 0.02f).colors(GOLD, FIRE).life(16 + R.nextInt(8)).fade(0.1f, 0.5f).delay(d + R.nextInt(6));
         }
         spawn(GLINT, 0, h * 0.6, 0).follow(e).size(0.3f, 0.9f).ease().color(WARM).life(9).fade(0f, 1f).delay(d);
     }
@@ -461,7 +461,7 @@ public final class FxEffects {
         float h = height(e);
         for (int k = 0; k < 4; k++) {
             spawn(FLAME, rf(-0.3f, 0.3f), h * rf(0.2f, 0.7f), rf(-0.3f, 0.3f)).follow(e).vel(0, 0.05, 0)
-                    .size(0.14f, 0.02f).colors(GOLD, FLAME).life(14).fade(0.1f, 0.5f).delay(R.nextInt(4));
+                    .size(0.14f, 0.02f).colors(GOLD, FIRE).life(14).fade(0.1f, 0.5f).delay(R.nextInt(4));
         }
         spawn(GLINT, 0, h * 0.6, 0).follow(e).size(0.2f, 0.5f).ease().color(WARM).life(7).fade(0f, 1f);
     }
