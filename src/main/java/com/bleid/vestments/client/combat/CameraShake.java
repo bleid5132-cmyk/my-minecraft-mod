@@ -12,6 +12,31 @@ public final class CameraShake {
 
     private CameraShake() { }
 
+    // толчок камеры при попадании: быстрый рывок по направлению удара и возврат (градусы)
+    private static float kYaw, kPitch, kRoll;
+    private static long kickStart;
+
+    public static void kick(float yaw, float pitch, float roll) {
+        kYaw = yaw;
+        kPitch = pitch;
+        kRoll = roll;
+        kickStart = System.nanoTime();
+    }
+
+    /** Форма толчка: пик через ~45 мс, затем плавный возврат. */
+    private static float kickShape() {
+        if (kickStart == 0) return 0f;
+        float t = (System.nanoTime() - kickStart) / 1e9f;
+        if (t > 0.6f) return 0f;
+        float k = 22f;
+        return (float) (t * k * Math.exp(1 - t * k));
+    }
+
+    /** Наклон камеры от толчка (градусы). */
+    public static float kickRoll() {
+        return kRoll * kickShape();
+    }
+
     public static void add(float s) {
         if (s <= 0) return;
         strength = Math.min(1.5f, Math.max(strength * decay(), 0) + s);
@@ -26,6 +51,16 @@ public final class CameraShake {
 
     /** Смещение yaw/pitch в градусах или null. */
     public static float[] offset() {
+        float ks = kickShape();
+        float[] sh = shake();
+        if (ks == 0f) return sh;
+        float[] o = sh == null ? new float[2] : sh;
+        o[0] += kYaw * ks;
+        o[1] += kPitch * ks;
+        return o;
+    }
+
+    private static float[] shake() {
         if (strength <= 0.001f) return null;
         if (MinecraftClient.getInstance().options.getPerspective() == null) return null;
         float a = strength * decay();

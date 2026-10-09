@@ -15,9 +15,28 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Движение всего тела: покачивание шага, наклон, разворот в стойке; поверх — приёмы. */
 @Mixin(LivingEntityRenderer.class)
 public abstract class LivingEntityRendererCombatMixin {
+    /** Получивший удар отшатывается по направлению отбрасывания: резко, затем плавно выпрямляется. */
+    private static void vestments$flinch(LivingEntity e, MatrixStack matrices, float tickDelta) {
+        if (e.hurtTime <= 0 || e.maxHurtTime <= 0 || e.deathTime > 0 || e.getHeight() > 3f) return;
+        double vx = e.getVelocity().x, vz = e.getVelocity().z;
+        double sp = Math.sqrt(vx * vx + vz * vz);
+        if (sp < 0.04) return;
+        float g = 1f - (e.hurtTime - tickDelta) / e.maxHurtTime;     // 0 → 1
+        g = Math.max(0f, Math.min(1f, g));
+        float amt = g < 0.2f ? g / 0.2f : 1f - (g - 0.2f) / 0.8f;
+        amt = amt * amt * (3 - 2 * amt);
+        float ang = (float) Math.min(1.0, sp / 0.35) * 13f * amt;
+        double yaw = Math.toRadians(e.getBodyYaw());
+        double fwd = (vx * -Math.sin(yaw) + vz * Math.cos(yaw)) / sp;
+        double right = (vx * -Math.cos(yaw) + vz * -Math.sin(yaw)) / sp;
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) (-fwd * ang)));
+        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) (-right * ang)));
+    }
+
     @Inject(method = "setupTransforms", at = @At("TAIL"))
     private void vestments$combatRoot(LivingEntity e, MatrixStack matrices, float progress, float bodyYaw, float tickDelta,
                                       CallbackInfo ci) {
+        vestments$flinch(e, matrices, tickDelta);
         if (!(e instanceof PlayerEntity)) return;
         CombatPose.Pose p = CombatPose.compute(e, tickDelta);
         float wc = p == null || p.clip.offOnly ? 0f : p.w;

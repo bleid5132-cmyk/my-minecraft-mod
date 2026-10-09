@@ -71,7 +71,7 @@ public final class Clip {
         return smooth(Math.min(in, out));
     }
 
-    static float smooth(float x) {
+    public static float smooth(float x) {
         x = Math.max(0f, Math.min(1f, x));
         return x * x * (3 - 2 * x);
     }

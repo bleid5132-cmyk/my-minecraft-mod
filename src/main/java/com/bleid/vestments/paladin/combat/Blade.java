@@ -32,7 +32,7 @@ public final class Blade {
     }
 
     static double followAngle(Strike s) {
-        return s.a1 + (s.a1 - s.a0) * 0.1;
+        return s.a1 + (s.a1 - s.a0) * 0.1;      // = перелёт 0.16 − возврат 0.06
     }
 
     static double easeOut(double x, double p) {
@@ -82,12 +82,19 @@ public final class Blade {
                 double x = (t - s.pre) / Math.max(1e-3, s.contact - s.pre);
                 double e = s.smooth ? easeInOut(x) : s.heavy ? easeOut(x, 1.8) : easeOut(x, 2.6);
                 double a = windAngle(s) + (s.a1 - windAngle(s)) * e;
-                return done(dirAt(s, a), n, r0 + (r1 - r0) * e);
+                // в середине дуги рука вытягивается сильнее (клинок «хлещет»), к концу снова собирается
+                double bulge = s.thrust() ? 0 : 0.06 * len * Math.sin(Math.PI * e);
+                return done(dirAt(s, a), n, r0 + (r1 - r0) * e + bulge);
             }
             if (t < s.rec) {                         // довод
-                double x = easeOut((t - s.contact) / Math.max(1e-3, s.rec - s.contact), 2);
+                double xr = (t - s.contact) / Math.max(1e-3, s.rec - s.contact);
+                double x = easeOut(xr, 2);
                 double rr = s.thrust() ? r1 + (len - r1) * x * 0.5 : r1;
-                return done(dirAt(s, s.a1 + (followAngle(s) - s.a1) * x), n, rr);
+                // довод с перелётом и лёгким возвратом (инерция клинка), заканчивается в followAngle
+                double k1 = easeOut(Math.min(1, xr / 0.55), 2.2);
+                double k2 = easeInOut((xr - 0.55) / 0.45);
+                double over = (s.a1 - s.a0) * (0.16 * k1 - 0.06 * k2);
+                return done(dirAt(s, s.a1 + over), n, rr);
             }
             prevDir = dirAt(s, followAngle(s));
             prevN = n;

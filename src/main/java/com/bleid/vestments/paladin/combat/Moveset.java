@@ -6,6 +6,8 @@ public final class Moveset {
     public final int tier;          // 0 — младший рекрут … 5 — генерал
     public final float length;      // длина клинка с рукой (вылет от плеча), блоки
     public Clip[] combo;
+    /** Вторая серия — начинается, если игрок бьёт на ходу (другие удары той же стойки). */
+    public Clip[] comboB = new Clip[0];
     public Clip dash, air, skill, draw;
     // след клинка
     public float[] trail = { 1f, 1f, 1f };
@@ -29,11 +31,12 @@ public final class Moveset {
         return this;
     }
 
-    /** Приём по коду запроса: 0.. — серия, 100 — с разбега, 101 — в прыжке, 200 — особый. */
+    /** Приём по коду запроса: 0.. — серия, 50.. — вторая серия, 100 — с разбега, 101 — в прыжке, 200 — особый. */
     public Clip byKind(int kind) {
         if (kind == 100) return dash;
         if (kind == 101) return air;
         if (kind == 200) return skill;
+        if (kind >= 50 && kind < 50 + comboB.length) return comboB[kind - 50];
         if (kind >= 0 && kind < combo.length) return combo[kind];
         return null;
     }

@@ -48,6 +48,7 @@ public final class CombatClient {
     private static final Map<Integer, net.minecraft.item.Item[]> HELD = new HashMap<>();
     private static KeyBinding skillKey;
     private static int combo, idle, sprintTicks, buffer = -1;
+    private static boolean chainB;
 
     private CombatClient() { }
 
@@ -72,12 +73,35 @@ public final class CombatClient {
             client.execute(() -> {
                 if (client.player == null) return;
                 Playback p = PLAY.get(client.player.getId());
-                if (p != null) p.hitstop = Math.max(p.hitstop, stop);
+                if (p != null) {
+                    p.hitstop = Math.max(p.hitstop, stop);
+                    kickFor(p);
+                }
                 CameraShake.add(shake);
             });
         });
         ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { PLAY.clear(); HELD.clear(); });
         ClientTickEvents.END_CLIENT_TICK.register(CombatClient::tick);
+    }
+
+    /** Толчок камеры по направлению текущего взмаха — удар «ощущается» рукой. */
+    private static void kickFor(Playback p) {
+        com.bleid.vestments.paladin.combat.Strike cur = null;
+        for (com.bleid.vestments.paladin.combat.Strike k : p.clip.strikes) {
+            cur = k;
+            if (p.t < k.contact + 0.05f) break;
+        }
+        if (cur == null) return;
+        float power = cur.heavy ? 1.6f : 1f;
+        if (cur.thrust()) {
+            CameraShake.kick(0f, 0.6f * power, 0f);
+            return;
+        }
+        // направление движения клинка в момент контакта: (вправо, вверх)
+        double a = Math.toRadians(cur.a1 - cur.a0 > 0 ? 1 : -1), r = Math.toRadians(cur.roll);
+        double mid = Math.toRadians((cur.a0 + cur.a1) * 0.5);
+        double right = Math.cos(mid) * Math.cos(r) * Math.signum(a), up = Math.cos(mid) * Math.sin(r) * Math.signum(a);
+        CameraShake.kick((float) (right * 1.3 * power), (float) (-up * 1.1 * power), (float) (right * 1.6 * power));
     }
 
     public static Map<Integer, Playback> all() {
@@ -134,8 +158,14 @@ public final class CombatClient {
             kind = 100;
             p.setSprinting(false);
         } else {
-            if (combo >= ms.combo.length) combo = 0;
-            kind = combo++;
+            // серия выбирается в начале: стоя — основная, на ходу — вторая (другие удары)
+            Clip[] chain = chainB ? ms.comboB : ms.combo;
+            if (combo >= chain.length) combo = 0;
+            if (combo == 0) {
+                chainB = ms.comboB.length > 0
+                        && (Math.abs(p.input.movementForward) > 0.1f || Math.abs(p.input.movementSideways) > 0.1f);
+            }
+            kind = (chainB ? 50 : 0) + combo++;
         }
         Clip c = ms.byKind(kind);
         if (c == null) return;

@@ -15,7 +15,8 @@
     "combat.MinecraftClientCombatMixin",
     "combat.ClientPlayerEntityCombatMixin",
     "combat.CameraCombatMixin",
-    "combat.PlayerEntityModelBendMixin"
+    "combat.PlayerEntityModelBendMixin",
+    "combat.GameRendererTiltMixin"
   ],
   "injectors": {
     "defaultRequire": 1
