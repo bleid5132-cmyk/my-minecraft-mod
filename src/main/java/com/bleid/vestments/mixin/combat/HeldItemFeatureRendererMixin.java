@@ -52,8 +52,14 @@ public abstract class HeldItemFeatureRendererMixin {
     @Inject(method = "renderItem", at = @At("HEAD"), cancellable = true)
     private void vestments$combatGrip(LivingEntity e, ItemStack stack, ModelTransformationMode mode, Arm arm,
                                       MatrixStack matrices, VertexConsumerProvider vcp, int light, CallbackInfo ci) {
-        if (!(e instanceof PlayerEntity) || !(stack.getItem() instanceof PaladinSwordItem) || arm != e.getMainArm()) return;
+        if (!(e instanceof PlayerEntity) || arm != e.getMainArm()) return;
         CombatPose.Pose p = CombatPose.compute(e, net.minecraft.client.MinecraftClient.getInstance().getTickDelta());
+        // меч убирается в ножны: пока он в руке (его рисует ScabbardFeature), новый предмет не показываем
+        if (p != null && p.clip.reverse) {
+            if (p.draw != null && p.draw.inHand) ci.cancel();
+            return;
+        }
+        if (!(stack.getItem() instanceof PaladinSwordItem)) return;
         if (p == null || p.clip.offOnly) return;
         boolean left = arm == Arm.LEFT;
         float s = left ? -1f : 1f;
@@ -63,25 +69,12 @@ public abstract class HeldItemFeatureRendererMixin {
         Matrix4f van = vestments$vanillaGrip(s);
 
         if (p.draw != null) {
-            if (!p.draw.inHand) {             // меч ещё в ножнах — его рисует ScabbardFeature
-                ci.cancel();
-                return;
+            if (p.draw.inHand) {
+                com.bleid.vestments.client.combat.SwordGrip.render(heldItemRenderer, e, stack, arm, model, p.draw, w,
+                        matrices, vcp, light);
             }
-            // всё в пространстве модели: обычный хват = кисть · ванильный хват
-            Matrix4f base = new Matrix4f(matrices.peek().getPositionMatrix());
-            matrices.push();
-            model.setArmAngle(arm, matrices);
-            Bends.forearm(matrices, arm, vestments$elbow(e, arm));
-            Matrix4f hand = new Matrix4f(matrices.peek().getPositionMatrix());
-            matrices.pop();
-            van = base.invert().mul(hand).mul(van);
-            Vector3f y = new Vector3f(p.draw.dir), z = new Vector3f(p.draw.normal), x = new Vector3f(y).cross(z).normalize();
-            target = new Matrix4f()
-                    .translate(p.draw.hand.x / 16f, p.draw.hand.y / 16f, p.draw.hand.z / 16f)
-                    .mul(new Matrix4f(new Matrix3f().setColumn(0, x).setColumn(1, y).setColumn(2, z)))
-                    .scale(0.85f)
-                    .translate(0, 0.5375f, 0);           // середина рукояти — в кулаке
-            matrices.push();
+            ci.cancel();             // до хвата меч в ножнах — его рисует ScabbardFeature
+            return;
         } else {
             // боевой хват: рукоять в кулаке, клинок продолжает предплечье
             matrices.push();

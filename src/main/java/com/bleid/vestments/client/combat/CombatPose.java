@@ -183,6 +183,12 @@ public final class CombatPose {
         return p;
     }
 
+    /** Доля позы выхватывания: при убирании в ножны — обратный ход. */
+    public static float drawU(Clip c, float t) {
+        float u = MathHelper.clamp(t / c.length, 0f, 1f);
+        return c.reverse ? 1f - u : u;
+    }
+
     /** Насколько вторая рука держит рукоять: входит за время замаха, выходит после довода. */
     private static float twoWeight(Strike k, float t, float tStart) {
         float in = Clip.smooth((t - tStart) / Math.max(0.06f, (k.pre - tStart) * 0.7f));
@@ -197,7 +203,8 @@ public final class CombatPose {
     private static Pose sheath(LivingEntity e, Pose p, CombatClient.Playback pb, float t) {
         boolean right = e.getMainArm() == net.minecraft.util.Arm.RIGHT;
         boolean shield = e.getOffHandStack().getItem() instanceof com.bleid.vestments.paladin.PaladinShieldItem;
-        DrawPose.Out d = DrawPose.at(t / pb.clip.length, right, shield, new DrawPose.Out());
+        float u = drawU(pb.clip, t);
+        DrawPose.Out d = DrawPose.at(u, right, shield, new DrawPose.Out());
         p.draw = d;
         float[] a = new float[3];
         // рука с мечом (плечо — в main, вторая — в off; правша/левша уже учтены в позах)
@@ -211,9 +218,8 @@ public final class CombatPose {
         p.offShX = d.offShoulder.x; p.offShY = d.offShoulder.y; p.offShZ = d.offShoulder.z;
         p.kneeR = d.kneeR; p.kneeL = d.kneeL;
         p.bodyYaw = 0;
-        float u = t / pb.clip.length;
         // шаг в выпад к концу: правая (ведущая) нога вперёд
-        float st = u < 0.62f ? 0f : Math.min(1f, (u - 0.62f) / 0.18f);
+        float st = u < 0.7f ? 0f : Math.min(1f, (u - 0.7f) / 0.15f);
         p.rLeg = -0.32f * st + 0.08f;    // зеркалится для левши в BipedEntityModelCombatMixin
         p.lLeg = 0.26f * st - 0.1f;
         return p;

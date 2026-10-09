@@ -28,6 +28,7 @@ public final class Movesets {
 
     private static void add(Moveset m) {
         m.draw = draw(m);
+        m.sheathe = sheathe(m);
         BY_SWORD.put(m.id, m);
     }
 
@@ -73,10 +74,24 @@ public final class Movesets {
         c.sheath = true;
         // для вида от первого лица — простой плавный вынос (там ножен не видно)
         c.strike(new Strike(0.3f, 0.5f, 0.85f, 0.95f, 40, -130, 25).smooth().targets(0).event("draw"));
-        float flourish = 12f + 2.5f * m.tier;
-        c.spin.key(0, 0).key(0.27f * L, -16).key(0.47f * L, -8).key(0.62f * L, flourish).key(0.8f * L, 5).key(L, 0);
-        c.lean.key(0, 0).key(0.27f * L, 9).key(0.47f * L, 5).key(0.62f * L, -3).key(0.8f * L, 7).key(L, 2);
-        c.lift.key(0, 0).key(0.27f * L, -0.04f).key(0.62f * L, 0.02f).key(0.8f * L, -0.05f).key(L, -0.015f);
+        float flourish = 10f + 2.5f * m.tier;
+        c.spin.key(0, 0).key(0.25f * L, -16).key(0.47f * L, -10).key(0.59f * L, -2).key(0.71f * L, flourish).key(0.85f * L, 5).key(L, 0);
+        c.lean.key(0, 0).key(0.25f * L, 9).key(0.47f * L, 6).key(0.59f * L, 2).key(0.71f * L, -3).key(0.85f * L, 7).key(L, 2);
+        c.lift.key(0, 0).key(0.25f * L, -0.04f).key(0.71f * L, 0.02f).key(0.85f * L, -0.05f).key(L, -0.015f);
+        return c;
+    }
+
+    /** Убрать меч в ножны: то же движение, что и выхватывание, в обратном порядке, чуть быстрее. */
+    private static Clip sheathe(Moveset m) {
+        float L = 1.0f;
+        Clip c = C(m, "sheathe", L, 0.12f);
+        c.visualOnly = true;
+        c.lockMove = false;
+        c.sheath = true;
+        c.reverse = true;
+        // время идёт назад: u = 1 - t/L
+        c.spin.key(0, 0).key(0.15f * L, 5).key(0.29f * L, 10).key(0.41f * L, -2).key(0.53f * L, -10).key(0.75f * L, -16).key(L, 0);
+        c.lean.key(0, 0).key(0.15f * L, 6).key(0.29f * L, -2).key(0.53f * L, 6).key(0.75f * L, 9).key(L, 0);
         return c;
     }
 

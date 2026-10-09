@@ -22,9 +22,9 @@ public final class DrawPose {
     /** От гарды до середины рукояти (пиксели модели, с учётом масштаба меча 0.85). */
     public static final float GRIP_FROM_GUARD = 1.96f;
     /** Доля приёма, когда ладонь сомкнулась на рукояти (до этого меч в ножнах). */
-    public static final float GRAB = 0.27f;
+    public static final float GRAB = 0.25f;
     /** Доля приёма, когда клинок вышел из ножен (звон). */
-    public static final float CLEAR = 0.5f;
+    public static final float CLEAR = 0.47f;
 
     public static final class Out {
         public final Vector3f hand = new Vector3f(), dir = new Vector3f(), normal = new Vector3f();
@@ -50,24 +50,31 @@ public final class DrawPose {
 
     static {
         Vector3f grip = new Vector3f(SHEATH_MOUTH).sub(new Vector3f(SHEATH_DIR).mul(GRIP_FROM_GUARD));
-        Vector3f pulled = new Vector3f(grip).sub(new Vector3f(SHEATH_DIR).mul(8f)).add(0, -0.4f, 0);
+        // вытягивание строго вдоль ножен: клинок остаётся на оси ножен, пока не выйдет весь
+        Vector3f pull1 = new Vector3f(grip).sub(new Vector3f(SHEATH_DIR).mul(3.5f));
+        Vector3f pull2 = new Vector3f(grip).sub(new Vector3f(SHEATH_DIR).mul(7.5f));
+        // левая рука держит ножны и отводит их назад, помогая вынуть клинок
         Vector3f hold = new Vector3f(SHEATH_MOUTH).add(new Vector3f(SHEATH_DIR).mul(2.5f)).add(0.8f, 0, 0);
-        Vector3f hold2 = new Vector3f(SHEATH_MOUTH).add(new Vector3f(SHEATH_DIR).mul(1.5f)).add(0.9f, 0, 0);
-        Vector3f dPull = new Vector3f(0.55f, 0.35f, 0.76f).normalize();
-        Vector3f dUp = new Vector3f(-0.25f, -0.8f, 0.55f).normalize();
+        Vector3f hold1 = new Vector3f(hold).add(0.1f, 0.2f, 0.8f);
+        Vector3f hold2 = new Vector3f(hold).add(0.2f, 0.3f, 1.4f);
+        // после выхода клинок описывает дугу ПЕРЕД телом: влево-в сторону → вверх → вниз-вперёд в стойку
+        Vector3f dSide = new Vector3f(0.92f, -0.25f, -0.3f).normalize();
+        Vector3f dUp = new Vector3f(0.25f, -0.95f, -0.15f).normalize();
         Vector3f dGuard = new Vector3f(0.12f, -0.42f, -0.9f).normalize();
         Vector3f dRest = new Vector3f(0.05f, -0.3f, -0.95f).normalize();
-        Vector3f x = new Vector3f(1, 0, 0);
+        Vector3f x = new Vector3f(1, 0, 0), fwd = new Vector3f(0, 0, -1);
         Key k0 = new Key(0f, false, v(-5.5f, 11f, -1f), SHEATH_DIR, SHEATH_NORMAL, v(-5, 2, 0), v(5.5f, 11f, -0.5f), v(5, 2, 0), v(0.1f, 0.1f, 0));
         Key k1 = new Key(GRAB, true, grip, SHEATH_DIR, SHEATH_NORMAL, v(-3f, 3f, -2.8f), hold, v(4.8f, 2.6f, -0.4f), v(0.38f, 0.52f, 0));
-        Key k2 = new Key(0.47f, false, pulled, dPull, ortho(x, dPull), v(-4f, 2.2f, -1.6f), hold2, v(4.8f, 2.6f, -0.4f), v(0.3f, 0.45f, 0));
-        Key k3 = new Key(0.62f, false, v(-6f, -1.5f, -6.5f), dUp, ortho(x, dUp), v(-5.2f, 1.4f, -0.6f), v(8.5f, 8f, 1.5f), v(5, 2, 0), v(0.12f, 0.22f, 0));
-        Key k4p = new Key(0.8f, false, v(-3f, 7f, -7.5f), dGuard, ortho(x, dGuard), v(-5f, 2f, -0.6f), v(2.5f, 8f, -4.5f), v(5, 2, 0), v(0.5f, 0.32f, 0));
-        Key k4s = new Key(0.8f, false, v(-3f, 7f, -7.5f), dGuard, ortho(x, dGuard), v(-5f, 2f, -0.6f), v(3.5f, 7.5f, -6.5f), v(5, 2, 0), v(0.5f, 0.32f, 0));
-        Key k5p = new Key(1f, false, v(-5f, 9f, -4.5f), dRest, ortho(x, dRest), v(-5, 2, 0), v(3f, 9f, -3.5f), v(5, 2, 0), v(0.28f, 0.38f, 0));
-        Key k5s = new Key(1f, false, v(-5f, 9f, -4.5f), dRest, ortho(x, dRest), v(-5, 2, 0), v(3.2f, 8f, -5.8f), v(5, 2, 0), v(0.28f, 0.38f, 0));
-        PLAIN = new Key[] { k0, k1, k2, k3, k4p, k5p };
-        SHIELD = new Key[] { k0, k1, k2, k3, k4s, k5s };
+        Key k2 = new Key(0.36f, false, pull1, SHEATH_DIR, SHEATH_NORMAL, v(-3.4f, 2.7f, -2.4f), hold1, v(4.8f, 2.6f, 0f), v(0.36f, 0.5f, 0));
+        Key k3 = new Key(CLEAR, false, pull2, SHEATH_DIR, SHEATH_NORMAL, v(-4f, 2.2f, -1.8f), hold2, v(4.9f, 2.4f, 0.4f), v(0.3f, 0.45f, 0));
+        Key k4 = new Key(0.59f, false, v(-1f, 3f, -8.5f), dSide, ortho(fwd, dSide), v(-4.6f, 1.8f, -1.2f), v(6.5f, 10f, 0.5f), v(5, 2, 0), v(0.2f, 0.3f, 0));
+        Key k5 = new Key(0.71f, false, v(-3.5f, -1f, -7.5f), dUp, ortho(x, dUp), v(-5f, 1.4f, -0.8f), v(8.5f, 8f, 1.5f), v(5, 2, 0), v(0.12f, 0.2f, 0));
+        Key k6p = new Key(0.85f, false, v(-3f, 7f, -7.5f), dGuard, ortho(x, dGuard), v(-5f, 2f, -0.6f), v(2.5f, 8f, -4.5f), v(5, 2, 0), v(0.5f, 0.32f, 0));
+        Key k6s = new Key(0.85f, false, v(-3f, 7f, -7.5f), dGuard, ortho(x, dGuard), v(-5f, 2f, -0.6f), v(3.5f, 7.5f, -6.5f), v(5, 2, 0), v(0.5f, 0.32f, 0));
+        Key k7p = new Key(1f, false, v(-5f, 9f, -4.5f), dRest, ortho(x, dRest), v(-5, 2, 0), v(3f, 9f, -3.5f), v(5, 2, 0), v(0.28f, 0.38f, 0));
+        Key k7s = new Key(1f, false, v(-5f, 9f, -4.5f), dRest, ortho(x, dRest), v(-5, 2, 0), v(3.2f, 8f, -5.8f), v(5, 2, 0), v(0.28f, 0.38f, 0));
+        PLAIN = new Key[] { k0, k1, k2, k3, k4, k5, k6p, k7p };
+        SHIELD = new Key[] { k0, k1, k2, k3, k4, k5, k6s, k7s };
     }
 
     private DrawPose() { }

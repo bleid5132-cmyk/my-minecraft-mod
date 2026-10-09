@@ -40,6 +40,8 @@ public final class CombatClient {
         public final Moveset ms;
         public float t, prevT;
         public int hitstop;
+        /** Меч, который убирается в ножны (в руке его уже нет). */
+        public ItemStack stack = ItemStack.EMPTY;
         Playback(Clip c, Moveset m) { clip = c; ms = m; }
     }
 
@@ -239,6 +241,14 @@ public final class CombatClient {
                 Moveset ms = sword.moveset();
                 PLAY.put(pl.getId(), new Playback(ms.draw, ms));
                 sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_LEATHER, 0.5f, 1.2f);
+            } else if (main != prev[0] && prev[0] instanceof PaladinSwordItem old && old.moveset() != null
+                    && !(main instanceof PaladinSwordItem)) {
+                // меч убрали из руки — он плавно возвращается в ножны
+                Moveset ms = old.moveset();
+                Playback pb = new Playback(ms.sheathe, ms);
+                pb.stack = new ItemStack(old);
+                PLAY.put(pl.getId(), pb);
+                sound(mc, pl, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_NODAMAGE, 0.35f, 1.4f);
             } else if (off != prev[1] && off instanceof com.bleid.vestments.paladin.PaladinShieldItem) {
                 Moveset ms = main instanceof PaladinSwordItem sw && sw.moveset() != null ? sw.moveset()
                         : Movesets.of("junior_recruit_sword");
@@ -253,6 +263,17 @@ public final class CombatClient {
     /** Звуки и вспышка выхватывания: хват рукояти, звон выходящего клинка, свист при постановке в стойку. */
     private static void drawCues(MinecraftClient mc, LivingEntity le, Playback p) {
         float L = p.clip.length;
+        if (p.clip.reverse) {
+            // клинок входит в ножны — шорох; гарда упирается в устье — щелчок
+            if (crossed(p, (1f - DrawPose.CLEAR) * L)) {
+                sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_CHAIN, 0.5f, 1.3f);
+            }
+            if (crossed(p, (1f - DrawPose.GRAB) * L - 0.03f)) {
+                sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0.65f, 1.25f);
+                sound(mc, le, net.minecraft.sound.SoundEvents.BLOCK_CHAIN_PLACE, 0.5f, 1.6f);
+            }
+            return;
+        }
         if (crossed(p, DrawPose.GRAB * L)) {
             sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_CHAIN, 0.5f, 1.6f);
         }

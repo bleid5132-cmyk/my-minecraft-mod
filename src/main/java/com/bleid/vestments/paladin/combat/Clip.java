@@ -26,6 +26,8 @@ public final class Clip {
     public boolean offOnly;
     /** Выхватывание из ножен: руки по обратной кинематике (DrawPose), меч появляется в руке при хвате. */
     public boolean sheath;
+    /** Обратный ход (убирание меча в ножны): поза DrawPose проигрывается от конца к началу. */
+    public boolean reverse;
     // своя дорожка для второй руки (радианы модели); пустые — обычная защитная стойка
     public final Track offPitch = new Track(), offYaw = new Track(), offRoll = new Track();
 

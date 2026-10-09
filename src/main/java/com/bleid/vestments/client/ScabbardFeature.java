@@ -72,16 +72,25 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
     public void render(MatrixStack matrices, VertexConsumerProvider vcp, int light, AbstractClientPlayerEntity p,
                        float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch) {
         if (p.isInvisible() || p.isSpectator()) return;
-        ItemStack sword = swordOf(p);
+        CombatPose.Pose pose = CombatPose.compute(p, tickDelta);
+        com.bleid.vestments.client.combat.CombatClient.Playback pb = com.bleid.vestments.client.combat.CombatClient.get(p);
+        boolean putting = pose != null && pose.clip.reverse && pb != null && !pb.stack.isEmpty();
+        ItemStack sword = putting ? pb.stack : swordOf(p);
         if (sword.isEmpty()) return;
         MinecraftClient mc = MinecraftClient.getInstance();
         BakedModel sheath = StaffModel.getScabbard(mc, sword.getItem());
         if (sheath == null) return;
         boolean inHand = p.getMainHandStack().getItem() instanceof PaladinSwordItem;
         boolean sheathed = !inHand;
-        if (inHand) {
-            CombatPose.Pose pose = CombatPose.compute(p, tickDelta);
-            if (pose != null && pose.draw != null && !pose.draw.inHand) sheathed = true;
+        if (inHand && pose != null && pose.draw != null && !pose.draw.inHand) sheathed = true;
+        if (putting) {
+            sheathed = !pose.draw.inHand;
+            if (pose.draw.inHand) {
+                // убираемый меч ещё в руке: ведём его по позе (в руке у игрока уже другой предмет)
+                Arm arm = p.getMainArm();
+                com.bleid.vestments.client.combat.SwordGrip.render(mc.getEntityRenderDispatcher().getHeldItemRenderer(),
+                        p, sword, arm, getContextModel(), pose.draw, pose.w, matrices, vcp, light);
+            }
         }
         boolean right = p.getMainArm() == Arm.RIGHT;
         Vector3f[] sh = DrawPose.sheath(right);

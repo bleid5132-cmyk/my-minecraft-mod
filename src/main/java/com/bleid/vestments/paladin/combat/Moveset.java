@@ -8,7 +8,7 @@ public final class Moveset {
     public Clip[] combo;
     /** Вторая серия — начинается, если игрок бьёт на ходу (другие удары той же стойки). */
     public Clip[] comboB = new Clip[0];
-    public Clip dash, air, skill, draw;
+    public Clip dash, air, skill, draw, sheathe;
     // след клинка
     public float[] trail = { 1f, 1f, 1f };
     public float[] trailCore = { 1f, 1f, 1f };
