@@ -37,6 +37,7 @@ public class VestmentsClient implements ClientModInitializer {
         StaffBeamRenderer.register();
         AbilityHud.register();
         StaffModel.register();
+        ScabbardFeature.register();
         SmallTooltipComponent.register();
         ClassSelectScreen.register();
         ServiceClient.register();

@@ -22,12 +22,13 @@ public abstract class LivingEntityRendererCombatMixin {
         CombatPose.Pose p = CombatPose.compute(e, tickDelta);
         float wc = p == null || p.clip.offOnly ? 0f : p.w;
         Locomotion.Loco L = Locomotion.compute(e, tickDelta);
-        float lift = 0, spin = 0, lean = 0;
+        float lift = 0, spin = 0, lean = 0, roll = 0;
         if (L != null) {
             float k = 1f - wc;
             lift += L.bob * k;
             spin += L.turn * k;
             lean += L.lean * k;
+            roll += L.roll * k;
         }
         if (p != null && !p.clip.offOnly) {
             lift += p.lift * p.w;
@@ -36,11 +37,14 @@ public abstract class LivingEntityRendererCombatMixin {
         } else if (p != null) {
             spin += p.spin * p.w * 0.5f;
         }
-        if (lift == 0 && spin == 0 && lean == 0) return;
+        if (lift == 0 && spin == 0 && lean == 0 && roll == 0) return;
         matrices.translate(0, lift, 0);
         matrices.translate(0, 0.9, 0);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-spin));
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-lean));
         matrices.translate(0, -0.9, 0);
+        if (roll != 0) {                       // покачивание таза — вокруг точки между стопами
+            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(roll));
+        }
     }
 }

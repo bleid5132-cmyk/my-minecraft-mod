@@ -28,7 +28,10 @@ public final class StaffModel {
         ModelLoadingPlugin.register(context -> {
             context.addModels(ID, AIM_ID);
             for (var w : com.bleid.vestments.gear.RankGear.WEAPONS) context.addModels(weaponModel(w));
-            for (var w : com.bleid.vestments.paladin.PaladinGear.SWORDS) context.addModels(weaponModel(w));
+            for (var w : com.bleid.vestments.paladin.PaladinGear.SWORDS) {
+                context.addModels(weaponModel(w));
+                context.addModels(scabbardModel(w));
+            }
             for (var w : com.bleid.vestments.paladin.PaladinGear.SHIELDS) {
                 context.addModels(weaponModel(w));
                 Identifier id = net.minecraft.registry.Registries.ITEM.getId(w);
@@ -41,6 +44,17 @@ public final class StaffModel {
     public static Identifier weaponModel(net.minecraft.item.Item item) {
         Identifier id = net.minecraft.registry.Registries.ITEM.getId(item);
         return new Identifier(id.getNamespace(), "item/" + id.getPath() + "_3d");
+    }
+
+    /** Ножны меча паладина: item/<id>_scabbard. */
+    public static Identifier scabbardModel(net.minecraft.item.Item item) {
+        Identifier id = net.minecraft.registry.Registries.ITEM.getId(item);
+        return new Identifier(id.getNamespace(), "item/" + id.getPath() + "_scabbard");
+    }
+
+    public static BakedModel getScabbard(MinecraftClient client, net.minecraft.item.Item item) {
+        BakedModel model = ((FabricBakedModelManager) client.getBakedModelManager()).getModel(scabbardModel(item));
+        return model == null || model == client.getBakedModelManager().getMissingModel() ? null : model;
     }
 
     public static BakedModel getWeapon(MinecraftClient client, net.minecraft.item.Item item) {

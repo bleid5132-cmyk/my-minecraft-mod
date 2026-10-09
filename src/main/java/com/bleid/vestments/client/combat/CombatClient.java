@@ -188,6 +188,7 @@ public final class CombatClient {
             le.setBodyYaw(le.getHeadYaw());
             le.prevBodyYaw = le.prevHeadYaw;
             if (le == me) motion(me, p);
+            if (p.clip.sheath) drawCues(mc, le, p);
             if (p.t >= p.clip.length) it.remove();
         }
         SwordTrails.tick(mc);
@@ -207,9 +208,7 @@ public final class CombatClient {
             if (main != prev[0] && main instanceof PaladinSwordItem sword && sword.moveset() != null) {
                 Moveset ms = sword.moveset();
                 PLAY.put(pl.getId(), new Playback(ms.draw, ms));
-                sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0.7f, 1.5f);
-                sound(mc, pl, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 0.3f, 1.9f);
-                if (ms.tier >= 3) sound(mc, pl, net.minecraft.sound.SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 0.6f, 1.4f);
+                sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_LEATHER, 0.5f, 1.2f);
             } else if (off != prev[1] && off instanceof com.bleid.vestments.paladin.PaladinShieldItem) {
                 Moveset ms = main instanceof PaladinSwordItem sw && sw.moveset() != null ? sw.moveset()
                         : Movesets.of("junior_recruit_sword");
@@ -219,6 +218,39 @@ public final class CombatClient {
             }
         }
         HELD.keySet().retainAll(seen);
+    }
+
+    /** Звуки и вспышка выхватывания: хват рукояти, звон выходящего клинка, свист при постановке в стойку. */
+    private static void drawCues(MinecraftClient mc, LivingEntity le, Playback p) {
+        float L = p.clip.length;
+        if (crossed(p, DrawPose.GRAB * L)) {
+            sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_CHAIN, 0.5f, 1.6f);
+        }
+        if (crossed(p, DrawPose.CLEAR * L)) {
+            sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0.7f, 1.75f);
+            sound(mc, le, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 0.35f, 1.9f);
+            sound(mc, le, net.minecraft.sound.SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 0.35f + 0.1f * p.ms.tier, 1.7f);
+            // блик на клинке у груди
+            float yaw = (float) Math.toRadians(le.getBodyYaw());
+            double fx = -Math.sin(yaw), fz = Math.cos(yaw);
+            double x = le.getX() + fx * 0.45 - fz * 0.05, y = le.getY() + le.getHeight() * 0.62, z = le.getZ() + fz * 0.45 + fx * 0.05;
+            float[] c = p.ms.trailCore;
+            com.bleid.vestments.client.fx.FxSystem.spawn(com.bleid.vestments.client.fx.FxSystem.FLARE, x, y, z)
+                    .size(0.25f + 0.06f * p.ms.tier, 0f).life(7).color(c[0], c[1], c[2]).rot((float) Math.random() * 6f, 0.2f);
+            for (int i = 0; i < 3 + p.ms.tier; i++) {
+                com.bleid.vestments.client.fx.FxSystem.spawn(com.bleid.vestments.client.fx.FxSystem.GLINT,
+                                x + (Math.random() - 0.5) * 0.4, y + Math.random() * 0.5, z + (Math.random() - 0.5) * 0.4)
+                        .vel((Math.random() - 0.5) * 0.03, 0.01 + Math.random() * 0.02, (Math.random() - 0.5) * 0.03)
+                        .size(0.07f + (float) Math.random() * 0.05f, 0f).life(10 + (int) (Math.random() * 8)).color(c[0], c[1], c[2]);
+            }
+        }
+        if (crossed(p, 0.74f * L)) {
+            sound(mc, le, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_NODAMAGE, 0.5f, 1.25f);
+        }
+    }
+
+    private static boolean crossed(Playback p, float at) {
+        return p.prevT < at && p.t >= at;
     }
 
     private static void sound(MinecraftClient mc, Entity e, net.minecraft.sound.SoundEvent s, float vol, float pitch) {

@@ -14,7 +14,8 @@
     "combat.HeldItemRendererCombatMixin",
     "combat.MinecraftClientCombatMixin",
     "combat.ClientPlayerEntityCombatMixin",
-    "combat.CameraCombatMixin"
+    "combat.CameraCombatMixin",
+    "combat.PlayerEntityModelBendMixin"
   ],
   "injectors": {
     "defaultRequire": 1

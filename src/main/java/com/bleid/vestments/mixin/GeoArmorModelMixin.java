@@ -14,5 +14,8 @@ public abstract class GeoArmorModelMixin {
     @Inject(method = "applySlotVisibility", at = @At("TAIL"))
     private void vestments$animateCape(EquipmentSlot slot, CallbackInfo ci) {
         CapeAnimator.apply((GeoArmorModel) (Object) this);
+        // детали брони гнутся в локтях и коленях вместе с телом
+        com.bleid.vestments.client.bend.Bends.applyArmor(
+                (net.minecraft.client.render.entity.model.BipedEntityModel<?>) (Object) this, CapeAnimator.current);
     }
 }

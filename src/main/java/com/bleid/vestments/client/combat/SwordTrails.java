@@ -58,6 +58,7 @@ public final class SwordTrails {
     }
 
     private static void draw(VertexConsumer vc, Matrix4f mat, Vec3d cam, LivingEntity e, CombatClient.Playback pb, float td) {
+        if (pb.clip.sheath) return;            // у выхватывания свой блик, дуга удара тут не совпадает с клинком
         Moveset ms = pb.ms;
         float t = CombatClient.time(pb, td);
         float life = ms.trailLife;

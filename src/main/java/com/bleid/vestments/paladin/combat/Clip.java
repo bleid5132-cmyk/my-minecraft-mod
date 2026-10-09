@@ -24,6 +24,8 @@ public final class Clip {
     public boolean visualOnly;
     /** Двигается только вторая рука (щит), рука с мечом и ноги не трогаются. */
     public boolean offOnly;
+    /** Выхватывание из ножен: руки по обратной кинематике (DrawPose), меч появляется в руке при хвате. */
+    public boolean sheath;
     // своя дорожка для второй руки (радианы модели); пустые — обычная защитная стойка
     public final Track offPitch = new Track(), offYaw = new Track(), offRoll = new Track();
 
