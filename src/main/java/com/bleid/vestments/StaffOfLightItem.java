@@ -38,7 +38,7 @@ import net.minecraft.world.World;
 /**
  * Посох Света: бьёт враждебных мобов на 3 сердца. По игрокам, мирным и нейтральным мобам удар не проходит.
  * Зажатая ПКМ — «Благословение»: золотой луч как у маяка до 5 сек. — лечит игроков, мирных и нейтральных
- * мобов и жжёт нежить; перезарядка 15 сек. Сам луч рисует клиент (client/StaffBeamRenderer).
+ * мобов и жжёт нежить; перезарядка 8 сек. Сам луч рисует клиент (client/StaffBeamRenderer).
  */
 public class StaffOfLightItem extends Item {
     private static final double ATTACK_DAMAGE = 6.0;     // 3 сердца (вместе с 1 базовым у игрока)
@@ -46,7 +46,7 @@ public class StaffOfLightItem extends Item {
 
     // «Благословение» (зажатая ПКМ): поддерживаемый луч
     public static final int BLESSING_MAX_TICKS = 5 * 20;      // луч держится до 5 секунд
-    public static final int BLESSING_COOLDOWN_TICKS = 15 * 20;   // перезарядка 15 секунд
+    public static final int BLESSING_COOLDOWN_TICKS = 8 * 20;    // перезарядка 8 секунд
     private static final int BLESSING_COOLDOWN = BLESSING_COOLDOWN_TICKS;
     public static final double BEAM_RANGE = 20.0;
     private static final double BEAM_RADIUS = 0.6;             // насколько луч «толстый» для попадания
