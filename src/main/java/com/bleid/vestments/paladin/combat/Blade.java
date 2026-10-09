@@ -80,7 +80,7 @@ public final class Blade {
             }
             if (t < s.contact) {                     // удар
                 double x = (t - s.pre) / Math.max(1e-3, s.contact - s.pre);
-                double e = s.heavy ? easeOut(x, 1.8) : easeOut(x, 2.6);
+                double e = s.smooth ? easeInOut(x) : s.heavy ? easeOut(x, 1.8) : easeOut(x, 2.6);
                 double a = windAngle(s) + (s.a1 - windAngle(s)) * e;
                 return done(dirAt(s, a), n, r0 + (r1 - r0) * e);
             }

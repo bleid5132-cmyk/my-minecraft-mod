@@ -36,6 +36,8 @@ public abstract class BipedEntityModelCombatMixin {
             m.leftLeg.pitch = MathHelper.lerp(k, m.leftLeg.pitch, L.lLeg);
             m.rightLeg.roll = MathHelper.lerp(k, m.rightLeg.roll, L.rLegR);
             m.leftLeg.roll = MathHelper.lerp(k, m.leftLeg.roll, L.lLegR);
+            m.rightLeg.pivotY = MathHelper.lerp(k, m.rightLeg.pivotY, 12f - L.rLift);
+            m.leftLeg.pivotY = MathHelper.lerp(k, m.leftLeg.pivotY, 12f - L.lLift);
             boolean swinging = m.handSwingProgress > 0;
             boolean rightMain = e.getMainArm() == Arm.RIGHT;
             if (L.armR && !(swinging && rightMain)) {

@@ -20,6 +20,7 @@ public final class Strike {
     public float shake = 0f;
     public String event;                     // особое действие в момент contact
     public boolean heavy;                    // тяжёлый удар — разгон равномернее
+    public boolean smooth;                   // плавное движение (разгон и торможение), для показных движений
 
     public Strike(float antic, float pre, float contact, float rec, float roll, float a0, float a1) {
         this.antic = antic;
@@ -40,6 +41,7 @@ public final class Strike {
     public Strike shake(float s) { shake = s; return this; }
     public Strike event(String e) { event = e; return this; }
     public Strike heavy() { heavy = true; return this; }
+    public Strike smooth() { smooth = true; return this; }
 
     public boolean thrust() {
         return a0 == a1;

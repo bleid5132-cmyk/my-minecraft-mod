@@ -65,20 +65,13 @@ public final class Movesets {
      * лорд и выше — с размашистым росчерком; генерал — ещё и вращение клинка над головой.
      */
     private static Clip draw(Moveset m) {
-        Clip c = C(m, "draw", m.tier >= 5 ? 1.05f : m.tier >= 3 ? 0.85f : 0.6f, 0.06f);
+        // одно плавное движение: рука берёт меч у левого бедра и спокойно выводит его в стойку
+        Clip c = C(m, "draw", 0.8f, 0.12f);
         c.visualOnly = true;
         c.lockMove = false;
-        // рука тянется к левому бедру, рывком вытягивает клинок вперёд-вверх
-        c.strike(new Strike(0.14f, 0.18f, 0.34f, 0.4f, 40, -140, 40).targets(0).event("draw"));
-        if (m.tier >= 3) {   // росчерк: диагональ вниз и обратно в стойку
-            c.strike(new Strike(0.46f, 0.48f, 0.62f, 0.68f, 135, 100, -40).targets(0).event("draw"));
-        }
-        if (m.tier >= 5) {   // клинок описывает круг над головой и замирает остриём к небу
-            c.strike(new Strike(0.72f, 0.74f, 0.9f, 0.95f, 90, -40, 300).targets(0).event("draw"));
-        }
-        c.spin.key(0, 0).key(0.16f, 18).key(0.34f, -12).key(c.length, 0);
-        c.lean.key(0, 0).key(0.16f, 6).key(0.34f, -4).key(c.length, 0);
-        c.stance.key(0, 0).key(0.2f, -0.4f).key(0.4f, 0.3f).key(c.length, 0);
+        c.strike(new Strike(0.2f, 0.24f, 0.56f, 0.64f, 40, -130, 25).smooth().targets(0).event("draw"));
+        c.spin.key(0, 0).key(0.22f, 8).key(0.56f, -5).key(0.8f, 0);
+        c.lean.key(0, 0).key(0.22f, 3).key(0.56f, -2).key(0.8f, 0);
         return c;
     }
 

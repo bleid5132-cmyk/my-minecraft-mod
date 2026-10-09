@@ -83,7 +83,7 @@ public final class SwordTrails {
                 mid[i] = sh.add(d.multiply(reach - (reach - inner) * 0.22)).subtract(cam);
                 age[i] = MathHelper.clamp(1f - (t - tt) / life, 0f, 1f);
             }
-            float a = ms.trailAlpha * fadeAll;
+            float a = ms.trailAlpha * fadeAll * (pb.clip.visualOnly ? 0.45f : 1f);
             for (int i = 0; i < STEPS; i++) {
                 float a0 = age[i] * age[i] * a, a1 = age[i + 1] * age[i + 1] * a;
                 float u0 = (float) i / STEPS, u1 = (float) (i + 1) / STEPS;
@@ -107,7 +107,7 @@ public final class SwordTrails {
     static void tick(MinecraftClient mc) {
         for (Map.Entry<Integer, CombatClient.Playback> e : CombatClient.all().entrySet()) {
             CombatClient.Playback pb = e.getValue();
-            if (!pb.ms.sparkles || pb.hitstop > 0) continue;
+            if (!pb.ms.sparkles || pb.hitstop > 0 || pb.clip.visualOnly) continue;
             Entity ent = mc.world.getEntityById(e.getKey());
             if (!(ent instanceof LivingEntity le)) continue;
             for (Strike k : pb.clip.strikes) {

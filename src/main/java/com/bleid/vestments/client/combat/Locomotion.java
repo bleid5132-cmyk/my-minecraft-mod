@@ -30,6 +30,7 @@ public final class Locomotion {
         public float bob, lean, turn;                      // корень: блоки, градусы, градусы (вправо +)
         public float rP, rY, rR, lP, lY, lR;               // руки (правая/левая), радианы модели
         public float body, rLeg, lLeg, rLegR, lLegR;
+        public float rLift, lLift;                         // подъём бедра при сгибе колена, пиксели модели
         public boolean armR = true, armL = true;           // можно ли трогать руку (не ест, не блокирует)
     }
 
@@ -88,6 +89,10 @@ public final class Locomotion {
 
         float ph = limbPos * 0.6662f;
         float c = MathHelper.cos(ph), sn = Math.abs(MathHelper.sin(ph));
+        // «сгиб колена»: нога, которая идёт вперёд (в переносе), чуть поднимается, стопа отстаёт назад
+        float kR = Math.max(0f, -MathHelper.sin(ph)), kL = Math.max(0f, MathHelper.sin(ph));
+        // «сгиб локтя»: рука, ушедшая вперёд, сгибается сильнее
+        float fR = Math.max(0f, -c), fL = Math.max(0f, c);
         float age = e.age + tickDelta;
         float breath = MathHelper.sin(age * 0.09f);
 
@@ -104,19 +109,22 @@ public final class Locomotion {
         I.lR = shield ? -0.1f : -0.08f;
         I.body = 0.06f;
         I.rLeg = 0.2f; I.lLeg = -0.16f; I.rLegR = 0.06f; I.lLegR = -0.07f;
+        I.rLift = 0.35f; I.lLift = 0.5f;          // колени чуть согнуты
 
         // ---------------- ходьба
         Loco W = new Loco();
         W.bob = -0.05f * (1f - sn) + 0.012f;
         W.lean = 5f;
         W.turn = -6f;
-        W.rLeg = -0.55f * c;
-        W.lLeg = 0.55f * c;
+        W.rLeg = -0.55f * c + 0.2f * kR;
+        W.lLeg = 0.55f * c + 0.2f * kL;
+        W.rLift = 1.4f * kR;
+        W.lLift = 1.4f * kL;
         W.body = 0.2f * c;
-        W.rP = sword ? -0.2f + 0.24f * c : 0.42f * c;
+        W.rP = sword ? -0.28f + 0.24f * c - 0.1f * fR : 0.42f * c - 0.12f - 0.22f * fR;
         W.rY = sword ? 0.16f * c - 0.08f : 0.1f * c;
         W.rR = sword ? 0.12f : 0.05f;
-        W.lP = shield ? -0.58f - 0.1f * c : -0.42f * c;
+        W.lP = shield ? -0.58f - 0.1f * c : -0.42f * c - 0.12f - 0.22f * fL;
         W.lY = shield ? 0.45f + 0.12f * c : 0.1f * c;
         W.lR = shield ? -0.1f : -0.05f;
 
@@ -125,13 +133,15 @@ public final class Locomotion {
         R.bob = -0.1f * (1f - sn) + 0.02f;
         R.lean = 18f;
         R.turn = 0f;
-        R.rLeg = -0.95f * c;
-        R.lLeg = 0.95f * c;
+        R.rLeg = -0.95f * c + 0.38f * kR;
+        R.lLeg = 0.95f * c + 0.38f * kL;
+        R.rLift = 3.0f * kR;
+        R.lLift = 3.0f * kL;
         R.body = 0.14f * c;
-        R.rP = sword ? 0.5f + 0.32f * c : -0.25f + 0.95f * c;
+        R.rP = sword ? 0.5f + 0.32f * c : -0.3f + 0.85f * c - 0.4f * fR;
         R.rY = sword ? -0.18f : 0.1f;
         R.rR = sword ? 0.38f : 0.1f;
-        R.lP = shield ? -0.98f - 0.14f * c : -0.25f - 0.95f * c;
+        R.lP = shield ? -0.98f - 0.14f * c : -0.3f - 0.85f * c - 0.4f * fL;
         R.lY = shield ? 0.58f : -0.1f;
         R.lR = shield ? -0.14f : -0.1f;
 
@@ -139,6 +149,7 @@ public final class Locomotion {
         Loco A = new Loco();
         A.bob = 0f; A.lean = 6f; A.turn = -8f;
         A.rLeg = -0.55f; A.lLeg = 0.2f; A.rLegR = 0.08f; A.lLegR = -0.08f;
+        A.rLift = 2.2f; A.lLift = 1.2f;
         A.body = 0.05f;
         A.rP = sword ? 0.15f : -0.4f; A.rY = 0f; A.rR = sword ? 0.45f : 0.25f;
         A.lP = shield ? -0.95f : -0.4f; A.lY = shield ? 0.5f : 0f; A.lR = -0.25f;
@@ -173,6 +184,7 @@ public final class Locomotion {
         o.body = MathHelper.lerp(t, a.body, b.body);
         o.rLeg = MathHelper.lerp(t, a.rLeg, b.rLeg); o.lLeg = MathHelper.lerp(t, a.lLeg, b.lLeg);
         o.rLegR = MathHelper.lerp(t, a.rLegR, b.rLegR); o.lLegR = MathHelper.lerp(t, a.lLegR, b.lLegR);
+        o.rLift = MathHelper.lerp(t, a.rLift, b.rLift); o.lLift = MathHelper.lerp(t, a.lLift, b.lLift);
         return o;
     }
 }
