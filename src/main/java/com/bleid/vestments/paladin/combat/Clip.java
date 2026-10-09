@@ -20,6 +20,12 @@ public final class Clip {
     public float leapAt = -1, leapVy, slamAt = -1, slamVy;   // прыжок и падение (свой игрок)
     public boolean skill;
     public boolean lockMove = true;
+    /** Только визуальный приём (доставание меча/щита): без сервера, не мешает ходить и бить. */
+    public boolean visualOnly;
+    /** Двигается только вторая рука (щит), рука с мечом и ноги не трогаются. */
+    public boolean offOnly;
+    // своя дорожка для второй руки (радианы модели); пустые — обычная защитная стойка
+    public final Track offPitch = new Track(), offYaw = new Track(), offRoll = new Track();
 
     public Clip(String id, float length, float transition) {
         this.id = id;
@@ -44,6 +50,7 @@ public final class Clip {
 
     /** С этого момента можно начать следующий удар серии. */
     public float cancelTime() {
+        if (visualOnly) return 0f;
         if (skill) return length;
         float r = 0;
         for (Strike s : strikes) r = Math.max(r, s.rec);
@@ -52,7 +59,7 @@ public final class Clip {
 
     /** До какого момента ноги «заняты» (движение замедлено). */
     public float moveLockUntil() {
-        return lockMove ? cancelTime() : 0;
+        return lockMove && !visualOnly ? cancelTime() : 0;
     }
 
     /** Блендинг с обычной позой: плавный вход и выход. */

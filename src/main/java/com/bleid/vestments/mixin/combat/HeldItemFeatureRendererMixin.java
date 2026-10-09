@@ -36,7 +36,7 @@ public abstract class HeldItemFeatureRendererMixin {
                                       MatrixStack matrices, VertexConsumerProvider vcp, int light, CallbackInfo ci) {
         if (!(e instanceof PlayerEntity) || !(stack.getItem() instanceof PaladinSwordItem) || arm != e.getMainArm()) return;
         CombatPose.Pose p = CombatPose.compute(e, net.minecraft.client.MinecraftClient.getInstance().getTickDelta());
-        if (p == null) return;
+        if (p == null || p.clip.offOnly) return;
         boolean left = arm == Arm.LEFT;
         float s = left ? -1f : 1f;
         matrices.push();

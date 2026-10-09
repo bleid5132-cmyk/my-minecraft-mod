@@ -32,7 +32,7 @@ public final class FirstPersonSword {
                                  int light) {
         if (hand != Hand.MAIN_HAND || !(item.getItem() instanceof PaladinSwordItem)) return false;
         CombatPose.Pose p = CombatPose.compute(player, tickDelta);
-        if (p == null) return false;
+        if (p == null || p.clip.offOnly) return false;
         boolean right = player.getMainArm() == Arm.RIGHT;
         float s = right ? 1f : -1f;
 

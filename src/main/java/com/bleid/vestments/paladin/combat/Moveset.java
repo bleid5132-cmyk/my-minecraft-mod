@@ -6,7 +6,7 @@ public final class Moveset {
     public final int tier;          // 0 — младший рекрут … 5 — генерал
     public final float length;      // длина клинка с рукой (вылет от плеча), блоки
     public Clip[] combo;
-    public Clip dash, air, skill;
+    public Clip dash, air, skill, draw;
     // след клинка
     public float[] trail = { 1f, 1f, 1f };
     public float[] trailCore = { 1f, 1f, 1f };

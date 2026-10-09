@@ -81,6 +81,11 @@ public final class CombatPose {
         p.offPitch = -0.75f + 0.25f * swing;
         p.offYaw = 0.35f - 0.25f * swing;
         p.offRoll = -0.12f - 0.2f * swing;
+        if (!pb.clip.offPitch.isEmpty()) {
+            p.offPitch = pb.clip.offPitch.at(t);
+            p.offYaw = pb.clip.offYaw.at(t);
+            p.offRoll = pb.clip.offRoll.at(t);
+        }
         p.rLeg = -0.5f * stance;
         p.lLeg = 0.42f * stance;
         return p;

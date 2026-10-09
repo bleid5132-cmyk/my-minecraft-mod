@@ -44,6 +44,8 @@ public final class CombatClient {
     }
 
     private static final Map<Integer, Playback> PLAY = new HashMap<>();
+    /** Что было в руках у игроков на прошлом такте — чтобы заметить, что меч/щит только что взяли. */
+    private static final Map<Integer, net.minecraft.item.Item[]> HELD = new HashMap<>();
     private static KeyBinding skillKey;
     private static int combo, idle, sprintTicks, buffer = -1;
 
@@ -74,7 +76,7 @@ public final class CombatClient {
                 CameraShake.add(shake);
             });
         });
-        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> PLAY.clear());
+        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { PLAY.clear(); HELD.clear(); });
         ClientTickEvents.END_CLIENT_TICK.register(CombatClient::tick);
     }
 
@@ -162,6 +164,8 @@ public final class CombatClient {
             }
         }
 
+        watchEquip(mc);
+
         Playback mine = PLAY.get(me.getId());
         if (mine == null) {
             if (++idle > 16) combo = 0;
@@ -187,6 +191,38 @@ public final class CombatClient {
             if (p.t >= p.clip.length) it.remove();
         }
         SwordTrails.tick(mc);
+    }
+
+    /** Взяли меч паладина — он красиво выхватывается; надели щит — щит выносится в стойку. */
+    private static void watchEquip(MinecraftClient mc) {
+        java.util.Set<Integer> seen = new java.util.HashSet<>();
+        for (net.minecraft.entity.player.PlayerEntity pl : mc.world.getPlayers()) {
+            seen.add(pl.getId());
+            net.minecraft.item.Item main = pl.getMainHandStack().getItem(), off = pl.getOffHandStack().getItem();
+            net.minecraft.item.Item[] prev = HELD.put(pl.getId(), new net.minecraft.item.Item[] { main, off });
+            if (prev == null || pl.isSpectator()) continue;
+            Playback cur = PLAY.get(pl.getId());
+            boolean free = cur == null || cur.clip.visualOnly;
+            if (!free) continue;
+            if (main != prev[0] && main instanceof PaladinSwordItem sword && sword.moveset() != null) {
+                Moveset ms = sword.moveset();
+                PLAY.put(pl.getId(), new Playback(ms.draw, ms));
+                sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0.7f, 1.5f);
+                sound(mc, pl, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 0.3f, 1.9f);
+                if (ms.tier >= 3) sound(mc, pl, net.minecraft.sound.SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 0.6f, 1.4f);
+            } else if (off != prev[1] && off instanceof com.bleid.vestments.paladin.PaladinShieldItem) {
+                Moveset ms = main instanceof PaladinSwordItem sw && sw.moveset() != null ? sw.moveset()
+                        : Movesets.of("junior_recruit_sword");
+                PLAY.put(pl.getId(), new Playback(Movesets.SHIELD_DRAW, ms));
+                sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_GENERIC, 0.8f, 0.9f);
+                sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_SHIELD_BLOCK, 0.3f, 1.5f);
+            }
+        }
+        HELD.keySet().retainAll(seen);
+    }
+
+    private static void sound(MinecraftClient mc, Entity e, net.minecraft.sound.SoundEvent s, float vol, float pitch) {
+        mc.world.playSound(e.getX(), e.getY() + 1, e.getZ(), s, net.minecraft.sound.SoundCategory.PLAYERS, vol, pitch, false);
     }
 
     /** Шаги вперёд (не проскакивая цель), прыжок и падение — только для своего игрока. */

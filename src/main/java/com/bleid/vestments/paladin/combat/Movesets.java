@@ -27,12 +27,16 @@ public final class Movesets {
     }
 
     private static void add(Moveset m) {
+        m.draw = draw(m);
         BY_SWORD.put(m.id, m);
     }
 
     public static Moveset of(String swordId) {
         return BY_SWORD.get(swordId);
     }
+
+    /** Подъём щита в защитную стойку (общий для всех щитов). */
+    public static final Clip SHIELD_DRAW = shieldDraw();
 
     static {
         junior();
@@ -41,6 +45,41 @@ public final class Movesets {
         lord();
         highLord();
         general();
+    }
+
+    private static Clip shieldDraw() {
+        Clip c = new Clip("shield/draw", 0.7f, 0.08f);
+        c.visualOnly = true;
+        c.offOnly = true;
+        // щит снимается со спины/бока, широким махом выносится вперёд, «встаёт» в стойку с лёгкой отдачей
+        c.offPitch.key(0, 0.35f).key(0.14f, 0.55f).key(0.3f, -1.25f).key(0.42f, -0.62f).key(0.52f, -0.78f).key(0.7f, -0.72f);
+        c.offYaw.key(0, -0.2f).key(0.14f, -0.35f).key(0.3f, 0.55f).key(0.42f, 0.38f).key(0.7f, 0.38f);
+        c.offRoll.key(0, -0.45f).key(0.14f, -0.6f).key(0.3f, 0.1f).key(0.42f, -0.12f).key(0.7f, -0.12f);
+        c.spin.key(0, 0).key(0.14f, 10).key(0.32f, -14).key(0.7f, 0);
+        CLIPS.put(c.id, c);
+        return c;
+    }
+
+    /**
+     * Доставание меча. Простые звания — короткий вынос из-за левого бедра в стойку;
+     * лорд и выше — с размашистым росчерком; генерал — ещё и вращение клинка над головой.
+     */
+    private static Clip draw(Moveset m) {
+        Clip c = C(m, "draw", m.tier >= 5 ? 1.05f : m.tier >= 3 ? 0.85f : 0.6f, 0.06f);
+        c.visualOnly = true;
+        c.lockMove = false;
+        // рука тянется к левому бедру, рывком вытягивает клинок вперёд-вверх
+        c.strike(new Strike(0.14f, 0.18f, 0.34f, 0.4f, 40, -140, 40).targets(0).event("draw"));
+        if (m.tier >= 3) {   // росчерк: диагональ вниз и обратно в стойку
+            c.strike(new Strike(0.46f, 0.48f, 0.62f, 0.68f, 135, 100, -40).targets(0).event("draw"));
+        }
+        if (m.tier >= 5) {   // клинок описывает круг над головой и замирает остриём к небу
+            c.strike(new Strike(0.72f, 0.74f, 0.9f, 0.95f, 90, -40, 300).targets(0).event("draw"));
+        }
+        c.spin.key(0, 0).key(0.16f, 18).key(0.34f, -12).key(c.length, 0);
+        c.lean.key(0, 0).key(0.16f, 6).key(0.34f, -4).key(c.length, 0);
+        c.stance.key(0, 0).key(0.2f, -0.4f).key(0.4f, 0.3f).key(c.length, 0);
+        return c;
     }
 
     // ================================================================ 1. Младший рекрут — просто и тяжеловато
