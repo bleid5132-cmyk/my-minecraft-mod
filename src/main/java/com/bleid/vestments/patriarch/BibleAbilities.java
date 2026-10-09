@@ -2,6 +2,7 @@ package com.bleid.vestments.patriarch;
 
 import com.bleid.vestments.StaffOfLightItem;
 import com.bleid.vestments.Vestments;
+import com.bleid.vestments.fx.Fx;
 import com.bleid.vestments.service.Ranks;
 import com.bleid.vestments.service.ServicePoints;
 import java.util.ArrayList;
@@ -181,12 +182,9 @@ public final class BibleAbilities {
         for (PlayerEntity o : w.getPlayers()) {
             if (!o.isAlive() || o.isSpectator() || o.squaredDistanceTo(p) > r * r) continue;
             o.heal(6f);
-            w.spawnParticles(ParticleTypes.HEART, o.getX(), o.getBodyY(1.0) + 0.3, o.getZ(), 5, 0.4, 0.3, 0.4, 0);
+            Fx.play(w, "heal", o, 0, 0);
         }
-        for (int k = 0; k < 24; k++) {
-            double a = k * Math.PI / 12;
-            w.spawnParticles(Vestments.SERVICE_ORB, p.getX() + Math.cos(a) * r, p.getY() + 0.2, p.getZ() + Math.sin(a) * r, 1, 0, 0, 0, 0);
-        }
+        Fx.play(w, "consolation", p, 0, (float) r);
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1f, 1.4f);
     }
 
@@ -199,16 +197,13 @@ public final class BibleAbilities {
             if (!StaffOfLightItem.canHit(e) || e.squaredDistanceTo(p) > r * r) continue;
             e.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS, 60, 0, true, true));
             e.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, 100, 0, true, false));
+            Fx.play(w, "candle_hit", e, 0, 0);
             if (e.getGroup() == EntityGroup.UNDEAD) {
                 e.damage(w.getDamageSources().indirectMagic(p, p), 4f);
                 e.setOnFireFor(3);
             }
         }
-        for (int k = 0; k < 40; k++) {
-            double a = k * Math.PI / 20;
-            w.spawnParticles(ParticleTypes.FLAME, p.getX(), p.getY() + 1.0, p.getZ(), 0, Math.cos(a), 0.02, Math.sin(a), 0.35);
-        }
-        w.spawnParticles(ParticleTypes.FLASH, p.getX(), p.getY() + 1.2, p.getZ(), 1, 0, 0, 0, 0);
+        Fx.play(w, "candle", p, 0, (float) r);
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 0.8f, 1.5f);
     }
 
@@ -226,18 +221,13 @@ public final class BibleAbilities {
             if (StaffOfLightItem.canHit(e)) {
                 e.damage(w.getDamageSources().indirectMagic(p, p), 8f);
                 if (e.getGroup() == EntityGroup.UNDEAD) e.setOnFireFor(5);
+                Fx.play(w, "smite", e, 6, 0);
             } else {
                 e.heal(8f);
-                w.spawnParticles(ParticleTypes.HEART, e.getX(), e.getBodyY(1.0), e.getZ(), 3, 0.3, 0.3, 0.3, 0);
+                Fx.play(w, "heal", e, 0, 0);
             }
         }
-        for (int y = 0; y < 28; y++) {         // столп света с неба
-            w.spawnParticles(ParticleTypes.END_ROD, at.x, at.y + y * 0.6, at.z, 3, 0.25, 0.1, 0.25, 0.0);
-        }
-        for (int k = 0; k < 32; k++) {
-            double a = k * Math.PI / 16;
-            w.spawnParticles(Vestments.SERVICE_ORB, at.x + Math.cos(a) * r, at.y + 0.1, at.z + Math.sin(a) * r, 1, 0, 0, 0, 0);
-        }
+        Fx.play(w, "heavenly_light", at, null, 0, (float) r, 0, 0);
         w.playSound(null, at.x, at.y, at.z, SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 1.4f, 0.8f);
         w.playSound(null, at.x, at.y, at.z, SoundEvents.ENTITY_LIGHTNING_BOLT_IMPACT, SoundCategory.PLAYERS, 0.6f, 1.6f);
     }
@@ -247,28 +237,13 @@ public final class BibleAbilities {
     private static void seal(ServerWorld w, ServerPlayerEntity p) {
         Vec3d pos = p.getPos();
         SEALS.add(new Seal(w.getRegistryKey(), pos, now(p.getServer()) + SEAL_TICKS));
+        Fx.play(w, "seal", pos, null, SEAL_TICKS, (float) SEAL_RADIUS, 0, 0);
         w.playSound(null, pos.x, pos.y, pos.z, SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 1.0f, 1.3f);
         w.playSound(null, pos.x, pos.y, pos.z, SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.0f, 0.8f);
     }
 
     private static void tickSeal(ServerWorld w, Seal s, long t) {
         double r = SEAL_RADIUS;
-        // круг печати и восьмиконечная звезда, медленно вращаются
-        if (t % 2 == 0) {
-            double spin = t * 0.03;
-            for (int k = 0; k < 28; k++) {
-                double a = spin + k * Math.PI * 2 / 28;
-                w.spawnParticles(Vestments.SERVICE_ORB, s.pos.x + Math.cos(a) * r, s.pos.y + 0.1, s.pos.z + Math.sin(a) * r,
-                        1, 0, 0, 0, 0);
-            }
-            for (int k = 0; k < 8; k++) {
-                double a = -spin * 1.5 + k * Math.PI / 4;
-                for (double d = 0.6; d < r; d += 0.9) {
-                    w.spawnParticles(ParticleTypes.ENCHANT, s.pos.x + Math.cos(a) * d, s.pos.y + 0.15, s.pos.z + Math.sin(a) * d,
-                            1, 0, 0, 0, 0);
-                }
-            }
-        }
         if (t % 10 != 0) return;
         Box box = new Box(s.pos, s.pos).expand(r, 3, r);
         for (LivingEntity e : w.getEntitiesByClass(LivingEntity.class, box, e -> e.isAlive() && !e.isSpectator())) {
@@ -282,7 +257,7 @@ public final class BibleAbilities {
                 }
                 for (StatusEffectInstance in : bad) e.removeStatusEffect(in.getEffectType());
                 if (!bad.isEmpty()) {
-                    w.spawnParticles(ParticleTypes.HAPPY_VILLAGER, e.getX(), e.getBodyY(0.6), e.getZ(), 6, 0.3, 0.4, 0.3, 0);
+                    Fx.play(w, "cleanse", e, 0, 0);
                 }
             }
         }
@@ -298,7 +273,7 @@ public final class BibleAbilities {
         LivingEntity target = hit != null && hit.getEntity() instanceof PlayerEntity tp ? tp : p;
         SHIELDS.put(target.getUuid(), now(p.getServer()) + SHIELD_TICKS);
         target.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, SHIELD_TICKS, 4, true, true, true));
-        w.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, target.getX(), target.getBodyY(0.6), target.getZ(), 30, 0.4, 0.6, 0.4, 0.25);
+        Fx.play(w, "fortitude", target, SHIELD_TICKS, 0);
         w.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.BLOCK_BEACON_POWER_SELECT,
                 SoundCategory.PLAYERS, 1.0f, 1.4f);
         if (target != p) {
@@ -320,14 +295,9 @@ public final class BibleAbilities {
             mob.addCommandTag(FROZEN_TAG);
             mob.setVelocity(0, Math.min(0, mob.getVelocity().y), 0);
             mob.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS, FREEZE_TICKS, 0, true, false));
-            w.spawnParticles(ParticleTypes.SNOWFLAKE, mob.getX(), mob.getBodyY(0.6), mob.getZ(), 12, 0.4, 0.5, 0.4, 0.02);
+            Fx.play(w, "frozen", mob, FREEZE_TICKS, 0);
         }
-        Vec3d c = p.getEyePos();
-        w.spawnParticles(ParticleTypes.FLASH, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-        for (int k = 0; k < 60; k++) {
-            double a = k * Math.PI * 2 / 60;
-            w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y - 0.5, c.z, 0, Math.cos(a), 0.05, Math.sin(a), 0.6);
-        }
+        Fx.play(w, "blinding", p, 0, (float) BLIND_RADIUS);
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ENTITY_ILLUSIONER_CAST_SPELL, SoundCategory.PLAYERS, 1.2f, 1.2f);
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 0.6f, 1.6f);
     }
@@ -347,14 +317,6 @@ public final class BibleAbilities {
             if (t >= e.getValue()) { it.remove(); continue; }
             ServerPlayerEntity p = server.getPlayerManager().getPlayer(e.getKey());
             if (p == null) { it.remove(); continue; }
-            if (t % 3 == 0) {       // золотое кольцо-щит вокруг игрока
-                double a = t * 0.35;
-                for (int k = 0; k < 3; k++) {
-                    double b = a + k * Math.PI * 2 / 3;
-                    p.getServerWorld().spawnParticles(Vestments.SERVICE_ORB, p.getX() + Math.cos(b) * 0.9,
-                            p.getY() + 0.3 + (k * 0.6), p.getZ() + Math.sin(b) * 0.9, 1, 0, 0, 0, 0);
-                }
-            }
         }
         for (Iterator<Map.Entry<UUID, Frozen>> it = FROZEN.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<UUID, Frozen> e = it.next();
@@ -370,8 +332,6 @@ public final class BibleAbilities {
             }
             if (t % 10 == 0 && ent instanceof MobEntity mob) {
                 mob.setVelocity(0, Math.min(0, mob.getVelocity().y), 0);
-                w.spawnParticles(ParticleTypes.SNOWFLAKE, mob.getX(), mob.getY() + mob.getHeight() + 0.2, mob.getZ(),
-                        2, 0.3, 0.1, 0.3, 0.01);
             }
         }
     }

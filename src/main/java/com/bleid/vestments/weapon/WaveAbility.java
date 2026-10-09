@@ -44,18 +44,9 @@ public record WaveAbility(double range, double coneDeg, float damage, float knoc
             e.damage(world.getDamageSources().indirectMagic(p, p), damage * power);
             e.takeKnockback(knockback, -dir.x, -dir.z);
             if (e.getGroup() == EntityGroup.UNDEAD) e.setOnFireFor(undeadFireSec);
+            com.bleid.vestments.fx.Fx.play(world, "smite", e, 2, 0);
         }
-        // волна: искры и световые штрихи веером
-        for (int i = 1; i <= (int) range; i++) {
-            for (int k = -2; k <= 2; k++) {
-                double yaw = Math.toRadians(k * coneDeg / 5);
-                Vec3d dd = rotateY(dir, yaw);
-                Vec3d pt = eye.add(dd.multiply(i)).add(0, -0.3, 0);
-                world.spawnParticles(ParticleTypes.END_ROD, pt.x, pt.y, pt.z, 0, dd.x, dd.y, dd.z, 0.25);
-            }
-        }
-        Vec3d s = eye.add(dir.multiply(1.6));
-        world.spawnParticles(ParticleTypes.SWEEP_ATTACK, s.x, s.y - 0.3, s.z, 1, 0, 0, 0, 0);
+        com.bleid.vestments.fx.Fx.play(world, "wave", eye, null, (int) coneDeg, p.getYaw(), p.getPitch(), (float) range);
         world.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ENTITY_PHANTOM_FLAP, SoundCategory.PLAYERS, 1.0f, 1.4f);
         world.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 1.0f, 1.2f);
     }
