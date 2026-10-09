@@ -64,6 +64,8 @@ public final class FxEffects {
             case "smite_small" -> smiteSmall(e);
             case "veil" -> veil(e, a, dur, b > 0.5f);
             case "wave" -> wave(w, pos, a, b, c, dur);
+            case "light_start" -> lightStart(e);
+            case "light_end" -> lightEnd(e);
             default -> { }
         }
     }
@@ -500,6 +502,33 @@ public final class FxEffects {
             }
             return true;
         });
+    }
+
+    // ================================================================ Посох Света
+
+    /** Начало «Благословения»: солнце под ногами, волна и восходящие искры. */
+    private static void lightStart(Entity e) {
+        if (e == null) return;
+        Vec3d p = e.getPos();
+        float h = height(e);
+        flatOn(SUNBURST, e, p, 0.07).size(0.4f, 2.6f).ease().rot((float) ang(), 0.05f).colors(WARM, GOLD).life(22).fade(0f, 0.7f);
+        shock(e, p, 0.3f, 3.5f, 16, WHITE, GOLD, 1f, 0);
+        flatOn(RUNES, e, p, 0.06).size(0.4f, 1.6f).ease().rot(0, 0.06f).color(GOLD).alpha(0.8f).life(26).fade(0.1f, 0.6f);
+        for (int i = 0; i < 14; i++) {
+            for (int k = 0; k < 2; k++) {
+                spawn(GLINT, 0, 0, 0).orbit(i * 0.5 + k * Math.PI, 0.85, 0.22, -0.01, 0.1 + i * 0.03, h / 14.0).follow(e)
+                        .size(0.13f, 0.02f).colors(WARM, GOLD).life(20).fade(0.1f, 0.5f).delay(i / 2);
+            }
+        }
+        spawn(STAR, 0, h + 0.2, 0).follow(e).size(0.2f, 0.9f).ease().rot(0, 0.1f).color(WARM).life(12).fade(0f, 0.9f);
+    }
+
+    /** Конец «Благословения»: луч гаснет, искры осыпаются. */
+    private static void lightEnd(Entity e) {
+        if (e == null) return;
+        float h = height(e);
+        burst(STAR, e.getX(), e.getY() + h * 0.75, e.getZ(), 18, 0.18f, WARM, GOLD, 0.12f, 16, 0.01f, 0.9f, 0, false);
+        flash(e.getX(), e.getY() + h * 0.75, e.getZ(), 0.3f, 1.4f, 7, WARM);
     }
 
     // ================================================================ Посохи: Веяние серафима

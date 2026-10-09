@@ -32,7 +32,7 @@ import org.joml.Vector3f;
  */
 @Environment(EnvType.CLIENT)
 public final class FxSystem {
-    static final Identifier ATLAS = new Identifier(Vestments.MOD_ID, "textures/fx/atlas.png");
+    public static final Identifier ATLAS = new Identifier(Vestments.MOD_ID, "textures/fx/atlas.png");
     private static final int MAX = 6000;
 
     // спрайты атласа 4x4
@@ -284,6 +284,38 @@ public final class FxSystem {
                 default -> billboard(vc, mat, camRot, x, y, z, size, roll, u0, v0, u1, v1, r, g, b);
             }
         }
+    }
+
+    // ---------------------------------------------------------------- рисование для других рендеров
+
+    public static RenderLayer layer() {
+        return RenderLayer.getEyes(ATLAS);
+    }
+
+    /** Светящийся спрайт, повёрнутый к камере (координаты относительно камеры). */
+    public static void drawSprite(VertexConsumer vc, Matrix4f mat, Quaternionf camRot, int sprite, float x, float y, float z,
+                                  float size, float roll, float r, float g, float b) {
+        float u0 = (sprite % 4) * 0.25f + 0.001f, v0 = (sprite / 4) * 0.25f + 0.001f;
+        billboard(vc, mat, camRot, x, y, z, size, roll, u0, v0, u0 + 0.248f, v0 + 0.248f, r, g, b);
+    }
+
+    /** Светящаяся полоса от a до b шириной width, повёрнутая к камере (координаты относительно камеры). */
+    public static void drawStrip(VertexConsumer vc, Matrix4f mat, int sprite, Vec3d a, Vec3d b, float width,
+                                 float r, float g, float bl, float r2, float g2, float b2) {
+        Vec3d axis = b.subtract(a);
+        Vec3d mid = a.add(b).multiply(0.5);
+        Vec3d side = axis.crossProduct(mid.multiply(-1));
+        double sl = side.length();
+        if (sl < 1e-5) return;
+        side = side.multiply(width / sl);
+        float u0 = (sprite % 4) * 0.25f + 0.001f, v0 = (sprite / 4) * 0.25f + 0.001f, u1 = u0 + 0.248f, v1 = v0 + 0.248f;
+        // текстура луча: поперёк — u, вдоль — v
+        quad(vc, mat,
+                (float) (a.x - side.x), (float) (a.y - side.y), (float) (a.z - side.z), u0, v0,
+                (float) (a.x + side.x), (float) (a.y + side.y), (float) (a.z + side.z), u1, v0,
+                (float) (b.x + side.x), (float) (b.y + side.y), (float) (b.z + side.z), u1, v1,
+                (float) (b.x - side.x), (float) (b.y - side.y), (float) (b.z - side.z), u0, v1,
+                r, g, bl, r2, g2, b2);
     }
 
     private static void billboard(VertexConsumer vc, Matrix4f mat, Quaternionf camRot, float x, float y, float z, float size,

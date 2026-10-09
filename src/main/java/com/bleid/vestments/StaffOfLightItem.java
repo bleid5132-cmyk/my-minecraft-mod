@@ -89,6 +89,7 @@ public class StaffOfLightItem extends Item {
         if (!world.isClient) {
             world.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 0.9f, 1.5f);
+            com.bleid.vestments.fx.Fx.play((ServerWorld) world, "light_start", player, 0, 0);
         }
         return TypedActionResult.consume(stack);
     }
@@ -137,6 +138,7 @@ public class StaffOfLightItem extends Item {
         if (!world.isClient) {
             world.playSound(null, user.getX(), user.getY(), user.getZ(),
                     SoundEvents.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 0.9f, 1.5f);
+            com.bleid.vestments.fx.Fx.play((ServerWorld) world, "light_end", user, 0, 0);
         }
     }
 
@@ -167,20 +169,15 @@ public class StaffOfLightItem extends Item {
             if (target.getGroup() == EntityGroup.UNDEAD) {
                 target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_UNDEAD_DAMAGE * power);
                 target.setOnFireFor(UNDEAD_FIRE_SECONDS);
-                world.spawnParticles(ParticleTypes.FLAME, target.getX(), target.getBodyY(0.5), target.getZ(),
-                        6, 0.3, 0.5, 0.3, 0.02);
+                com.bleid.vestments.fx.Fx.play(world, "smite_small", target, 0, 0);
             } else if (canHit(target)) {     // остальные враждебные мобы — урон светом
                 target.damage(world.getDamageSources().indirectMagic(player, player), PULSE_HOSTILE_DAMAGE * power);
-                world.spawnParticles(ParticleTypes.END_ROD, target.getX(), target.getBodyY(0.5), target.getZ(),
-                        5, 0.3, 0.4, 0.3, 0.02);
+                com.bleid.vestments.fx.Fx.play(world, "smite", target, 0, 0);
             } else {                          // игроки, мирные и нейтральные — лечим   // игроки, мирные и нейтральные — лечим
                 target.heal(PULSE_HEAL * power);
-                world.spawnParticles(ParticleTypes.HEART, target.getX(), target.getBodyY(0.9), target.getZ(),
-                        1, 0.3, 0.2, 0.3, 0.0);
+                com.bleid.vestments.fx.Fx.play(world, "heal_small", target, 0, 0);
             }
         }
-        // искры в точке, куда упирается луч
-        world.spawnParticles(ParticleTypes.WAX_OFF, end.x, end.y, end.z, 4, 0.15, 0.15, 0.15, 0.0);
     }
 
     @Override
