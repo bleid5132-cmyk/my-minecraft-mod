@@ -1,0 +1,20 @@
+/home/runner/work/my-minecraft-mod/my-minecraft-mod/src/main/java/com/bleid/vestments/client/fx/FxEffects.java:211: error: incompatible types: float[] cannot be converted to int
+        spawn(FLAME, 0, h + 0.75, 0).follow(e).size(0.05f, 0.5f).ease().colors(GOLD, FLAME).pulse(0.25f, 1.4f)
+              ^
+/home/runner/work/my-minecraft-mod/my-minecraft-mod/src/main/java/com/bleid/vestments/client/fx/FxEffects.java:239: error: incompatible types: float[] cannot be converted to int
+            spawn(FLAME, c.x, cy, c.z).vel(Math.cos(t) * s, rf(0.0f, 0.06f), Math.sin(t) * s).drag(0.87f).size(0.28f, 0.06f)
+                  ^
+/home/runner/work/my-minecraft-mod/my-minecraft-mod/src/main/java/com/bleid/vestments/client/fx/FxEffects.java:253: error: incompatible types: float[] cannot be converted to int
+            spawn(FLAME, rf(-wd, wd), h * rf(0.1f, 0.8f), rf(-wd, wd)).follow(e).vel(0, rf(0.03f, 0.07f), 0)
+                  ^
+/home/runner/work/my-minecraft-mod/my-minecraft-mod/src/main/java/com/bleid/vestments/client/fx/FxEffects.java:463: error: incompatible types: float[] cannot be converted to int
+            spawn(FLAME, rf(-0.3f, 0.3f), h * rf(0.2f, 0.7f), rf(-0.3f, 0.3f)).follow(e).vel(0, 0.05, 0)
+                  ^
+Note: /home/runner/work/my-minecraft-mod/my-minecraft-mod/src/main/java/com/bleid/vestments/altar/HolyAltarBlock.java uses or overrides a deprecated API.
+--
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler error output for details.
+
