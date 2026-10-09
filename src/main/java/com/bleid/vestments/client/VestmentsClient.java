@@ -23,6 +23,16 @@ public class VestmentsClient implements ClientModInitializer {
                     new Identifier(Vestments.MOD_ID, "textures/armor/" + set.id + ".png")),
                     set.helmet, set.chest, set.legs, set.boots);
         }
+        // доспехи паладина
+        for (var set : com.bleid.vestments.paladin.PaladinGear.SETS) {
+            var r = GeoArmorRenderer.of(
+                    new Identifier(Vestments.MOD_ID, "geo/" + set.id + ".geo.json"),
+                    new Identifier(Vestments.MOD_ID, "textures/armor/" + set.id + ".png"));
+            if (set.id.equals("general")) r.glow();
+            ArmorRenderers.register(r, set.helmet, set.chest, set.legs, set.boots);
+        }
+        com.bleid.vestments.client.combat.CombatClient.register();
+        com.bleid.vestments.client.combat.SwordTrails.register();
         WaterWalkClient.register();
         StaffBeamRenderer.register();
         AbilityHud.register();

@@ -56,13 +56,15 @@ public final class ServiceClient {
         ClientPlayNetworking.registerGlobalReceiver(ServicePoints.SYNC, (client, handler, buf, sender) -> {
             boolean priest = buf.readBoolean();
             int total = buf.readInt();
+            String cls = buf.readString();
             client.execute(() -> {
-                hasClass = priest;
+                hasClass = priest || "paladin".equals(cls);
                 serverPoints = total;
                 com.bleid.vestments.service.RankView.clientPriest = priest;
+                com.bleid.vestments.service.RankView.clientClass = cls;
                 com.bleid.vestments.service.RankView.clientPoints = total;
                 pending = 0;
-                shownRank = Ranks.rankFor(total);
+                shownRank = rankFor(total);
                 synced = true;
             });
         });
@@ -94,7 +96,6 @@ public final class ServiceClient {
         boolean mine = total >= 0 && client.player != null && target == client.player;
         if (mine) {
             serverPoints = total;
-            com.bleid.vestments.service.RankView.clientPriest = true;
             com.bleid.vestments.service.RankView.clientPoints = total;
             pending += amount;
             synced = true;
@@ -116,11 +117,19 @@ public final class ServiceClient {
         pending = Math.max(0, pending - value);
         recentGain += value;
         recentGainAt = Util.getMeasuringTimeMs();
-        int rank = Ranks.rankFor(displayed());
+        int rank = rankFor(displayed());
         if (synced && rank > shownRank) {
             shownRank = rank;
             celebrate(rank);
         }
+    }
+
+    private static boolean paladin() {
+        return com.bleid.vestments.service.RankView.clientPaladin();
+    }
+
+    private static int rankFor(int points) {
+        return paladin() ? com.bleid.vestments.paladin.PaladinRanks.rankFor(points) : Ranks.rankFor(points);
     }
 
     static int displayed() {
@@ -130,6 +139,14 @@ public final class ServiceClient {
     private static void celebrate(int rank) {
         MinecraftClient client = MinecraftClient.getInstance();
         client.inGameHud.setTitleTicks(10, 60, 20);
+        if (paladin()) {
+            client.inGameHud.setTitle(Text.translatable(com.bleid.vestments.paladin.PaladinRanks.nameKey(rank))
+                    .formatted(Formatting.GOLD, Formatting.BOLD));
+            client.inGameHud.setSubtitle(Text.translatable("title.vestments.paladin_rank_up").formatted(Formatting.YELLOW));
+            client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 0.8f));
+            client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ITEM_TRIDENT_THUNDER, 0.6f, 1.4f));
+            return;
+        }
         client.inGameHud.setTitle(Text.translatable(Ranks.nameKey(rank)).formatted(Formatting.GOLD, Formatting.BOLD));
         client.inGameHud.setSubtitle(Text.translatable("title.vestments.rank_up",
                 Text.translatable(Ranks.degreeKey(Ranks.degreeOf(rank)))).formatted(Formatting.YELLOW));
@@ -151,7 +168,7 @@ public final class ServiceClient {
         panelAnim = MathHelper.clamp(panelAnim + (open ? dt * 7f : -dt * 9f), 0f, 1f);
 
         int points = displayed();
-        int rank = Ranks.rankFor(points);
+        int rank = rankFor(points);
         float target = progress(points, rank);
         shownBar += (target - shownBar) * Math.min(1f, dt * 6f);
         if (Math.abs(target - shownBar) < 0.001f) shownBar = target;
@@ -161,6 +178,11 @@ public final class ServiceClient {
     }
 
     private static float progress(int points, int rank) {
+        if (paladin()) {
+            if (com.bleid.vestments.paladin.PaladinRanks.isMax(rank)) return 1f;
+            int a = com.bleid.vestments.paladin.PaladinRanks.THRESHOLD[rank], b = com.bleid.vestments.paladin.PaladinRanks.THRESHOLD[rank + 1];
+            return MathHelper.clamp((points - a) / (float) (b - a), 0f, 1f);
+        }
         if (Ranks.isMax(rank)) return 1f;
         int from = Ranks.THRESHOLD[rank], to = Ranks.THRESHOLD[rank + 1];
         return MathHelper.clamp((points - from) / (float) (to - from), 0f, 1f);
@@ -176,7 +198,7 @@ public final class ServiceClient {
         }
         float a = since < 1600 ? 1f : 1f - (since - 1600) / 600f;
         int alpha = MathHelper.clamp((int) (a * 255), 5, 255);
-        Text t = Text.translatable("hud.vestments.service_gain", recentGain);
+        Text t = Text.translatable(paladin() ? "hud.vestments.valor_gain" : "hud.vestments.service_gain", recentGain);
         int x = ctx.getScaledWindowWidth() / 2 - font.getWidth(t) / 2;
         int y = ctx.getScaledWindowHeight() - 72;
         ctx.drawText(font, t, x, y, (alpha << 24) | 0xFFD24A, true);
@@ -215,6 +237,11 @@ public final class ServiceClient {
             return;
         }
 
+        if (paladin()) {
+            renderPaladin(ctx, font, points, rank, x, y, w, h, cx, a);
+            m.pop();
+            return;
+        }
         int degree = Ranks.degreeOf(rank);
         int inDegree = rank - Ranks.degreeStart(degree) + 1;
         int ty = y + 10;
@@ -301,6 +328,61 @@ public final class ServiceClient {
         m.pop();
 
         m.pop();
+    }
+
+    /** Шкала доблести паладина: звание, полоса, очки и лестница из шести званий. */
+    private static void renderPaladin(DrawContext ctx, TextRenderer font, int points, int rank, int x, int y, int w, int h,
+                                      int cx, float a) {
+        var m = ctx.getMatrices();
+        int ty = y + 10;
+        drawCentered(ctx, font, Text.translatable("hud.vestments.valor_title"), cx, ty, withAlpha(0xFFB89A6A, a));
+        ty += 14;
+        drawCentered(ctx, font, Text.translatable("class.vestments.paladin"), cx, ty, withAlpha(0xFFF2E6C9, a));
+        ty += 14;
+        Text name = Text.translatable(com.bleid.vestments.paladin.PaladinRanks.nameKey(rank)).formatted(Formatting.BOLD);
+        m.push();
+        m.translate(cx, ty, 0);
+        m.scale(1.6f, 1.6f, 1f);
+        ctx.drawText(font, name, -font.getWidth(name) / 2, 0, withAlpha(0xFFFFD24A, a), true);
+        m.pop();
+        ty += 18;
+        drawCentered(ctx, font, Text.translatable("hud.vestments.rank_in_degree", rank + 1,
+                com.bleid.vestments.paladin.PaladinRanks.count()), cx, ty, withAlpha(0xFFB89A6A, a));
+        ty += 14;
+        int bw = 220, bh = 9, bx = cx - bw / 2;
+        ctx.fill(bx - 1, ty - 1, bx + bw + 1, ty + bh + 1, withAlpha(0xFF5A6A8A, a));
+        ctx.fill(bx, ty, bx + bw, ty + bh, withAlpha(0xFF0A0E16, a));
+        int fw = (int) (bw * shownBar);
+        if (fw > 0) {
+            ctx.fillGradient(bx, ty, bx + fw, ty + bh, withAlpha(0xFFE8F0FF, a), withAlpha(0xFF6F8FC8, a));
+            float t = (Util.getMeasuringTimeMs() % 2400L) / 2400f;
+            int sx = bx + (int) (t * (fw + 30)) - 15;
+            int s0 = Math.max(bx, sx), s1 = Math.min(bx + fw, sx + 10);
+            if (s1 > s0) ctx.fill(s0, ty, s1, ty + bh, withAlpha(0x60FFFFFF, a));
+        }
+        ty += bh + 4;
+        boolean max = com.bleid.vestments.paladin.PaladinRanks.isMax(rank);
+        drawCentered(ctx, font, max ? Text.translatable("hud.vestments.valor_max", points)
+                : Text.translatable("hud.vestments.valor_points", points, com.bleid.vestments.paladin.PaladinRanks.THRESHOLD[rank + 1]),
+                cx, ty, withAlpha(0xFFF2E6C9, a));
+        ty += 11;
+        drawCentered(ctx, font, max ? Text.translatable("hud.vestments.max_rank_paladin")
+                : Text.translatable("hud.vestments.next_rank", Text.translatable(com.bleid.vestments.paladin.PaladinRanks.nameKey(rank + 1))),
+                cx, ty, withAlpha(0xFF9C8A6A, a));
+        ty += 15;
+        ctx.fill(x + 12, ty - 4, x + w - 12, ty - 3, withAlpha(0x60C9A13B, a));
+        for (int r = 0; r < com.bleid.vestments.paladin.PaladinRanks.count(); r++) {
+            int col = r / 3, row = r % 3;
+            int colX = x + w / 4 + col * (w / 2);
+            Text rn = Text.translatable(com.bleid.vestments.paladin.PaladinRanks.nameKey(r));
+            int color = r == rank ? 0xFFFFD24A : r < rank ? 0xFFE8D9B0 : 0xFF6E6252;
+            if (r == rank) rn = Text.literal("✦ ").append(rn).append(" ✦").formatted(Formatting.BOLD);
+            m.push();
+            m.translate(colX, ty + row * 12, 0);
+            m.scale(0.8f, 0.8f, 1f);
+            ctx.drawText(font, rn, -font.getWidth(rn) / 2, 0, withAlpha(color, a), false);
+            m.pop();
+        }
     }
 
     private static void drawCentered(DrawContext ctx, TextRenderer font, Text t, int cx, int y, int color) {

@@ -14,7 +14,12 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 /** Часть облачения сана: в описании — своя способность, условие полного комплекта и нужный сан. */
-public class VestmentArmorItem extends ArmorItem {
+public class VestmentArmorItem extends ArmorItem implements com.bleid.vestments.classes.ClassItem {
+    @Override
+    public String requiredClass() {
+        return "priest";
+    }
+
     /** Комплект, к которому относится предмет (проставляет RankGear). */
     public GearSet set;
 

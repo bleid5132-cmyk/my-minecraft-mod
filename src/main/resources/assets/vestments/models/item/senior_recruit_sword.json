@@ -1,0 +1,6 @@
+{
+ "parent": "item/handheld",
+ "textures": {
+  "layer0": "vestments:item/senior_recruit_sword"
+ }
+}

@@ -94,9 +94,19 @@ public final class ServicePoints {
         return "priest".equals(PlayerClasses.get(player.getServer(), player.getUuid()));
     }
 
+    public static boolean isPaladin(ServerPlayerEntity player) {
+        return "paladin".equals(PlayerClasses.get(player.getServer(), player.getUuid()));
+    }
+
+    /** Звание паладина (0..5). */
+    public static int paladinRank(ServerPlayerEntity player) {
+        return com.bleid.vestments.paladin.PaladinRanks.rankFor(get(player.getServer(), player.getUuid()));
+    }
+
     /** Начислить очки и показать огоньки, летящие из точки from к игроку. */
     public static void add(ServerPlayerEntity player, int amount, Vec3d from) {
-        if (amount <= 0 || !canServe(player)) return;
+        boolean paladin = isPaladin(player);
+        if (amount <= 0 || (!canServe(player) && !paladin)) return;
         MinecraftServer server = player.getServer();
         int old = get(server, player.getUuid());
         int now = old + amount;
@@ -114,6 +124,14 @@ public final class ServicePoints {
             ServerPlayNetworking.send(viewer, ORBS, buf);
         }
 
+        if (paladin) {
+            int o = com.bleid.vestments.paladin.PaladinRanks.rankFor(old), n = com.bleid.vestments.paladin.PaladinRanks.rankFor(now);
+            if (n > o) {
+                server.getPlayerManager().broadcast(Text.translatable("message.vestments.paladin_rank_up", player.getDisplayName(),
+                        Text.translatable(com.bleid.vestments.paladin.PaladinRanks.nameKey(n)).formatted(Formatting.GOLD)), false);
+            }
+            return;
+        }
         int oldRank = Ranks.rankFor(old), newRank = Ranks.rankFor(now);
         if (newRank > oldRank) {
             Text msg = Text.translatable("message.vestments.rank_up", player.getDisplayName(),
@@ -146,6 +164,8 @@ public final class ServicePoints {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeBoolean(canServe(player));
         buf.writeInt(get(player.getServer(), player.getUuid()));
+        String cls = PlayerClasses.get(player.getServer(), player.getUuid());
+        buf.writeString(cls == null ? "" : cls);
         ServerPlayNetworking.send(player, SYNC, buf);
     }
 

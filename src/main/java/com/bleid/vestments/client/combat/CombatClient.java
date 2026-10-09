@@ -1,0 +1,217 @@
+package com.bleid.vestments.client.combat;
+
+import com.bleid.vestments.paladin.PaladinSwordItem;
+import com.bleid.vestments.paladin.combat.Clip;
+import com.bleid.vestments.paladin.combat.CombatServer;
+import com.bleid.vestments.paladin.combat.Moveset;
+import com.bleid.vestments.paladin.combat.Movesets;
+import com.bleid.vestments.service.RankView;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
+import org.lwjgl.glfw.GLFW;
+
+/**
+ * Клиент боёвки паладина: ЛКМ с мечом паладина запускает приём (сразу, без ожидания сервера),
+ * нажатия во время удара запоминаются на 0.4 с (буфер ввода), серия сбрасывается после паузы.
+ * Здесь же — шаги вперёд, прыжок и падение приёма, «заморозка кадра» при попадании.
+ */
+@Environment(EnvType.CLIENT)
+public final class CombatClient {
+    public static final class Playback {
+        public final Clip clip;
+        public final Moveset ms;
+        public float t, prevT;
+        public int hitstop;
+        Playback(Clip c, Moveset m) { clip = c; ms = m; }
+    }
+
+    private static final Map<Integer, Playback> PLAY = new HashMap<>();
+    private static KeyBinding skillKey;
+    private static int combo, idle, sprintTicks, buffer = -1;
+
+    private CombatClient() { }
+
+    public static void register() {
+        skillKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.vestments.paladin_skill",
+                InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.vestments"));
+        ClientPlayNetworking.registerGlobalReceiver(CombatServer.PLAY, (client, handler, buf, sender) -> {
+            int id = buf.readVarInt();
+            String clipId = buf.readString();
+            client.execute(() -> {
+                Clip c = Movesets.CLIPS.get(clipId);
+                if (c == null || client.world == null) return;
+                Moveset m = Movesets.of(clipId.substring(0, clipId.indexOf('/')));
+                boolean local = client.player != null && client.player.getId() == id;
+                if (local && !c.skill) return;            // свои удары уже играем сами
+                PLAY.put(id, new Playback(c, m));
+            });
+        });
+        ClientPlayNetworking.registerGlobalReceiver(CombatServer.HIT, (client, handler, buf, sender) -> {
+            int stop = buf.readVarInt();
+            float shake = buf.readFloat();
+            client.execute(() -> {
+                if (client.player == null) return;
+                Playback p = PLAY.get(client.player.getId());
+                if (p != null) p.hitstop = Math.max(p.hitstop, stop);
+                CameraShake.add(shake);
+            });
+        });
+        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> PLAY.clear());
+        ClientTickEvents.END_CLIENT_TICK.register(CombatClient::tick);
+    }
+
+    public static Map<Integer, Playback> all() {
+        return PLAY;
+    }
+
+    public static Playback get(Entity e) {
+        return e == null ? null : PLAY.get(e.getId());
+    }
+
+    /** Время приёма с учётом доли тика (во время заморозки кадра — стоит). */
+    public static float time(Playback p, float tickDelta) {
+        if (p.hitstop > 0) return p.t;
+        return Math.min(p.t + tickDelta * 0.05f, p.clip.length);
+    }
+
+    /** Множитель движения своего игрока: во время удара ноги «заняты». */
+    public static float moveFactor() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player == null) return 1f;
+        Playback p = PLAY.get(mc.player.getId());
+        if (p == null || p.t >= p.clip.moveLockUntil()) return 1f;
+        return 0.2f;
+    }
+
+    private static boolean holdsSword(ClientPlayerEntity p) {
+        return p != null && RankView.clientPaladin() && p.getMainHandStack().getItem() instanceof PaladinSwordItem;
+    }
+
+    /** Вызывается вместо обычного удара (миксин MinecraftClient.doAttack). true — удар наш. */
+    public static boolean onAttack(MinecraftClient mc) {
+        ClientPlayerEntity p = mc.player;
+        if (!holdsSword(p) || p.isSpectator()) return false;
+        if (p.isUsingItem()) return true;
+        tryAttack(p);
+        return true;
+    }
+
+    private static void tryAttack(ClientPlayerEntity p) {
+        ItemStack st = p.getMainHandStack();
+        if (!(st.getItem() instanceof PaladinSwordItem sword)) return;
+        Moveset ms = sword.moveset();
+        if (ms == null) return;
+        Playback cur = PLAY.get(p.getId());
+        if (cur != null && cur.t < cur.clip.cancelTime() - 0.02f) {
+            buffer = 8;
+            return;
+        }
+        buffer = -1;
+        int kind;
+        if (!p.isOnGround() && !p.isTouchingWater() && !p.isClimbing() && !p.getAbilities().flying) {
+            kind = 101;
+        } else if (p.isSprinting() && sprintTicks >= 8) {
+            kind = 100;
+            p.setSprinting(false);
+        } else {
+            if (combo >= ms.combo.length) combo = 0;
+            kind = combo++;
+        }
+        Clip c = ms.byKind(kind);
+        if (c == null) return;
+        PLAY.put(p.getId(), new Playback(c, ms));
+        idle = 0;
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeVarInt(kind);
+        ClientPlayNetworking.send(CombatServer.ATTACK, buf);
+    }
+
+    private static void tick(MinecraftClient mc) {
+        if (mc.world == null || mc.player == null) {
+            PLAY.clear();
+            return;
+        }
+        if (mc.isPaused()) return;
+        ClientPlayerEntity me = mc.player;
+        sprintTicks = me.isSprinting() ? sprintTicks + 1 : 0;
+
+        while (skillKey.wasPressed()) {
+            if (holdsSword(me) && mc.currentScreen == null && !me.isUsingItem()
+                    && !me.getItemCooldownManager().isCoolingDown(me.getMainHandStack().getItem())) {
+                PacketByteBuf buf = PacketByteBufs.create();
+                buf.writeVarInt(200);
+                ClientPlayNetworking.send(CombatServer.ATTACK, buf);
+            }
+        }
+
+        Playback mine = PLAY.get(me.getId());
+        if (mine == null) {
+            if (++idle > 16) combo = 0;
+        }
+        if (buffer >= 0) {
+            buffer--;
+            Playback cur = PLAY.get(me.getId());
+            if (holdsSword(me) && (cur == null || cur.t >= cur.clip.cancelTime() - 0.02f)) tryAttack(me);
+        }
+
+        for (Iterator<Map.Entry<Integer, Playback>> it = PLAY.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Integer, Playback> e = it.next();
+            Playback p = e.getValue();
+            Entity ent = mc.world.getEntityById(e.getKey());
+            if (!(ent instanceof LivingEntity le) || !le.isAlive()) { it.remove(); continue; }
+            p.prevT = p.t;
+            if (p.hitstop > 0) { p.hitstop--; }
+            else p.t += 0.05f;
+            // во время приёма тело смотрит туда же, куда голова
+            le.setBodyYaw(le.getHeadYaw());
+            le.prevBodyYaw = le.prevHeadYaw;
+            if (le == me) motion(me, p);
+            if (p.t >= p.clip.length) it.remove();
+        }
+        SwordTrails.tick(mc);
+    }
+
+    /** Шаги вперёд (не проскакивая цель), прыжок и падение — только для своего игрока. */
+    private static void motion(ClientPlayerEntity me, Playback p) {
+        if (p.hitstop > 0) return;
+        Vec3d fwd = Vec3d.fromPolar(0, me.getYaw());
+        for (float[] s : p.clip.steps) {
+            float a = Math.max(p.prevT, s[0]), b = Math.min(p.t, s[1]);
+            if (b <= a) continue;
+            double speed = s[2] * (b - a) / Math.max(0.05, s[1] - s[0]);
+            // не налетать на цель
+            Box ahead = me.getBoundingBox().stretch(fwd.multiply(1.2));
+            boolean blocked = !me.getWorld().getOtherEntities(me, ahead, x -> x instanceof LivingEntity && x.isAlive()).isEmpty();
+            if (blocked) speed *= 0.15;
+            Vec3d v = me.getVelocity();
+            me.setVelocity(fwd.x * speed, v.y, fwd.z * speed);
+        }
+        Clip c = p.clip;
+        if (c.leapAt >= 0 && p.prevT < c.leapAt && p.t >= c.leapAt) {
+            Vec3d v = me.getVelocity();
+            me.setVelocity(v.x + fwd.x * 0.3, c.leapVy, v.z + fwd.z * 0.3);
+        }
+        if (c.slamAt >= 0 && p.prevT < c.slamAt && p.t >= c.slamAt) {
+            Vec3d v = me.getVelocity();
+            me.setVelocity(v.x, c.slamVy, v.z);
+        }
+    }
+}

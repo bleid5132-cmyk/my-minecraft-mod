@@ -28,6 +28,12 @@ public final class StaffModel {
         ModelLoadingPlugin.register(context -> {
             context.addModels(ID, AIM_ID);
             for (var w : com.bleid.vestments.gear.RankGear.WEAPONS) context.addModels(weaponModel(w));
+            for (var w : com.bleid.vestments.paladin.PaladinGear.SWORDS) context.addModels(weaponModel(w));
+            for (var w : com.bleid.vestments.paladin.PaladinGear.SHIELDS) {
+                context.addModels(weaponModel(w));
+                Identifier id = net.minecraft.registry.Registries.ITEM.getId(w);
+                context.addModels(new Identifier(id.getNamespace(), "item/" + id.getPath() + "_3d_blocking"));
+            }
         });
     }
 
@@ -39,6 +45,15 @@ public final class StaffModel {
 
     public static BakedModel getWeapon(MinecraftClient client, net.minecraft.item.Item item) {
         BakedModel model = ((FabricBakedModelManager) client.getBakedModelManager()).getModel(weaponModel(item));
+        return model == null || model == client.getBakedModelManager().getMissingModel() ? null : model;
+    }
+
+    /** Щит паладина: при блоке — модель в позе блока. */
+    public static BakedModel getShield(MinecraftClient client, net.minecraft.item.ItemStack stack, LivingEntity holder) {
+        Identifier id = net.minecraft.registry.Registries.ITEM.getId(stack.getItem());
+        boolean blocking = holder != null && holder.isUsingItem() && holder.getActiveItem() == stack;
+        Identifier mid = new Identifier(id.getNamespace(), "item/" + id.getPath() + (blocking ? "_3d_blocking" : "_3d"));
+        BakedModel model = ((FabricBakedModelManager) client.getBakedModelManager()).getModel(mid);
         return model == null || model == client.getBakedModelManager().getMissingModel() ? null : model;
     }
 

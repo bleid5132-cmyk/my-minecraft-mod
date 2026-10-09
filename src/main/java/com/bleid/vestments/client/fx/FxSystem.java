@@ -37,7 +37,10 @@ public final class FxSystem {
 
     // спрайты атласа 4x4
     public static final int ORB = 0, GLINT = 1, STAR = 2, RING = 3, RUNES = 4, SUNBURST = 5, BEAM = 6, FEATHER = 7,
-            FLAME = 8, HEART = 9, CROSS = 10, SNOW = 11, SHOCK = 12, SMOKE = 13, BUBBLE = 14, STREAK = 15;
+            FLAME = 8, HEART = 9, CROSS = 10, SNOW = 11, SHOCK = 12, SMOKE = 13, BUBBLE = 14, STREAK = 15,
+            TRAIL = 16, SLASH = 17, CRACK = 18, FLARE = 19;
+    /** Атлас 4 столбца × 5 строк. */
+    static final float CU = 0.25f, CV = 0.2f;
 
     public enum Mode { BILLBOARD, STRETCH, FLAT, BEAM }
 
@@ -118,6 +121,11 @@ public final class FxSystem {
         public P follow(Entity e) {
             follow = e;
             if (e != null && !orbit) { x -= e.getX(); y -= e.getY(); z -= e.getZ(); px = x; py = y; pz = z; }
+            return this;
+        }
+        /** Следовать за сущностью; координаты при создании — смещение относительно неё. */
+        public P followLocal(Entity e) {
+            follow = e;
             return this;
         }
         public P vel(double vx, double vy, double vz) { this.vx = vx; this.vy = vy; this.vz = vz; return this; }
@@ -238,8 +246,8 @@ public final class FxSystem {
             float size = MathHelper.lerp(st, p.size0, p.size1);
             float r = MathHelper.lerp(t, p.r0, p.r1) * a, g = MathHelper.lerp(t, p.g0, p.g1) * a, b = MathHelper.lerp(t, p.b0, p.b1) * a;
             float x = (float) (wx - cam.x), y = (float) (wy - cam.y), z = (float) (wz - cam.z);
-            float u0 = (p.sprite % 4) * 0.25f + 0.001f, v0 = (p.sprite / 4) * 0.25f + 0.001f;
-            float u1 = u0 + 0.248f, v1 = v0 + 0.248f;
+            float u0 = (p.sprite % 4) * CU + 0.001f, v0 = (p.sprite / 4) * CV + 0.001f;
+            float u1 = u0 + CU - 0.002f, v1 = v0 + CV - 0.002f;
             float roll = MathHelper.lerp(td, p.prevRot, p.rot);
             switch (p.mode) {
                 case FLAT -> {
@@ -295,8 +303,8 @@ public final class FxSystem {
     /** Светящийся спрайт, повёрнутый к камере (координаты относительно камеры). */
     public static void drawSprite(VertexConsumer vc, Matrix4f mat, Quaternionf camRot, int sprite, float x, float y, float z,
                                   float size, float roll, float r, float g, float b) {
-        float u0 = (sprite % 4) * 0.25f + 0.001f, v0 = (sprite / 4) * 0.25f + 0.001f;
-        billboard(vc, mat, camRot, x, y, z, size, roll, u0, v0, u0 + 0.248f, v0 + 0.248f, r, g, b);
+        float u0 = (sprite % 4) * CU + 0.001f, v0 = (sprite / 4) * CV + 0.001f;
+        billboard(vc, mat, camRot, x, y, z, size, roll, u0, v0, u0 + CU - 0.002f, v0 + CV - 0.002f, r, g, b);
     }
 
     /** Светящаяся полоса от a до b шириной width, повёрнутая к камере (координаты относительно камеры). */
@@ -308,7 +316,7 @@ public final class FxSystem {
         double sl = side.length();
         if (sl < 1e-5) return;
         side = side.multiply(width / sl);
-        float u0 = (sprite % 4) * 0.25f + 0.001f, v0 = (sprite / 4) * 0.25f + 0.001f, u1 = u0 + 0.248f, v1 = v0 + 0.248f;
+        float u0 = (sprite % 4) * CU + 0.001f, v0 = (sprite / 4) * CV + 0.001f, u1 = u0 + CU - 0.002f, v1 = v0 + CV - 0.002f;
         // текстура луча: поперёк — u, вдоль — v
         quad(vc, mat,
                 (float) (a.x - side.x), (float) (a.y - side.y), (float) (a.z - side.z), u0, v0,
@@ -330,6 +338,21 @@ public final class FxSystem {
     }
 
     /** Двусторонний четырёхугольник: верхние две вершины цветом (tr,tg,tb), нижние — (r,g,b). */
+    /**
+     * Двусторонний четырёхугольник со своими цветами в каждой вершине; uv — доли 0..1 внутри ячейки спрайта.
+     * Вершины по кругу: 0-1-2-3 (координаты относительно камеры).
+     */
+    public static void drawQuad(VertexConsumer vc, Matrix4f m, int sprite, Vec3d p0, Vec3d p1, Vec3d p2, Vec3d p3,
+                                float[] uv, float[] rgb) {
+        float cu = (sprite % 4) * CU + 0.001f, cv = (sprite / 4) * CV + 0.001f, su = CU - 0.002f, sv = CV - 0.002f;
+        Vec3d[] p = { p0, p1, p2, p3 };
+        int[] order = { 0, 1, 2, 3, 3, 2, 1, 0 };
+        for (int i : order) {
+            vert(vc, m, (float) p[i].x, (float) p[i].y, (float) p[i].z, cu + uv[i * 2] * su, cv + uv[i * 2 + 1] * sv,
+                    rgb[i * 3], rgb[i * 3 + 1], rgb[i * 3 + 2]);
+        }
+    }
+
     private static void quad(VertexConsumer vc, Matrix4f m,
                              float x0, float y0, float z0, float u0, float v0,
                              float x1, float y1, float z1, float u1, float v1,

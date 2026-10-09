@@ -31,7 +31,12 @@ import net.minecraft.world.World;
  * Богослужебное оружие сана: бьёт только враждебных мобов, на ПКМ — способность сана
  * (нужен достигнутый сан), с перезарядкой. В руке — 3D-модель (item/<id>_3d), в инвентаре — иконка.
  */
-public class LiturgicalWeaponItem extends Item {
+public class LiturgicalWeaponItem extends Item implements com.bleid.vestments.classes.ClassItem {
+    @Override
+    public String requiredClass() {
+        return "priest";
+    }
+
     public final int rank;
     public final WeaponAbility ability;
     public final int cooldownTicks;

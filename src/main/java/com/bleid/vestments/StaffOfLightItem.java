@@ -40,7 +40,12 @@ import net.minecraft.world.World;
  * Зажатая ПКМ — «Благословение»: золотой луч как у маяка до 5 сек. — лечит игроков, мирных и нейтральных
  * мобов и жжёт нежить; перезарядка 8 сек. Сам луч рисует клиент (client/StaffBeamRenderer).
  */
-public class StaffOfLightItem extends Item {
+public class StaffOfLightItem extends Item implements com.bleid.vestments.classes.ClassItem {
+    @Override
+    public String requiredClass() {
+        return "priest";
+    }
+
     private static final double ATTACK_DAMAGE = 6.0;     // 3 сердца (вместе с 1 базовым у игрока)
     private static final double ATTACK_SPEED = 1.3;      // ударов в секунду
 

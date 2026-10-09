@@ -22,14 +22,14 @@ import net.minecraft.world.World;
 
 /**
  * Классы игроков. При первом входе в мир сервер открывает игроку экран выбора класса,
- * выбор сохраняется в данных мира. Пока доступен один класс — «Священник».
+ * выбор сохраняется в данных мира. Классы: «Священник» и «Паладин».
  */
 public final class PlayerClasses {
     public static final Identifier OPEN_SELECT = new Identifier(Vestments.MOD_ID, "open_class_select");
     public static final Identifier CHOOSE = new Identifier(Vestments.MOD_ID, "choose_class");
 
     /** Доступные классы (id). Порядок = порядок на экране выбора. */
-    public static final List<String> CLASSES = List.of("priest");
+    public static final List<String> CLASSES = List.of("priest", "paladin");
 
     private PlayerClasses() { }
 
@@ -69,6 +69,15 @@ public final class PlayerClasses {
         } else {
             player.giveItemStack(new ItemStack(item));
         }
+    }
+
+    /** Класс игрока (или null, если ещё не выбран). */
+    public static String of(ServerPlayerEntity player) {
+        return player.getServer() == null ? null : get(player.getServer(), player.getUuid());
+    }
+
+    public static boolean is(ServerPlayerEntity player, String classId) {
+        return classId.equals(of(player));
     }
 
     public static String get(MinecraftServer server, UUID player) {

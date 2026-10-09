@@ -63,6 +63,7 @@ public class Vestments implements ModInitializer {
     @Override
     public void onInitialize() {
         com.bleid.vestments.gear.RankGear.init();
+        com.bleid.vestments.paladin.PaladinGear.init();
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(entries -> {
             entries.add(COLLAR);
             entries.add(PHELONION);
@@ -75,9 +76,13 @@ public class Vestments implements ModInitializer {
             }
             com.bleid.vestments.gear.RankGear.WEAPONS.forEach(entries::add);
             entries.add(BIBLE);
+            com.bleid.vestments.paladin.PaladinGear.allItems().forEach(entries::add);
         });
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(HOLY_ALTAR_ITEM));
         SetBonus.register();
+        com.bleid.vestments.classes.ClassRules.register();
+        com.bleid.vestments.paladin.PaladinBonus.register();
+        com.bleid.vestments.paladin.combat.CombatServer.register();
         StaffOfLightItem.registerEvents();
         com.bleid.vestments.classes.PlayerClasses.register();
         com.bleid.vestments.service.ServicePoints.register();

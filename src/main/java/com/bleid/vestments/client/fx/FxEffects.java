@@ -66,7 +66,7 @@ public final class FxEffects {
             case "wave" -> wave(w, pos, a, b, c, dur);
             case "light_start" -> lightStart(e);
             case "light_end" -> lightEnd(e);
-            default -> { }
+            default -> PaladinFx.play(w, type, pos, e, dur, a, b, c);
         }
     }
 
@@ -174,7 +174,7 @@ public final class FxEffects {
         });
         feathers(p, r * 0.8, 22, 2.8, 4.2, WARM, 2);
         P heart = spawn(HEART, 0, h + 0.5, 0).vel(0, 0.015, 0).size(0.05f, 0.4f).ease().color(ROSE).life(34).fade(0.1f, 0.5f);
-        if (e != null) heart.follow(e); else { heart.x += p.x; heart.y += p.y; heart.z += p.z; heart.px = heart.x; heart.py = heart.y; heart.pz = heart.z; }
+        if (e != null) heart.followLocal(e); else { heart.x += p.x; heart.y += p.y; heart.z += p.z; heart.px = heart.x; heart.py = heart.y; heart.pz = heart.z; }
         sound(w, p, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f, 1.6f);
         soundLater(w, p, 6, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 2.0f);
     }
@@ -192,12 +192,12 @@ public final class FxEffects {
         }
         int hearts = small ? 1 : 3;
         for (int k = 0; k < hearts; k++) {
-            spawn(HEART, rf(-0.3f, 0.3f), h * rf(0.6f, 0.9f), rf(-0.3f, 0.3f)).follow(e).vel(0, 0.035, 0)
+            spawn(HEART, rf(-0.3f, 0.3f), h * rf(0.6f, 0.9f), rf(-0.3f, 0.3f)).followLocal(e).vel(0, 0.035, 0)
                     .size(0.06f, small ? 0.12f : 0.18f).ease().color(ROSE).life(24).fade(0.1f, 0.5f).delay(k * 4);
         }
         if (!small) {
-            spawn(CROSS, 0, h + 0.55, 0).follow(e).vel(0, 0.01, 0).size(0.05f, 0.3f).ease().color(GOLD).life(26).fade(0.1f, 0.55f).delay(3);
-            spawn(ORB, 0, h + 0.55, 0).follow(e).size(0.2f, 0.7f).ease().color(WARM).alpha(0.6f).life(14).fade(0f, 1f).delay(3);
+            spawn(CROSS, 0, h + 0.55, 0).followLocal(e).vel(0, 0.01, 0).size(0.05f, 0.3f).ease().color(GOLD).life(26).fade(0.1f, 0.55f).delay(3);
+            spawn(ORB, 0, h + 0.55, 0).followLocal(e).size(0.2f, 0.7f).ease().color(WARM).alpha(0.6f).life(14).fade(0f, 1f).delay(3);
         }
     }
 
@@ -210,9 +210,9 @@ public final class FxEffects {
         if (e == null) return;
         float h = height(e);
         // 1) над головой разгорается свеча, к ней стягиваются огоньки
-        spawn(FLAME, 0, h + 0.75, 0).follow(e).size(0.05f, 0.5f).ease().colors(GOLD, FIRE).pulse(0.25f, 1.4f)
+        spawn(FLAME, 0, h + 0.75, 0).followLocal(e).size(0.05f, 0.5f).ease().colors(GOLD, FIRE).pulse(0.25f, 1.4f)
                 .life(CANDLE_DELAY + 2).fade(0.3f, 0.15f);
-        spawn(ORB, 0, h + 0.65, 0).follow(e).size(0.1f, 0.45f).ease().color(WARM).life(CANDLE_DELAY + 2).fade(0.3f, 0.2f);
+        spawn(ORB, 0, h + 0.65, 0).followLocal(e).size(0.1f, 0.45f).ease().color(WARM).life(CANDLE_DELAY + 2).fade(0.3f, 0.2f);
         final Entity fe = e;
         task(age -> {
             if (age >= CANDLE_DELAY) return false;
@@ -221,7 +221,7 @@ public final class FxEffects {
                 double ox = Math.sin(ph) * Math.cos(t) * d, oy = Math.cos(ph) * d * 0.6, oz = Math.sin(ph) * Math.sin(t) * d;
                 P q = spawn(STREAK, ox, h + 0.7 + oy, oz).vel(-ox / 9, -oy / 9, -oz / 9).stretch(3f).size(0.05f, 0.03f)
                         .colors(FIRE, GOLD).life(9).fade(0.2f, 0.2f);
-                q.follow(fe);
+                q.followLocal(fe);
             }
             return true;
         });
@@ -252,10 +252,10 @@ public final class FxEffects {
         float h = height(e), wd = Math.max(0.3f, e.getWidth() * 0.6f);
         int d = CANDLE_DELAY + 2;
         for (int k = 0; k < 10; k++) {
-            spawn(FLAME, rf(-wd, wd), h * rf(0.1f, 0.8f), rf(-wd, wd)).follow(e).vel(0, rf(0.03f, 0.07f), 0)
+            spawn(FLAME, rf(-wd, wd), h * rf(0.1f, 0.8f), rf(-wd, wd)).followLocal(e).vel(0, rf(0.03f, 0.07f), 0)
                     .size(rf(0.12f, 0.2f), 0.02f).colors(GOLD, FIRE).life(16 + R.nextInt(8)).fade(0.1f, 0.5f).delay(d + R.nextInt(6));
         }
-        spawn(GLINT, 0, h * 0.6, 0).follow(e).size(0.3f, 0.9f).ease().color(WARM).life(9).fade(0f, 1f).delay(d);
+        spawn(GLINT, 0, h * 0.6, 0).followLocal(e).size(0.3f, 0.9f).ease().color(WARM).life(9).fade(0f, 1f).delay(d);
     }
 
     // ================================================================ II. Благословение стойкости
@@ -265,19 +265,19 @@ public final class FxEffects {
         float h = height(e);
         Vec3d p = e.getPos();
         // столп света с неба на цель
-        spawn(BEAM, 0, 0, 0).mode(Mode.BEAM).follow(e).height(16f).size(0.15f, 1.2f).ease().colors(WARM, GOLD).life(18).fade(0f, 0.6f);
-        spawn(BEAM, 0, 0, 0).mode(Mode.BEAM).follow(e).height(16f).size(0.35f).color(WHITE).life(12).fade(0f, 0.8f);
+        spawn(BEAM, 0, 0, 0).mode(Mode.BEAM).followLocal(e).height(16f).size(0.15f, 1.2f).ease().colors(WARM, GOLD).life(18).fade(0f, 0.6f);
+        spawn(BEAM, 0, 0, 0).mode(Mode.BEAM).followLocal(e).height(16f).size(0.35f).color(WHITE).life(12).fade(0f, 0.8f);
         for (int k = 0; k < 24; k++) {
-            spawn(STREAK, rf(-0.5f, 0.5f), rf(3f, 14f), rf(-0.5f, 0.5f)).follow(e).vel(0, -rf(0.6f, 0.9f), 0).stretch(5f)
+            spawn(STREAK, rf(-0.5f, 0.5f), rf(3f, 14f), rf(-0.5f, 0.5f)).followLocal(e).vel(0, -rf(0.6f, 0.9f), 0).stretch(5f)
                     .size(0.05f).color(WARM).life(14).fade(0f, 0.3f).delay(R.nextInt(4));
         }
         shock(e, p, 0.3f, 3.2f, 16, WARM, GOLD, 1f, 2);
-        flash(0, h * 0.55, 0, 0.6f, 2.6f, 8, WARM).follow(e).delay(2);
+        flash(0, h * 0.55, 0, 0.6f, 2.6f, 8, WARM).followLocal(e).delay(2);
         // золотой купол-щит, руны под ногами и три креста на орбите
         float sz = Math.max(h, e.getWidth()) * 0.85f;
-        spawn(BUBBLE, 0, h * 0.5, 0).follow(e).size(sz * 0.6f, sz).ease().color(GOLD).alpha(0.5f).pulse(0.25f, 0.25f)
+        spawn(BUBBLE, 0, h * 0.5, 0).followLocal(e).size(sz * 0.6f, sz).ease().color(GOLD).alpha(0.5f).pulse(0.25f, 0.25f)
                 .life(dur).fade(0.05f, 0.06f).delay(2);
-        spawn(BUBBLE, 0, h * 0.5, 0).follow(e).size(sz * 0.9f).rot(0, 0.03f).color(WARM).alpha(0.18f).life(dur).fade(0.1f, 0.06f).delay(2);
+        spawn(BUBBLE, 0, h * 0.5, 0).followLocal(e).size(sz * 0.9f).rot(0, 0.03f).color(WARM).alpha(0.18f).life(dur).fade(0.1f, 0.06f).delay(2);
         flatOn(RUNES, e, p, 0.06).size(0.2f, 1.35f).ease().rot(0, 0.05f).color(GOLD).alpha(0.85f).life(dur).fade(0.05f, 0.1f).delay(2);
         for (int k = 0; k < 3; k++) {
             spawn(CROSS, 0, 0, 0).orbit(k * Math.PI * 2 / 3, Math.max(0.95, e.getWidth() + 0.4), 0.07, 0, h * 0.55, 0)
@@ -287,7 +287,7 @@ public final class FxEffects {
             if (e.isRemoved()) return false;
             if (age < dur && age % 3 == 0) {
                 double t = ang();
-                spawn(GLINT, Math.cos(t) * 0.9, rf(0f, 0.4f), Math.sin(t) * 0.9).follow(e).vel(0, rf(0.03f, 0.06f), 0)
+                spawn(GLINT, Math.cos(t) * 0.9, rf(0f, 0.4f), Math.sin(t) * 0.9).followLocal(e).vel(0, rf(0.03f, 0.06f), 0)
                         .size(0.11f, 0.02f).colors(WARM, GOLD).life(22).fade(0.15f, 0.5f);
             }
             if (age == dur) {          // щит рассыпается золотыми искрами
@@ -348,7 +348,7 @@ public final class FxEffects {
             spawn(GLINT, 0, 0, 0).orbit(i * 0.63, 0.6, 0.28, 0, 0.1 + i * 0.03, h / 16.0).follow(e)
                     .size(0.12f, 0.02f).colors(WARM, LIFE_GREEN).life(18).fade(0.1f, 0.5f).delay(i);
         }
-        spawn(STAR, 0, h + 0.3, 0).follow(e).size(0.1f, 0.5f).ease().color(LIFE_GREEN).life(14).fade(0f, 0.8f).delay(4);
+        spawn(STAR, 0, h + 0.3, 0).followLocal(e).size(0.1f, 0.5f).ease().color(LIFE_GREEN).life(14).fade(0f, 0.8f).delay(4);
     }
 
     // ================================================================ III. Ослепление
@@ -384,9 +384,9 @@ public final class FxEffects {
         if (e == null) return;
         float h = height(e), wd = e.getWidth();
         float sz = Math.max(h, wd) * 0.75f;
-        spawn(BUBBLE, 0, h * 0.5, 0).follow(e).size(sz * 0.4f, sz).ease().color(ICE).alpha(0.5f).pulse(0.15f, 0.2f)
+        spawn(BUBBLE, 0, h * 0.5, 0).followLocal(e).size(sz * 0.4f, sz).ease().color(ICE).alpha(0.5f).pulse(0.15f, 0.2f)
                 .life(dur).fade(0.06f, 0.05f);
-        spawn(ORB, 0, h * 0.5, 0).follow(e).size(sz * 1.3f).color(SKY).alpha(0.25f).life(dur).fade(0.1f, 0.1f);
+        spawn(ORB, 0, h * 0.5, 0).followLocal(e).size(sz * 1.3f).color(SKY).alpha(0.25f).life(dur).fade(0.1f, 0.1f);
         for (int k = 0; k < 4; k++) {
             spawn(SNOW, 0, 0, 0).orbit(k * Math.PI / 2, wd * 0.6 + 0.35, 0.05, 0, h * rf(0.2f, 0.9f), 0).follow(e)
                     .size(0.14f).rot((float) ang(), 0.05f).color(ICE).alpha(0.9f).life(dur).fade(0.1f, 0.08f);
@@ -394,7 +394,7 @@ public final class FxEffects {
         task(age -> {
             if (e.isRemoved()) return false;
             if (age < dur && age % 6 == 0) {
-                spawn(SNOW, rf(-wd, wd) * 0.6, h + 0.4, rf(-wd, wd) * 0.6).follow(e).vel(0, -0.03, 0)
+                spawn(SNOW, rf(-wd, wd) * 0.6, h + 0.4, rf(-wd, wd) * 0.6).followLocal(e).vel(0, -0.03, 0)
                         .size(0.08f, 0.03f).rot((float) ang(), 0.1f).color(ICE).life(24).fade(0.2f, 0.4f);
             }
             if (age == dur) {
@@ -450,10 +450,10 @@ public final class FxEffects {
     private static void smite(Entity e, int delay) {
         if (e == null) return;
         float h = height(e);
-        spawn(GLINT, 0, h * 0.6, 0).follow(e).size(0.3f, 1.1f).ease().color(WARM).life(9).fade(0f, 1f).delay(delay);
+        spawn(GLINT, 0, h * 0.6, 0).followLocal(e).size(0.3f, 1.1f).ease().color(WARM).life(9).fade(0f, 1f).delay(delay);
         for (int k = 0; k < 14; k++) {
             double t = ang(), s = rf(0.15f, 0.3f);
-            spawn(STREAK, 0, h * 0.6, 0).follow(e).vel(Math.cos(t) * s, rf(0.05f, 0.25f), Math.sin(t) * s).drag(0.9f)
+            spawn(STREAK, 0, h * 0.6, 0).followLocal(e).vel(Math.cos(t) * s, rf(0.05f, 0.25f), Math.sin(t) * s).drag(0.9f)
                     .gravity(0.02f).stretch(3f).size(0.04f).colors(WARM, GOLD).life(12).fade(0f, 0.5f).delay(delay);
         }
     }
@@ -462,10 +462,10 @@ public final class FxEffects {
         if (e == null) return;
         float h = height(e);
         for (int k = 0; k < 4; k++) {
-            spawn(FLAME, rf(-0.3f, 0.3f), h * rf(0.2f, 0.7f), rf(-0.3f, 0.3f)).follow(e).vel(0, 0.05, 0)
+            spawn(FLAME, rf(-0.3f, 0.3f), h * rf(0.2f, 0.7f), rf(-0.3f, 0.3f)).followLocal(e).vel(0, 0.05, 0)
                     .size(0.14f, 0.02f).colors(GOLD, FIRE).life(14).fade(0.1f, 0.5f).delay(R.nextInt(4));
         }
-        spawn(GLINT, 0, h * 0.6, 0).follow(e).size(0.2f, 0.5f).ease().color(WARM).life(7).fade(0f, 1f);
+        spawn(GLINT, 0, h * 0.6, 0).followLocal(e).size(0.2f, 0.5f).ease().color(WARM).life(7).fade(0f, 1f);
     }
 
     // ================================================================ Посохи: Молитвенный покров
@@ -489,11 +489,11 @@ public final class FxEffects {
             if (age % 2 == 0) {
                 // тёплый ладанный дымок и поднимающиеся искры
                 double t = ang(), d = Math.sqrt(R.nextDouble()) * r;
-                spawn(SMOKE, Math.cos(t) * d, 0.2, Math.sin(t) * d).follow(e).vel(rf(-0.006f, 0.006f), rf(0.012f, 0.025f), rf(-0.006f, 0.006f))
+                spawn(SMOKE, Math.cos(t) * d, 0.2, Math.sin(t) * d).followLocal(e).vel(rf(-0.006f, 0.006f), rf(0.012f, 0.025f), rf(-0.006f, 0.006f))
                         .size(0.3f, 1.1f).rot((float) ang(), rf(-0.02f, 0.02f)).colors(SMOKE_C, new float[] { 0.25f, 0.2f, 0.14f })
                         .alpha(0.55f).life(40).fade(0.3f, 0.5f);
                 t = ang(); d = Math.sqrt(R.nextDouble()) * r;
-                spawn(rich ? STAR : GLINT, Math.cos(t) * d, 0.1, Math.sin(t) * d).follow(e).vel(0, rf(0.03f, 0.06f), 0)
+                spawn(rich ? STAR : GLINT, Math.cos(t) * d, 0.1, Math.sin(t) * d).followLocal(e).vel(0, rf(0.03f, 0.06f), 0)
                         .size(0.1f, 0.02f).colors(WARM, GOLD).life(28).fade(0.15f, 0.5f);
             }
             if (age % 3 == 0) {        // хвосты комет
@@ -520,7 +520,7 @@ public final class FxEffects {
                         .size(0.13f, 0.02f).colors(WARM, GOLD).life(20).fade(0.1f, 0.5f).delay(i / 2);
             }
         }
-        spawn(STAR, 0, h + 0.2, 0).follow(e).size(0.2f, 0.9f).ease().rot(0, 0.1f).color(WARM).life(12).fade(0f, 0.9f);
+        spawn(STAR, 0, h + 0.2, 0).followLocal(e).size(0.2f, 0.9f).ease().rot(0, 0.1f).color(WARM).life(12).fade(0f, 0.9f);
     }
 
     /** Конец «Благословения»: луч гаснет, искры осыпаются. */
