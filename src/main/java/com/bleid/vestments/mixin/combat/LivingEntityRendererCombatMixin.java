@@ -49,12 +49,31 @@ public abstract class LivingEntityRendererCombatMixin {
             lean += L.lean * k;
             roll += L.roll * k;
         }
+        if (L != null && L.ground > 0.001f) {
+            // стопы стоят на земле: таз опускается ровно настолько, насколько согнутые ноги стали «короче»
+            float rL = L.rLeg, lL = L.lLeg, kr = L.kR, kl = L.kL;
+            if (p != null && !p.clip.offOnly) {
+                boolean right = e.getMainArm() == net.minecraft.util.Arm.RIGHT;
+                float legS = right ? 1f : -1f;
+                float pkR = right || p.draw != null ? p.kneeR : p.kneeL, pkL = right || p.draw != null ? p.kneeL : p.kneeR;
+                rL = rL + (p.rLeg * legS - rL) * p.w;
+                lL = lL + (p.lLeg * legS - lL) * p.w;
+                kr = kr + (pkR - kr) * p.w;
+                kl = kl + (pkL - kl) * p.w;
+            }
+            float drop = Math.min(Locomotion.footDrop(rL, kr), Locomotion.footDrop(lL, kl));
+            lift -= drop / 16f * L.ground;
+        }
         if (p != null && !p.clip.offOnly) {
             lift += p.lift * p.w;
             spin += p.spin * p.w;
             lean += p.lean * p.w;
         } else if (p != null) {
             spin += p.spin * p.w * 0.5f;
+        }
+        if (L != null && L.ground > 0.001f && lean != 0) {
+            // наклон корпуса вокруг таза приподнимает стопы — опускаем тело обратно на землю
+            lift -= 0.9f * (1f - (float) Math.cos(Math.toRadians(lean))) * L.ground;
         }
         if (lift == 0 && spin == 0 && lean == 0 && roll == 0) return;
         matrices.translate(0, lift, 0);

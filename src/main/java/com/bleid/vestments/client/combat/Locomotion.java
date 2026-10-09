@@ -31,6 +31,7 @@ public final class Locomotion {
         public float roll;                                 // покачивание таза, градусы
         public float eR, eL, kR, kL;                       // сгиб локтей и коленей, радианы (bendy-lib)
         public boolean armR = true, armL = true;           // можно ли трогать руку (не ест, не блокирует)
+        public float ground = 1f;                          // 1 — стоит на земле (стопы прижимаются к земле)
     }
 
     private static final class State {
@@ -140,7 +141,7 @@ public final class Locomotion {
         // ---------------- покой
         Loco I = new Loco();
         if (armed) {                              // боевая стойка паладина
-            I.bob = 0.012f * breath - 0.02f;
+            I.bob = -0.004f * (1f + breath);          // дыхание: только чуть «оседает», не отрывая стоп
             I.turn = -16f + 1.5f * sway;
             I.lean = 3f + 0.6f * breath;
             I.roll = 0.8f * shift;
@@ -148,7 +149,7 @@ public final class Locomotion {
             I.rLeg = 0.22f; I.lLeg = -0.24f; I.rLegR = 0.07f; I.lLegR = -0.08f;
             I.kR = 0.32f + 0.04f * breath + 0.06f * shiftL; I.kL = 0.42f + 0.04f * breath + 0.06f * shiftR;
         } else {                                  // расслабленно: вес то на одной, то на другой ноге
-            I.bob = 0.008f * breath - 0.006f * (shiftR + shiftL);
+            I.bob = -0.003f * (1f + breath);
             I.turn = 3f * shift;
             I.lean = 1.2f + 0.5f * breath;
             I.roll = 1.8f * shift;
@@ -174,7 +175,7 @@ public final class Locomotion {
 
         // ---------------- ходьба (Epic Fight: бедро −8…+39°, корпус против таза, проседание на двойной опоре)
         Loco W = new Loco();
-        W.bob = (-0.05f * (1f - sn) + 0.012f) * amp;
+        W.bob = 0f;              // высоту таза задаёт постановка стоп (см. footDrop)
         W.lean = 4.5f;
         W.turn = (armed ? -6f : 0f) - 4f * c * amp;           // таз поворачивается за выносимой ногой
         W.roll = 1.6f * sinP * amp;
@@ -197,7 +198,7 @@ public final class Locomotion {
 
         // ---------------- бег (Epic Fight: наклон 20–35°, колено до −72°, руки работают локтями)
         Loco R = new Loco();
-        R.bob = -0.1f * (1f - sn) + 0.025f;
+        R.bob = 0f;
         R.lean = armed ? 22f : 16f;
         R.turn = -6f * c;
         R.roll = 1.4f * sinP;
@@ -236,7 +237,7 @@ public final class Locomotion {
         // разгон, вираж, приземление — поверх любой позы
         out.lean += s.accelLean * (1f - s.air) + 6f * s.land;
         out.roll += s.bank * (1f - s.air);
-        out.bob -= 0.14f * s.land;
+        out.bob -= 0.02f * s.land;
         out.kR += 1.05f * s.land;
         out.kL += 0.9f * s.land;
         out.rLeg -= 0.25f * s.land;
@@ -259,6 +260,7 @@ public final class Locomotion {
         Loco res = s.smooth;
         res.armR = true;
         res.armL = true;
+        res.ground = 1f - s.air;
         if (p.isUsingItem()) {
             boolean main = p.getActiveHand() == Hand.MAIN_HAND;
             boolean rightActive = main == rightHanded;
@@ -267,6 +269,14 @@ public final class Locomotion {
         s.cached = res;
         s.frameNanos = now;
         return res;
+    }
+
+    /**
+     * Насколько стопа поднялась над землёй (пиксели модели) при наклоне бедра th и сгибе колена k:
+     * бедро и голень по 6 пикселей, голень отклонена от вертикали на th + k.
+     */
+    public static float footDrop(float th, float k) {
+        return Math.max(0f, 12f - 6f * MathHelper.cos(th) - 6f * MathHelper.cos(th + k));
     }
 
     private static Loco mix(Loco a, Loco b, float t) {
