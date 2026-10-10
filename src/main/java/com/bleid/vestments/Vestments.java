@@ -2,10 +2,8 @@ package com.bleid.vestments;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroups;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
@@ -64,21 +62,29 @@ public class Vestments implements ModInitializer {
     public void onInitialize() {
         com.bleid.vestments.gear.RankGear.init();
         com.bleid.vestments.paladin.PaladinGear.init();
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(entries -> {
-            entries.add(COLLAR);
-            entries.add(PHELONION);
-            entries.add(PODRIZNIK);
-            entries.add(BOOTS);
-            entries.add(STAFF_OF_LIGHT);
-            for (var set : com.bleid.vestments.gear.RankGear.SETS) {
-                if (set == com.bleid.vestments.gear.RankGear.PATRIARCH) continue;
-                set.items().forEach(entries::add);
-            }
-            com.bleid.vestments.gear.RankGear.WEAPONS.forEach(entries::add);
-            entries.add(BIBLE);
-            com.bleid.vestments.paladin.PaladinGear.allItems().forEach(entries::add);
-        });
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(HOLY_ALTAR_ITEM));
+        // своя вкладка в творческом инвентаре: всё из мода в одном месте
+        Registry.register(Registries.ITEM_GROUP, new Identifier(MOD_ID, "main"),
+                net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup.builder()
+                        .icon(() -> new net.minecraft.item.ItemStack(STAFF_OF_LIGHT))
+                        .displayName(net.minecraft.text.Text.translatable("itemGroup.vestments.main"))
+                        .entries((context, entries) -> {
+                            // священник
+                            entries.add(COLLAR);
+                            entries.add(PHELONION);
+                            entries.add(PODRIZNIK);
+                            entries.add(BOOTS);
+                            entries.add(STAFF_OF_LIGHT);
+                            for (var set : com.bleid.vestments.gear.RankGear.SETS) {
+                                if (set == com.bleid.vestments.gear.RankGear.PATRIARCH) continue;
+                                set.items().forEach(entries::add);
+                            }
+                            com.bleid.vestments.gear.RankGear.WEAPONS.forEach(entries::add);
+                            entries.add(BIBLE);
+                            entries.add(HOLY_ALTAR_ITEM);
+                            // паладин
+                            com.bleid.vestments.paladin.PaladinGear.allItems().forEach(entries::add);
+                        })
+                        .build());
         SetBonus.register();
         com.bleid.vestments.classes.ClassRules.register();
         com.bleid.vestments.paladin.PaladinBonus.register();

@@ -225,5 +225,6 @@
   "item.vestments.general_sword": "Солнечный клинок генерала",
   "item.vestments.general_shield": "Сияющий щит генерала",
   "skill.vestments.judgment": "«Суд небес»",
-  "tooltip.vestments.skill.judgment": "Прыжок и удар с небес: столп света, ударная волна в радиусе 6, союзники исцелены и защищены"
+  "tooltip.vestments.skill.judgment": "Прыжок и удар с небес: столп света, ударная волна в радиусе 6, союзники исцелены и защищены",
+  "itemGroup.vestments.main": "Priest Vestments: священники и паладины"
 }

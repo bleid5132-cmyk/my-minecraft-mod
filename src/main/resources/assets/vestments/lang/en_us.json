@@ -225,5 +225,6 @@
   "item.vestments.general_sword": "General's Sunblade",
   "item.vestments.general_shield": "General's Radiant Shield",
   "skill.vestments.judgment": "\"Judgment of Heaven\"",
-  "tooltip.vestments.skill.judgment": "Leap and strike from the sky: a pillar of light, a shockwave in radius 6, allies healed and protected"
+  "tooltip.vestments.skill.judgment": "Leap and strike from the sky: a pillar of light, a shockwave in radius 6, allies healed and protected",
+  "itemGroup.vestments.main": "Priest Vestments: Priests & Paladins"
 }
