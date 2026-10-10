@@ -285,7 +285,7 @@ public final class WingsClient {
                     float prevT = 0;
                     for (int i = 0; i <= NS; i++) {
                         double sN = (double) i / NS;
-                        double ang = a + curl * Math.pow(sN, 1.4);
+                        double fa = a + curl * Math.pow(sN, 1.4);
                         if (i > 0) {
                             double am = a + curl * Math.pow((i - 0.5) / NS, 1.4);
                             pu += Math.cos(am) * L / NS;
@@ -294,7 +294,7 @@ public final class WingsClient {
                         double bow = Math.sin(Math.PI * sN) * L * 0.07;
                         Vec3d c = root.add(u.multiply(pu)).add(v.multiply(pv)).add(n.multiply(lift + bow - CAMBER * pu * pu));
                         double t2 = tw * (0.3 + 0.7 * sN);
-                        Vec3d h = u.multiply(-Math.sin(ang)).add(v.multiply(Math.cos(ang))).multiply(Math.cos(t2))
+                        Vec3d h = u.multiply(-Math.sin(fa)).add(v.multiply(Math.cos(fa))).multiply(Math.cos(t2))
                                 .add(n.multiply(Math.sin(t2))).multiply(w);
                         Vec3d l = c.subtract(h), rr = c.add(h);
                         float tv = (float) sN;
