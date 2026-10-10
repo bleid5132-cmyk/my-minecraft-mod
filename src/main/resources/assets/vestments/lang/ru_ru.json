@@ -266,5 +266,6 @@
   "aura.vestments.2": "благословения (лечение союзников)",
   "aura.vestments.3": "возмездия (30% урона возвращается врагу)",
   "message.vestments.martyr_saved": "%s принял ваш смертельный удар на себя!",
-  "message.vestments.martyr_took": "Вы приняли смертельный удар за %s"
+  "message.vestments.martyr_took": "Вы приняли смертельный удар за %s",
+  "key.vestments.dodge": "Уворот (кувырок / отскок)"
 }

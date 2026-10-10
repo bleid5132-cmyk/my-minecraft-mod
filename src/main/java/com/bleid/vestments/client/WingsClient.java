@@ -69,6 +69,43 @@ public final class WingsClient {
         });
     }
 
+    // ---------------------------------------------------------------- орлиные крылья
+
+    private static final net.minecraft.util.Identifier TEX = new net.minecraft.util.Identifier("vestments", "textures/entity/wing_feathers.png");
+    private static final net.minecraft.util.Identifier GLOW = new net.minecraft.util.Identifier("vestments", "textures/entity/wing_feathers_glow.png");
+    private static final float SCALE = 0.72f;
+    /** Перья крыла в плоскости крыла: {корень u, корень v, угол°, длина, ширина, вид (0 маховое, 1 второстепенное, 2 кроющее), слой}. */
+    private static final float[][] FEATHERS = build();
+
+    private static float[] lerp(float[] a, float[] b, float t) {
+        return new float[] { a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t };
+    }
+
+    private static float[][] build() {
+        java.util.List<float[]> f = new java.util.ArrayList<>();
+        float[] r0 = { 1.5f, 0f }, el = { 9.5f, 8.5f }, wr = { 18f, 13f };
+        for (int i = 0; i <= 10; i++) {                          // второстепенные маховые: свисают под «рукой» крыла
+            float t = i / 10f;
+            float[] r = t < 0.5f ? lerp(r0, el, t * 2) : lerp(el, wr, (t - 0.5f) * 2);
+            f.add(new float[] { r[0], r[1], -96 + 44 * t, 17f + 4f * t, 4.0f, 1, 0 });
+        }
+        for (int i = 0; i <= 8; i++) {                           // первостепенные маховые: веер «пальцев» у запястья
+            float k = i / 8f;
+            double ra = Math.toRadians(40 - 80 * k);
+            float len = 22f + 6f * (float) Math.sin(k * Math.PI * 0.8);
+            f.add(new float[] { wr[0] + 1.5f * (float) Math.cos(ra), wr[1] + 1.5f * (float) Math.sin(ra), 38 - 88 * k, len, 3.4f, 0, 0 });
+        }
+        for (int row = 0; row < 2; row++) {                      // кроющие перья в два ряда поверх
+            float len = row == 0 ? 9f : 5f;
+            for (int i = 0; i <= 11; i++) {
+                float t = i / 11f;
+                float[] r = t < 0.5f ? lerp(r0, el, t * 2) : lerp(el, wr, (t - 0.5f) * 2);
+                f.add(new float[] { r[0], r[1] + 0.3f, -95 + 55 * t + row * 4, len * (0.85f + 0.3f * t), 3.8f, 2, 1 + row });
+            }
+        }
+        return f.toArray(new float[0][]);
+    }
+
     static final class Feature extends FeatureRenderer<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> {
         Feature(FeatureRendererContext<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> ctx) {
             super(ctx);
@@ -81,27 +118,49 @@ public final class WingsClient {
             if (o <= 0.001f || p.isInvisible()) return;
             matrices.push();
             getContextModel().body.rotate(matrices);
-            Matrix4f mat = matrices.peek().getPositionMatrix();
-            VertexConsumer vc = vcp.getBuffer(FxSystem.layer());
-            float flap = MathHelper.sin(age * 0.12f) * 9f;
+            MatrixStack.Entry en = matrices.peek();
+            // медленный величественный взмах; в воздухе — чуть сильнее
+            float flapDeg = MathHelper.sin(age * 0.09f) * (p.isOnGround() ? 5f : 11f);
+            VertexConsumer solid = vcp.getBuffer(net.minecraft.client.render.RenderLayer.getEntityCutoutNoCull(TEX));
+            draw(solid, en, o, flapDeg, light, false);
+            VertexConsumer glow = vcp.getBuffer(net.minecraft.client.render.RenderLayer.getEyes(GLOW));
+            draw(glow, en, o, flapDeg, light, true);
+            matrices.pop();
+        }
+
+        private static void draw(VertexConsumer vc, MatrixStack.Entry en, float o, float flapDeg, int light, boolean glow) {
+            Matrix4f mat = en.getPositionMatrix();
+            org.joml.Matrix3f nm = en.getNormalMatrix();
+            float raise = (float) Math.toRadians(flapDeg) - (1 - o) * 1.2f;     // складывание при появлении/исчезании
+            float spread = 0.3f + 0.7f * o;
+            float cr = MathHelper.cos(raise), sr = MathHelper.sin(raise);
             for (int side = -1; side <= 1; side += 2) {
-                for (int i = 0; i < 8; i++) {
-                    // перья веером: от почти горизонтальных до поднятых вверх; верхние длиннее
-                    float a = (float) Math.toRadians(-18 + i * 13 + flap * (0.6f + i * 0.06f)) * o + (float) Math.toRadians(-60) * (1 - o);
-                    float len = (11f + i * 1.3f) * (0.4f + 0.6f * o) / 16f;
-                    float w = (1.6f + i * 0.12f) / 16f;
-                    Vec3d root = new Vec3d(-side * 1.2 / 16, 3.0 / 16, 2.4 / 16);
-                    Vec3d dir = new Vec3d(-side * Math.cos(a), -Math.sin(a), 0.45).normalize();
-                    Vec3d wv = dir.crossProduct(new Vec3d(0, 0, 1)).normalize().multiply(w);
-                    Vec3d tip = root.add(dir.multiply(len));
-                    float br = o * (0.55f + 0.05f * i);
-                    float[] rgb = { br, br * 0.92f, br * 0.7f, br, br * 0.92f, br * 0.7f,
-                            br * 0.9f, br * 0.85f, br * 0.6f, br * 0.9f, br * 0.85f, br * 0.6f };
-                    FxSystem.drawQuad(vc, mat, FxSystem.FEATHER, root.subtract(wv), root.add(wv), tip.add(wv.multiply(1.5)),
-                            tip.subtract(wv.multiply(1.5)), new float[] { 0, 1, 1, 1, 1, 0, 0, 0 }, rgb);
+                // плоскость крыла: «наружу» и «вверх», обе чуть назад от спины (модель: +X влево, −Y вверх, +Z назад)
+                Vec3d u = new Vec3d(-side, 0, 0.35).normalize();
+                Vec3d v = new Vec3d(0, -1, 0.3).normalize();
+                Vec3d n = u.crossProduct(v).normalize();
+                if (n.z < 0) n = n.multiply(-1);
+                Vec3d root = new Vec3d(-side * 1.0, 2.5, 2.3);
+                for (float[] f : FEATHERS) {
+                    float ru = f[0] * spread, rv = f[1] * spread;
+                    float qu = ru * cr - rv * sr, qv = ru * sr + rv * cr;
+                    double a = Math.toRadians(f[2]) + raise - (1 - o) * Math.toRadians(70);
+                    double du = Math.cos(a), dv = Math.sin(a);
+                    double hu = -dv * f[4] / 2, hv = du * f[4] / 2;
+                    double lay = f[6] * 0.06 + (glow ? 0.01 : 0);
+                    double[][] q = {
+                            { qu - hu, qv - hv }, { qu + hu, qv + hv },
+                            { qu + du * f[3] + hu, qv + dv * f[3] + hv }, { qu + du * f[3] - hu, qv + dv * f[3] - hv } };
+                    float u0 = f[5] * 0.25f, u1 = u0 + 0.25f;
+                    float[][] uv = { { u0, 0 }, { u1, 0 }, { u1, 1 }, { u0, 1 } };
+                    for (int k = 0; k < 4; k++) {
+                        Vec3d pt = root.add(u.multiply(q[k][0])).add(v.multiply(q[k][1])).add(n.multiply(lay)).multiply(SCALE / 16.0);
+                        vc.vertex(mat, (float) pt.x, (float) pt.y, (float) pt.z).color(255, 255, 255, 255)
+                                .texture(uv[k][0], uv[k][1]).overlay(net.minecraft.client.render.OverlayTexture.DEFAULT_UV)
+                                .light(glow ? 0xF000F0 : light).normal(nm, (float) n.x, (float) n.y, (float) n.z).next();
+                    }
                 }
             }
-            matrices.pop();
         }
     }
 }

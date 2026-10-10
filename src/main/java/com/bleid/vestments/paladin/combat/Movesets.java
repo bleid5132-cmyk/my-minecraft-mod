@@ -41,6 +41,34 @@ public final class Movesets {
         return BY_SWORD.get(swordId);
     }
 
+    /** Увороты: 0 — вперёд, 1 — назад, 2 — влево, 3 — вправо (общие для паладина и священника). */
+    public static final Clip[] DODGE = dodges();
+
+    private static Clip[] dodges() {
+        Clip[] d = new Clip[4];
+        for (int i = 0; i < 4; i++) {
+            Clip c = new Clip("junior_recruit_sword/dodge" + i, i == 1 ? 0.45f : 0.55f, 0.04f);
+            c.visualOnly = true;
+            c.lockMove = false;
+            c.dodge = true;
+            float L = c.length;
+            if (i == 1) {
+                // отскок назад: присел, оттолкнулся, корпус откинут назад, мягкое приземление
+                c.lean.key(0, 0).key(0.06f, 8).key(0.18f, -22).key(0.34f, -10).key(L, 0);
+                c.lift.key(0, 0).key(0.06f, -0.12f).key(0.2f, 0.28f).key(0.34f, 0.05f).key(0.4f, -0.1f).key(L, 0);
+            } else {
+                // кувырок: при уходе вбок корпус сначала разворачивается в сторону уворота
+                float turn = i == 2 ? -90 : i == 3 ? 90 : 0;
+                c.spin.key(0, 0).key(0.06f, turn).key(L - 0.1f, turn).key(L, 0);
+                c.lean.key(0, 0).key(0.07f, 25).key(0.38f, 360).key(L, 360);
+                c.lift.key(0, 0).key(0.07f, -0.35f).key(0.22f, -0.55f).key(0.38f, -0.35f).key(L, 0);
+            }
+            CLIPS.put(c.id, c);
+            d[i] = c;
+        }
+        return d;
+    }
+
     /** Подъём щита в защитную стойку (общий для всех щитов). */
     public static final Clip SHIELD_DRAW = shieldDraw();
 

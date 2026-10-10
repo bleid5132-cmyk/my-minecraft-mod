@@ -266,5 +266,6 @@
   "aura.vestments.2": "of blessing (heals allies)",
   "aura.vestments.3": "of retribution (30% of damage returned)",
   "message.vestments.martyr_saved": "%s took your killing blow!",
-  "message.vestments.martyr_took": "You took the killing blow for %s"
+  "message.vestments.martyr_took": "You took the killing blow for %s",
+  "key.vestments.dodge": "Dodge (roll / backstep)"
 }

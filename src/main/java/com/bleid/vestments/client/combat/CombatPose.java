@@ -65,6 +65,7 @@ public final class CombatPose {
         p.lift = pb.clip.lift.at(t);
         float stance = pb.clip.stance.at(t);
         if (pb.clip.sheath) return sheath(e, p, pb, t);
+        if (pb.clip.dodge) return dodge(p, pb, t);
 
         // текущий взмах приёма и его окно (от конца предыдущего до конца этого)
         Strike cur = null;
@@ -188,6 +189,25 @@ public final class CombatPose {
         float bounce = 0.2f * coil + 0.4f * imp;
         p.kneeR = 0.18f + 0.35f * Math.max(0f, stance) + 0.2f * Math.max(0f, -stance) + bounce;
         p.kneeL = 0.18f + 0.35f * Math.max(0f, -stance) + 0.2f * Math.max(0f, stance) + bounce * 0.8f;
+        return p;
+    }
+
+    /** Уворот: корень крутится по дорожкам клипа, руки и ноги поджаты (кувырок) или собраны (отскок). */
+    private static Pose dodge(Pose p, CombatClient.Playback pb, float t) {
+        p.lean = wrapDeg(p.lean);
+        float L = pb.clip.length;
+        boolean back = pb.clip.id.endsWith("dodge1");
+        float tuck = Clip.smooth(t / 0.07f) * (1f - Clip.smooth((t - (L - 0.16f)) / 0.12f));
+        float k = back ? 0.45f : 1f;
+        p.armPitch = -1.1f * tuck * k; p.armYaw = 0.25f * tuck; p.armRoll = 0.15f;
+        p.offPitch = -1.1f * tuck * k; p.offYaw = -0.25f * tuck; p.offRoll = -0.15f;
+        p.mainElbow = 1.6f * tuck * k + 0.2f;
+        p.offElbow = 1.6f * tuck * k + 0.2f;
+        p.rLeg = -1.3f * tuck * k;
+        p.lLeg = -1.05f * tuck * k + (back ? 0.3f * tuck : 0f);
+        p.kneeR = 2.1f * tuck * k + 0.1f;
+        p.kneeL = 2.0f * tuck * k + 0.1f;
+        p.bodyYaw = 0;
         return p;
     }
 

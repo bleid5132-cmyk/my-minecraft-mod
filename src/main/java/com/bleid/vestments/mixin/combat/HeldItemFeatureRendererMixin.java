@@ -60,7 +60,7 @@ public abstract class HeldItemFeatureRendererMixin {
             return;
         }
         if (!(stack.getItem() instanceof PaladinSwordItem)) return;
-        if (p == null || p.clip.offOnly) return;
+        if (p == null || p.clip.offOnly || p.clip.dodge) return;
         boolean left = arm == Arm.LEFT;
         float s = left ? -1f : 1f;
         ModelWithArms model = (ModelWithArms) ((FeatureRenderer<?, ?>) (Object) this).getContextModel();

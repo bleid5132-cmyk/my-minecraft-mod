@@ -34,7 +34,7 @@ public final class PaladinHud {
     private static final Identifier MARTYR = new Identifier(Vestments.MOD_ID, "textures/gui/pal_martyr.png");
     private static final int[] AURA_COLOR = { 0, 0xFF6FA8FF, 0xFF7CFF6E, 0xFFFF5040 };
 
-    private static final int[] left = new int[5], total = { 1, 1, 1, 1, 1 };
+    private static final int[] LEFT = new int[5], total = { 1, 1, 1, 1, 1 };
     private static int aura, martyrLeft, martyrTotal = 1, wingsLeft;
 
     static {
@@ -51,14 +51,14 @@ public final class PaladinHud {
             for (int i = 0; i < 5; i++) { l[i] = buf.readVarInt(); t[i] = buf.readVarInt(); }
             int a = buf.readVarInt(), ml = buf.readVarInt(), mt = buf.readVarInt(), wl = buf.readVarInt();
             client.execute(() -> {
-                System.arraycopy(l, 0, left, 0, 5);
+                System.arraycopy(l, 0, LEFT, 0, 5);
                 System.arraycopy(t, 0, total, 0, 5);
                 aura = a; martyrLeft = ml; martyrTotal = Math.max(1, mt); wingsLeft = wl;
             });
         });
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             if (mc.isPaused()) return;
-            for (int i = 0; i < 5; i++) if (left[i] > 0) left[i]--;
+            for (int i = 0; i < 5; i++) if (LEFT[i] > 0) LEFT[i]--;
             if (martyrLeft > 0) martyrLeft--;
             if (wingsLeft > 0) wingsLeft--;
         });
@@ -71,24 +71,29 @@ public final class PaladinHud {
         if (p == null || mc.options.hudHidden || p.isSpectator() || !RankView.clientPaladin()) return;
         TextRenderer font = mc.textRenderer;
         int rank = RankView.clientPaladinRank();
-        int y = ctx.getScaledWindowHeight() - SIZE - MARGIN;
-        int x = ctx.getScaledWindowWidth() - MARGIN - SIZE;
+        int W = ctx.getScaledWindowWidth(), H = ctx.getScaledWindowHeight();
+        // сетка 3×2 в правом нижнем углу: G H J / K N R; если экран узкий — поднимаем над хотбаром
+        int cell = SIZE + GAP;
+        int left = W - MARGIN - 3 * cell + GAP;
+        int lift = left < W / 2 + 95 ? 26 : 0;
+        int yBottom = H - MARGIN - SIZE - lift, yTop = yBottom - SIZE - 11;
 
-        // особый приём оружия (R) — справа
-        ItemStack held = p.getMainHandStack();
-        if (held.getItem() instanceof PaladinSwordItem w) {
-            frame(ctx, x, y, 0xFF8A6A2A);
-            ctx.drawItem(held, x + 3, y + 3);
-            boolean ok = rank >= w.rank;
-            float cd = p.getItemCooldownManager().getCooldownProgress(w, tickDelta);
-            if (!ok) locked(ctx, font, x, y, w.rank);
-            else if (cd > 0) cooldown(ctx, font, x, y, cd, MathHelper.ceil(cd * w.skillCooldown / 20f));
-            key(ctx, font, CombatClient.skillKey(), x, y, ok && cd <= 0);
-            x -= SIZE + GAP + 4;
-        }
-
-        // магия паладина: справа налево N K J H G
-        for (int i = 4; i >= 0; i--) {
+        for (int slot = 0; slot < 6; slot++) {
+            int x = left + (slot % 3) * cell, y = slot < 3 ? yTop : yBottom;
+            if (slot == 5) {
+                // особый приём оружия (R)
+                ItemStack held = p.getMainHandStack();
+                if (!(held.getItem() instanceof PaladinSwordItem w)) continue;
+                frame(ctx, x, y, 0xFF8A6A2A);
+                ctx.drawItem(held, x + 3, y + 3);
+                boolean ok = rank >= w.rank;
+                float cd = p.getItemCooldownManager().getCooldownProgress(w, tickDelta);
+                if (!ok) locked(ctx, font, x, y, w.rank);
+                else if (cd > 0) cooldown(ctx, font, x, y, cd, MathHelper.ceil(cd * w.skillCooldown / 20f));
+                key(ctx, font, CombatClient.skillKey(), x, y, ok && cd <= 0);
+                continue;
+            }
+            int i = slot;
             boolean ok = rank >= RANK[i];
             int border = 0xFF5A3A1A;
             if (i == PaladinAbilities.AURA && aura != 0) border = AURA_COLOR[aura];
@@ -99,24 +104,25 @@ public final class PaladinHud {
                 locked(ctx, font, x, y, RANK[i]);
             } else if (i == PaladinAbilities.WINGS && wingsLeft > 0) {
                 center(ctx, font, String.valueOf(MathHelper.ceil(wingsLeft / 20f)), x + SIZE / 2, y + SIZE / 2 - 4, 0xFFFFF4C0);
-            } else if (left[i] > 0 && i != PaladinAbilities.AURA) {
-                float f = MathHelper.clamp((left[i] - tickDelta) / total[i], 0f, 1f);
-                cooldown(ctx, font, x, y, f, MathHelper.ceil(left[i] / 20f));
+            } else if (LEFT[i] > 0 && i != PaladinAbilities.AURA) {
+                float f = MathHelper.clamp((LEFT[i] - tickDelta) / total[i], 0f, 1f);
+                cooldown(ctx, font, x, y, f, MathHelper.ceil(LEFT[i] / 20f));
             }
             if (i == PaladinAbilities.AURA && ok && aura != 0) {
-                ctx.fill(x + SIZE - 6, y + SIZE - 6, x + SIZE - 1, y + SIZE - 1, AURA_COLOR[aura]);   // цвет активной ауры
+                ctx.fill(x + SIZE - 6, y + SIZE - 6, x + SIZE - 1, y + SIZE - 1, AURA_COLOR[aura]);
             }
-            key(ctx, font, PaladinKeys.binding(i), x, y, ok && (left[i] <= 0 || i == PaladinAbilities.AURA));
-            x -= SIZE + GAP;
+            key(ctx, font, PaladinKeys.binding(i), x, y, ok && (LEFT[i] <= 0 || i == PaladinAbilities.AURA));
         }
 
-        // пассивное «Мученичество» — маленький значок слева
+        // пассивное «Мученичество» — маленький значок слева от верхнего ряда
         if (rank >= 5) {
-            int s = 16, mx = x + SIZE - s, my = y + SIZE - s;
-            ctx.drawTexture(MARTYR, mx, my, 0, 0, s, s, s, s);
-            if (martyrLeft > 0) {
-                int dark = MathHelper.ceil(s * MathHelper.clamp(martyrLeft / (float) martyrTotal, 0f, 1f));
-                ctx.fill(mx, my, mx + s, my + dark, 0xB0000000);
+            int s = 16, mx = left - s - GAP - 2, my = yTop + SIZE - s;
+            if (mx > W / 2 + 95 || lift > 0) {
+                ctx.drawTexture(MARTYR, mx, my, 0, 0, s, s, s, s);
+                if (martyrLeft > 0) {
+                    int dark = MathHelper.ceil(s * MathHelper.clamp(martyrLeft / (float) martyrTotal, 0f, 1f));
+                    ctx.fill(mx, my, mx + s, my + dark, 0xB0000000);
+                }
             }
         }
     }

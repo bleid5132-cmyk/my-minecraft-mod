@@ -28,6 +28,8 @@ public final class Clip {
     public boolean sheath;
     /** Обратный ход (убирание меча в ножны): поза DrawPose проигрывается от конца к началу. */
     public boolean reverse;
+    /** Уворот (кувырок/отскок): руки и ноги поджаты, оружие в обычном хвате. */
+    public boolean dodge;
     // своя дорожка для второй руки (радианы модели); пустые — обычная защитная стойка
     public final Track offPitch = new Track(), offYaw = new Track(), offRoll = new Track();
 

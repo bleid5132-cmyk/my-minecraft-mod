@@ -114,6 +114,14 @@ public final class CombatClient {
         CameraShake.kick((float) (right * 1.3 * power), (float) (-up * 1.1 * power), (float) (right * 1.6 * power));
     }
 
+    /** Проиграть приём у своего игрока (уворот и т.п.); сбрасывает серию ударов. */
+    public static void playLocal(net.minecraft.entity.player.PlayerEntity p, Clip c) {
+        Moveset ms = Movesets.of("junior_recruit_sword");
+        PLAY.put(p.getId(), new Playback(c, ms));
+        combo = 0;
+        buffer = -1;
+    }
+
     public static Map<Integer, Playback> all() {
         return PLAY;
     }

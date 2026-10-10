@@ -125,6 +125,17 @@ public final class CombatServer {
         if (kind == 200) sendPlay(p, p, c);
     }
 
+    /** Показать приём игрока всем, кто его видит (кроме него самого). */
+    public static void broadcast(ServerPlayerEntity who, Clip c) {
+        for (ServerPlayerEntity viewer : PlayerLookup.tracking(who)) sendPlay(viewer, who, c);
+    }
+
+    /** Прервать текущий удар (уворот отменяет приём). */
+    public static void cancel(ServerPlayerEntity p) {
+        State s = STATES.get(p.getUuid());
+        if (s != null) s.clip = null;
+    }
+
     private static void sendPlay(ServerPlayerEntity to, ServerPlayerEntity who, Clip c) {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeVarInt(who.getId());
