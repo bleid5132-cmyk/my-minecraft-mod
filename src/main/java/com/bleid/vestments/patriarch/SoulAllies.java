@@ -67,6 +67,13 @@ public final class SoulAllies {
     private static final double AGGRO_RANGE = 16;
     private static boolean dirty;
 
+    /** Души, которые призвать нельзя: боссы. */
+    private static final java.util.Set<String> BANNED = java.util.Set.of("minecraft:wither", "minecraft:ender_dragon");
+
+    public static boolean allowed(String type) {
+        return !BANNED.contains(type);
+    }
+
     private SoulAllies() { }
 
     public static void register() {
@@ -77,7 +84,7 @@ public final class SoulAllies {
             server.execute(() -> {
                 var killed = Mana.killed(server, player.getUuid());
                 List<String> ok = new ArrayList<>();
-                for (String t : list) if (killed.contains(t) && !ok.contains(t) && ok.size() < Mana.MAX_CHOSEN) ok.add(t);
+                for (String t : list) if (allowed(t) && killed.contains(t) && !ok.contains(t) && ok.size() < Mana.MAX_CHOSEN) ok.add(t);
                 if (ok.isEmpty()) return;
                 Mana.choose(server, player.getUuid(), ok);
                 player.sendMessage(Text.translatable("message.vestments.souls_chosen").formatted(Formatting.AQUA), true);
@@ -92,7 +99,7 @@ public final class SoulAllies {
             if (entity instanceof Monster) {
                 Mana.addMorale(server, p.getUuid(), entity.getMaxHealth() >= 100 ? 10 : 1);
                 Identifier id = Registries.ENTITY_TYPE.getId(entity.getType());
-                Mana.recordKill(server, p.getUuid(), id.toString());
+                if (allowed(id.toString())) Mana.recordKill(server, p.getUuid(), id.toString());
             } else if (entity instanceof VillagerEntity) {
                 Mana.addMorale(server, p.getUuid(), -10);
             } else if (entity instanceof MobEntity) {          // мирные и нейтральные
@@ -159,7 +166,7 @@ public final class SoulAllies {
     // ---------------------------------------------------------- выбор душ
 
     public static void openSelection(ServerPlayerEntity p) {
-        var killed = Mana.killed(p.getServer(), p.getUuid());
+        var killed = Mana.killed(p.getServer(), p.getUuid()).stream().filter(SoulAllies::allowed).toList();
         if (killed.isEmpty()) {
             p.sendMessage(Text.translatable("message.vestments.souls_none_killed").formatted(Formatting.GRAY), true);
             return;
@@ -167,14 +174,14 @@ public final class SoulAllies {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeVarInt(killed.size());
         for (String t : killed) buf.writeString(t);
-        List<String> chosen = Mana.chosen(p.getServer(), p.getUuid());
+        List<String> chosen = Mana.chosen(p.getServer(), p.getUuid()).stream().filter(SoulAllies::allowed).toList();
         buf.writeVarInt(chosen.size());
         for (String t : chosen) buf.writeString(t);
         ServerPlayNetworking.send(p, OPEN_SELECT, buf);
     }
 
     static boolean canSummon(ServerPlayerEntity p) {
-        if (Mana.chosen(p.getServer(), p.getUuid()).isEmpty()) {
+        if (Mana.chosen(p.getServer(), p.getUuid()).stream().noneMatch(SoulAllies::allowed)) {
             openSelection(p);
             return false;
         }
@@ -190,7 +197,8 @@ public final class SoulAllies {
     static void summon(ServerWorld w, ServerPlayerEntity p) {
         MinecraftServer server = p.getServer();
         int count = Math.min(MAX_SOULS, Mana.morale(server, p.getUuid()) / 10);
-        List<String> types = Mana.chosen(server, p.getUuid());
+        List<String> types = Mana.chosen(server, p.getUuid()).stream().filter(SoulAllies::allowed).toList();
+        if (types.isEmpty()) return;
         var rnd = w.getRandom();
         for (int i = 0; i < count; i++) {
             Identifier id = Identifier.tryParse(types.get(rnd.nextInt(types.size())));
