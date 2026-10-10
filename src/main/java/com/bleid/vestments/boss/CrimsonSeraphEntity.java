@@ -380,7 +380,7 @@ public class CrimsonSeraphEntity extends HostileEntity {
     }
 
     @Override
-    protected float getSoundPitch() {
+    public float getSoundPitch() {
         return 0.55f;
     }
 
