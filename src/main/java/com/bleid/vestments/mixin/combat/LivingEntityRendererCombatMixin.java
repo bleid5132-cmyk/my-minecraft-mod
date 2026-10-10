@@ -46,7 +46,7 @@ public abstract class LivingEntityRendererCombatMixin {
             float k = 1f - wc;
             lift += L.bob * k;
             spin += L.turn * k;
-            lean += L.lean * k;
+            lean += L.lean * k * (1f - Locomotion.CHEST_LEAN);    // остальное — изгиб груди в пояснице
             roll += L.roll * k;
         }
         if (L != null && L.ground > 0.001f) {

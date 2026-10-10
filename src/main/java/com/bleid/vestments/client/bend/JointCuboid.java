@@ -27,7 +27,13 @@ public class JointCuboid extends BendableCuboid {
     /** Строитель для детали: jx/jy/jz — сустав в координатах части, rigid — целиком ниже сустава. */
     public static io.github.kosmx.bendylib.ICuboidBuilder<io.github.kosmx.bendylib.impl.ICuboid> builder(
             float jx, float jy, float jz, boolean rigid) {
-        return data -> new BendableCuboid.Builder().setDirection(Direction.UP).build(data,
+        return builder(jx, jy, jz, rigid, Direction.UP);
+    }
+
+    /** dir: UP — двигается нижняя часть (руки, ноги), DOWN — верхняя (корпус гнётся в пояснице). */
+    public static io.github.kosmx.bendylib.ICuboidBuilder<io.github.kosmx.bendylib.impl.ICuboid> builder(
+            float jx, float jy, float jz, boolean rigid, Direction dirn) {
+        return data -> new BendableCuboid.Builder().setDirection(dirn).build(data,
                 (sides, pos, minX, minY, minZ, maxX, maxY, maxZ, fx, fy, fz, dir, base, other, size) ->
                         new JointCuboid(sides, pos, minX, minY, minZ, maxX, maxY, maxZ, jx, jy, jz, dir, base, other, size, rigid));
     }

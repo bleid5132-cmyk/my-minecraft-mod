@@ -46,6 +46,11 @@ public final class Locomotion {
 
     private static final Map<LivingEntity, State> STATES = new WeakHashMap<>();
 
+    /** Доля наклона, которую берёт на себя грудь (изгиб в пояснице); остальное — наклон таза. */
+    public static final float CHEST_LEAN = 0.6f;
+    /** Грудь отклоняется против покачивания таза — голова и плечи остаются ровнее. */
+    public static final float CHEST_COUNTER_ROLL = 0.7f;
+
     private Locomotion() { }
 
     public static boolean qualifies(LivingEntity e) {

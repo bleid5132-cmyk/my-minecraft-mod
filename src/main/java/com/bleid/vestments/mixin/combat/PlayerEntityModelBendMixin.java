@@ -19,6 +19,7 @@ public abstract class PlayerEntityModelBendMixin {
     @Shadow @Final public ModelPart rightSleeve;
     @Shadow @Final public ModelPart leftPants;
     @Shadow @Final public ModelPart rightPants;
+    @Shadow @Final public ModelPart jacket;
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void vestments$initBend(ModelPart root, boolean thinArms, CallbackInfo ci) {
@@ -27,6 +28,8 @@ public abstract class PlayerEntityModelBendMixin {
                 m.rightLeg, m.leftLeg, rightPants, leftPants }) {
             Bends.init(part);
         }
+        Bends.initBody(m.body);
+        Bends.initBody(jacket);
     }
 
     @Inject(method = "setAngles(Lnet/minecraft/entity/LivingEntity;FFFFF)V", at = @At("TAIL"))
@@ -44,5 +47,8 @@ public abstract class PlayerEntityModelBendMixin {
         Bends.bend(rightPants, kR, false);
         Bends.bend(m.leftLeg, kL, false);
         Bends.bend(leftPants, kL, false);
+        float cf = v == null || v.length < 6 ? 0 : v[4], cs = v == null || v.length < 6 ? 0 : v[5];
+        Bends.bendBody(m.body, cf, cs);
+        Bends.bendBody(jacket, cf, cs);
     }
 }

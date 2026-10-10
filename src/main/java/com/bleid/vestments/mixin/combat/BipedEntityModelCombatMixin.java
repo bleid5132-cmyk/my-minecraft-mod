@@ -74,7 +74,7 @@ public abstract class BipedEntityModelCombatMixin {
             m.leftArm.pivotZ = -MathHelper.sin(bt) * 5f;
             m.leftArm.pivotX = MathHelper.cos(bt) * 5f;
             // голова смотрит прямо, несмотря на наклон и разворот корпуса
-            m.head.pitch -= (float) Math.toRadians(L.lean) * k;
+            m.head.pitch -= (float) Math.toRadians(L.lean * (1f - Locomotion.CHEST_LEAN)) * k;
             m.head.yaw -= (float) Math.toRadians(L.turn) * k;
         }
 
@@ -123,14 +123,62 @@ public abstract class BipedEntityModelCombatMixin {
             if (rightMain) { eR = eMain; eL = eOff; } else { eL = eMain; eR = eOff; }
         }
         // корпус наклоняется от таза, а не вместе с ногами: ноги остаются в своих углах относительно земли
-        float leanDeg = (L != null ? L.lean * (1f - wc) : 0f) + (p != null && !p.clip.offOnly ? p.lean * p.w : 0f);
+        float leanDeg = (L != null ? L.lean * (1f - Locomotion.CHEST_LEAN) * (1f - wc) : 0f)
+                + (p != null && !p.clip.offOnly ? p.lean * p.w : 0f);
         if (leanDeg != 0f) {
             float lr = (float) Math.toRadians(leanDeg);
             m.rightLeg.pitch -= lr;
             m.leftLeg.pitch -= lr;
         }
+        // ---------- изгиб корпуса в пояснице: грудь наклоняется сама, плечи и голова следуют за ней
+        float chestF = 0f, chestS = 0f;
+        if (L != null) {
+            float k = 1f - wc;
+            chestF = (float) Math.toRadians(L.lean * Locomotion.CHEST_LEAN) * k;
+            chestS = (float) Math.toRadians(L.roll * Locomotion.CHEST_COUNTER_ROLL) * k;
+        }
+        if (Math.abs(chestF) + Math.abs(chestS) > 1e-3f) {
+            boolean usingR = e.isUsingItem() && (e.getActiveHand() == net.minecraft.util.Hand.MAIN_HAND) == rightMain;
+            boolean usingL = e.isUsingItem() && (e.getActiveHand() == net.minecraft.util.Hand.MAIN_HAND) != rightMain;
+            vestments$followChest(m, chestF, chestS, !usingR, !usingL);
+        }
         m.hat.copyTransform(m.head);
-        Bends.store(e, new float[] { Math.max(0, eR), Math.max(0, eL), Math.max(0, kR), Math.max(0, kL) });
+        Bends.store(e, new float[] { Math.max(0, eR), Math.max(0, eL), Math.max(0, kR), Math.max(0, kL), chestF, chestS });
+    }
+
+    /**
+     * Грудь согнута в пояснице (bendy-lib гнёт корпус вокруг его середины): переносим плечи и шею
+     * тем же поворотом, руки ещё и поворачиваются вместе с грудью (голова продолжает смотреть, куда смотрела).
+     */
+    private static void vestments$followChest(BipedEntityModel<?> m, float fwd, float side, boolean rotR, boolean rotL) {
+        float v = (float) Math.sqrt(fwd * fwd + side * side);
+        float a = (float) Math.atan2(side, fwd);
+        org.joml.Matrix3f rb = new org.joml.Matrix3f().rotationZYX(m.body.roll, m.body.yaw, m.body.pitch);
+        // ось изгиба bendy для «верхней половины» (DOWN): (cos a, 0, −sin a) в координатах корпуса
+        org.joml.Matrix3f rl = new org.joml.Matrix3f().rotation(v, (float) Math.cos(a), 0f, (float) -Math.sin(a));
+        org.joml.Matrix3f r = new org.joml.Matrix3f(rb).mul(rl).mul(new org.joml.Matrix3f(rb).transpose());
+        org.joml.Vector3f c = new org.joml.Vector3f(0, Bends.WAIST_Y, 0).mul(rb)
+                .add(m.body.pivotX, m.body.pivotY, m.body.pivotZ);
+        vestments$movePivot(m.head, r, c);
+        vestments$movePivot(m.rightArm, r, c);
+        vestments$movePivot(m.leftArm, r, c);
+        if (rotR) vestments$rotatePart(m.rightArm, r);
+        if (rotL) vestments$rotatePart(m.leftArm, r);
+    }
+
+    private static void vestments$movePivot(ModelPart part, org.joml.Matrix3f r, org.joml.Vector3f c) {
+        org.joml.Vector3f p = new org.joml.Vector3f(part.pivotX, part.pivotY, part.pivotZ).sub(c).mul(r).add(c);
+        part.pivotX = p.x;
+        part.pivotY = p.y;
+        part.pivotZ = p.z;
+    }
+
+    private static void vestments$rotatePart(ModelPart part, org.joml.Matrix3f r) {
+        org.joml.Matrix3f m = new org.joml.Matrix3f(r).mul(new org.joml.Matrix3f().rotationZYX(part.roll, part.yaw, part.pitch));
+        org.joml.Vector3f e = m.getEulerAnglesZYX(new org.joml.Vector3f());
+        part.pitch = e.x;
+        part.yaw = e.y;
+        part.roll = e.z;
     }
 
     private static float vestments$lerpAngle(float t, float a, float b) {

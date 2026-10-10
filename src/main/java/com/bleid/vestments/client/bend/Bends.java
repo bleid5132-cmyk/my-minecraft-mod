@@ -30,7 +30,13 @@ public final class Bends {
     public static final float ELBOW_Y = 4f, KNEE_Y = 6f;
     public static final float ARM_X_R = -1f, ARM_X_L = 1f;
 
-    /** Изгибы последнего вычисленного кадра для сущности: локоть П, локоть Л, колено П, колено Л. */
+    /** Пояс (середина корпуса): грудь наклоняется и отклоняется вбок вокруг этой точки. */
+    public static final float WAIST_Y = 6f;
+
+    /**
+     * Изгибы последнего вычисленного кадра для сущности: локоть П, локоть Л, колено П, колено Л,
+     * наклон груди вперёд, наклон груди вбок (радианы).
+     */
     private static final Map<LivingEntity, float[]> LAST = new WeakHashMap<>();
     /** Изгибы для текущего вызова setAngles (null — не трогать, например рука от первого лица). */
     public static float[] current;
@@ -48,61 +54,85 @@ public final class Bends {
 
     /** Подготовить часть игрока к изгибу (кубоид 0 — сама рука/нога/рукав/штанина). */
     public static void init(ModelPart part) {
+        init(part, Direction.UP);
+    }
+
+    /** Корпус и куртка: гнётся верхняя половина (DOWN). */
+    public static void initBody(ModelPart part) {
+        init(part, Direction.DOWN);
+    }
+
+    private static void init(ModelPart part, Direction d) {
         ModelPartAccessor.optionalGetCuboid(part, 0).ifPresent(c ->
-                c.registerMutator(KEY, data -> new BendableCuboid.Builder().setDirection(Direction.UP).build(data)));
+                c.registerMutator(KEY, data -> new BendableCuboid.Builder().setDirection(d).build(data)));
     }
 
     /** Согнуть часть игрока: elbow=true — локоть (вперёд), иначе колено (назад). */
     public static void bend(ModelPart part, float amount, boolean elbow) {
-        ModelPartAccessor.optionalGetCuboid(part, 0).ifPresent(c -> set(c, amount, elbow));
+        ModelPartAccessor.optionalGetCuboid(part, 0).ifPresent(c -> set(c, 0f, elbow ? -amount : amount));
     }
 
-    private static void set(MutableCuboid c, float amount, boolean elbow) {
-        if (Math.abs(amount) < 1e-3f) {
+    /** Согнуть корпус: грудь вперёд fwd и вбок side (радианы). */
+    public static void bendBody(ModelPart part, float fwd, float side) {
+        float[] av = chestAxis(fwd, side);
+        ModelPartAccessor.optionalGetCuboid(part, 0).ifPresent(c -> set(c, av[0], av[1]));
+    }
+
+    /** Ось и угол изгиба груди: поворот вокруг X (вперёд) и Z (вбок) одним поворотом. */
+    private static float[] chestAxis(float fwd, float side) {
+        float v = (float) Math.sqrt(fwd * fwd + side * side);
+        float a = v < 1e-5f ? 0f : (float) Math.atan2(side, fwd);
+        return new float[] { a, v };
+    }
+
+    private static void set(MutableCuboid c, float axis, float value) {
+        if (Math.abs(value) < 1e-3f) {
             c.getAndActivateMutator(null);
             return;
         }
         ICuboid m = c.getAndActivateMutator(KEY);
-        if (m instanceof BendableCuboid b) b.applyBend(0f, elbow ? -amount : amount);
+        if (m instanceof BendableCuboid b) b.applyBend(axis, value);
     }
 
     // ---------------------------------------------------------------- броня
 
-    /** Согнуть детали 3D-брони на руках и ногах модели брони так же, как у игрока. */
+    /** Согнуть детали 3D-брони так же, как у игрока: локти, колени и корпус в пояснице. */
     public static void applyArmor(BipedEntityModel<?> model, LivingEntity e) {
         float[] v = of(e);
         float eR = v == null ? 0 : v[0], eL = v == null ? 0 : v[1], kR = v == null ? 0 : v[2], kL = v == null ? 0 : v[3];
-        walk(model.rightArm, ARM_X_R, ELBOW_Y, 0, 0, 0, eR, true, true);
-        walk(model.leftArm, ARM_X_L, ELBOW_Y, 0, 0, 0, eL, true, true);
-        walk(model.rightLeg, 0, KNEE_Y, 0, 0, 0, kR, false, true);
-        walk(model.leftLeg, 0, KNEE_Y, 0, 0, 0, kL, false, true);
+        float cf = v == null || v.length < 6 ? 0 : v[4], cs = v == null || v.length < 6 ? 0 : v[5];
+        walk(model.rightArm, ELBOW_Y, 0, 0, 0, 0f, -eR, false, true);
+        walk(model.leftArm, ELBOW_Y, 0, 0, 0, 0f, -eL, false, true);
+        walk(model.rightLeg, KNEE_Y, 0, 0, 0, 0f, kR, false, true);
+        walk(model.leftLeg, KNEE_Y, 0, 0, 0, 0f, kL, false, true);
+        float[] av = chestAxis(cf, cs);
+        walk(model.body, WAIST_Y, 0, 0, 0, av[0], av[1], true, true);
     }
 
-    /** Обойти часть и её детей без собственного поворота, согнув все кубоиды вокруг сустава. */
-    private static void walk(ModelPart part, float jx, float jy, float ox, float oy, float oz, float amount, boolean elbow,
-                             boolean top) {
+    /**
+     * Обойти часть и её детей без собственного поворота и согнуть кубоиды вокруг сустава на высоте jy.
+     * topMoves: двигается верх (корпус), иначе низ (руки, ноги).
+     */
+    private static void walk(ModelPart part, float jy, float ox, float oy, float oz, float axis, float value,
+                             boolean topMoves, boolean top) {
         if (part == null) return;
         if (!top && (part.pitch != 0 || part.yaw != 0 || part.roll != 0)) return;   // наплечники, плащи, наклонные пластины
-        float lx = jx - ox, ly = jy - oy, lz = -oz;
+        float lx = -ox, ly = jy - oy, lz = -oz;
         java.util.List<ModelPart.Cuboid> cubes = ModelPartAccessor.getCuboids(part);
         if (cubes != null) {
-            for (int i = 0; i < cubes.size(); i++) {
-                ModelPart.Cuboid cube = cubes.get(i);
+            for (ModelPart.Cuboid cube : cubes) {
                 MutableCuboid mc = (MutableCuboid) cube;
-                if (cube.maxY <= ly + 0.25f) continue;            // целиком выше сустава — не двигается
+                boolean still = topMoves ? cube.minY >= ly - 0.25f : cube.maxY <= ly + 0.25f;
+                if (still) continue;                          // неподвижная сторона сустава
                 if (!mc.hasMutator(KEY)) {
-                    boolean below = cube.minY >= ly - 0.25f;      // целиком ниже — поворачивается целиком
-                    mc.registerMutator(KEY, JointCuboid.builder(lx, ly, lz, below));
+                    boolean rigid = topMoves ? cube.maxY <= ly + 0.25f : cube.minY >= ly - 0.25f;
+                    mc.registerMutator(KEY, JointCuboid.builder(lx, ly, lz, rigid, topMoves ? Direction.DOWN : Direction.UP));
                 }
-                if (Math.abs(amount) < 1e-3f) {
-                    mc.getAndActivateMutator(null);
-                } else if (mc.getAndActivateMutator(KEY) instanceof BendableCuboid b) {
-                    b.applyBend(0f, elbow ? -amount : amount);
-                }
+                set(mc, axis, value);
             }
         }
         for (ModelPart child : ModelPartAccessor.getChildren(part).values()) {
-            walk(child, jx, jy, ox + child.pivotX, oy + child.pivotY, oz + child.pivotZ, amount, elbow, false);
+            walk(child, jy, ox + child.pivotX, oy + child.pivotY, oz + child.pivotZ, axis, value, topMoves, false);
         }
     }
 
