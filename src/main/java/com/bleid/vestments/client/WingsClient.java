@@ -82,15 +82,17 @@ public final class WingsClient {
             GLOW[i] = new net.minecraft.util.Identifier("vestments", "textures/entity/wing_feathers_glow_d" + i + ".png");
         }
     }
-    private static final float SCALE = 0.74f;
+    private static final float SCALE = 0.8f;
     /** Тиков на рассыпание крыльев в конце. */
     static final int DISSOLVE = 30;
-    /** «Кости» крыла: плечо R0 → локоть E → запястье Wr → кисть H (плоскость крыла: u наружу, v вверх). */
-    private static final float[][] BONE = { { 1.5f, 0f }, { 9.5f, 8.5f }, { 18f, 13f }, { 22f, 14.5f } };
-    private static final float[] SEG = { 0f, 0.42f, 0.86f, 1f };
+    /** «Кость» переднего края: плечо R0 → локоть E → запястье Wr → кончик H (плоскость крыла: u наружу, v вверх). */
+    private static final float[][] BONE = { { 0.5f, 0f }, { 9f, 1.8f }, { 17f, 3.8f }, { 22.5f, 5.6f } };
+    private static final float[] SEG = { 0f, 0.4f, 0.78f, 1f };
+    /** Толщина кости по сегментам: в плоскости крыла и поперёк (пиксели). */
+    private static final float[] BONE_W = { 1.5f, 1.3f, 1.1f }, BONE_D = { 1.15f, 1.0f, 0.85f };
     /**
      * Перо: {корень u, корень v, угол°, длина, ширина, вид (0 маховое, 1 второстепенное, 2 кроющее, 3 мелкое),
-     * слой (0 нижний … 4 верхний), изгиб кончика°, поворот вокруг стержня°, сегмент кости (0 плечо, 1 предплечье, 2 кисть)}.
+     * слой (0 нижний … 2 верхний), изгиб кончика°, поворот вокруг стержня°, сегмент кости (0 плечо, 1 предплечье, 2 кисть)}.
      */
     private static final float[][] FEATHERS = build();
 
@@ -116,37 +118,29 @@ public final class WingsClient {
 
     private static float[][] build() {
         java.util.List<float[]> f = new java.util.ArrayList<>();
-        // слой 0: второстепенные маховые вдоль предплечья и первостепенные «пальцы» на кисти
-        for (int i = 0; i <= 13; i++) {
-            float t = i / 13f * 0.855f;
-            add(f, t, 0, -98 + 50 * (t / 0.86f), 18.5f + 4f * (t / 0.86f), 5.4f, 1, 0, -10, 14);
+        // слой 0: второстепенные вдоль руки — висят вниз зазубренными клинками, у корня короче
+        for (int i = 0; i <= 10; i++) {
+            float k = i / 10f, t = 0.04f + 0.74f * k;
+            add(f, t, -0.6f, -98 + 26 * k, 10.5f + 7f * (float) Math.sin(Math.min(1f, k * 1.4f) * Math.PI / 2), 4.8f, 1, 0, -4, 6);
         }
+        // слой 0: маховые веером с кисти — от «вниз-наружу» до почти горизонтали
+        for (int i = 0; i <= 7; i++) {
+            float k = i / 7f, t = 0.8f + 0.2f * k;
+            add(f, t, -0.4f, -66 + 60 * k, 18f + 3f * (float) Math.sin(k * Math.PI * 0.9), 4.2f, 0, 0, -6 + 4 * k, 10);
+        }
+        // слой 1: большие кроющие — вторая «волна» зубцов
         for (int i = 0; i <= 9; i++) {
-            float k = i / 9f;
-            float len = 23f + 6f * (float) Math.sin(k * Math.PI * 0.85);
-            add(f, 0.87f + 0.13f * (1 - k), 0, 42 - 92 * k, len, 5.0f, 0, 0, -12 + 6 * k, 18);
+            float k = i / 9f, t = 0.06f + 0.88f * k;
+            add(f, t, -0.2f, -92 + 50 * k, 8f + 3f * k, 4.4f, 2, 1, -3, 6);
         }
-        // слой 1: большие кроющие и кроющие кисти
-        for (int i = 0; i <= 13; i++) {
-            float t = i / 13f * 0.855f;
-            add(f, t, -0.4f, -95 + 52 * (t / 0.86f), 10.5f + 1.5f * (t / 0.86f), 5.2f, 2, 1, -6, 10);
+        // слой 2: мелкие кроющие у самой кости
+        for (int i = 0; i <= 11; i++) {
+            float k = i / 11f, t = 0.03f + 0.95f * k;
+            add(f, t, 0.3f, -88 + 50 * k, 3.6f, 3.6f, 3, 2, 0, 4);
         }
-        for (int i = 0; i <= 5; i++) {
-            float k = i / 5f;
-            add(f, 0.87f + 0.13f * (1 - k), -0.3f, 30 - 70 * k, 11f, 4.6f, 2, 1, -5, 10);
-        }
-        // слой 2: средние кроющие; слой 3: мелкие кроющие по переднему краю и крылышко у запястья
-        for (int i = 0; i <= 12; i++) {
-            float t = i / 12f * 0.98f;
-            add(f, t, 0.2f, -92 + 60 * (t / 0.98f), 6.5f + (t / 0.98f), 4.8f, 3, 2, -3, 8);
-        }
-        for (int i = 0; i <= 12; i++) {
-            float t = i / 12f * 0.98f;
-            add(f, t, 0.9f, -85 + 60 * (t / 0.98f), 3.8f, 4.2f, 3, 3, 0, 6);
-        }
-        for (int i = 0; i < 3; i++) add(f, 0.87f, 0.6f, 70 - 12 * i, 7.5f - i, 3.2f, 0, 3, -6, 12);
-        // слой 4: лопаточные перья у спины
-        for (int i = 0; i <= 4; i++) add(f, i / 4f * 0.22f, 0.3f, -104 + 8 * i, 12.5f - i, 5.2f, 2, 4, -4, 8);
+        // пара «игл» над костью на кончике крыла
+        add(f, 1f, 0.6f, 14, 8.5f, 3f, 0, 1, 0, 6);
+        add(f, 0.97f, 0.7f, 30, 5.5f, 2.6f, 0, 1, 0, 6);
         return f.toArray(new float[0][]);
     }
 
@@ -197,27 +191,20 @@ public final class WingsClient {
             fs.ground += ((p.isOnGround() ? 1f : 0f) - fs.ground) * kk;
             float climb = Math.max(0, fs.climb), dive = Math.max(0, -fs.climb);
             float glide = MathHelper.clamp(fs.speed * 1.4f - 0.4f - climb, 0f, 1f) * (1 - fs.ground);
-            float hz = MathHelper.lerp(glide, 1.25f + 0.5f * climb, 0.35f);                 // взмахов в секунду
+            // плавные величественные взмахи (как на референсе): кость ведёт, кисть и маховые догоняют волной;
+            // при наборе высоты — чаще и шире, в скольжении — почти неподвижно, на земле — полураскрыты и «дышат»
+            float hz = MathHelper.lerp(glide, 0.55f + 0.75f * climb, 0.3f);
             fs.phase = (fs.phase + hz * dt) % 1f;
-            float A = MathHelper.lerp(glide, 38f + 10f * climb, 5f) * (1 - fs.ground) * (1 - dive * 0.7f);
-            float F = MathHelper.lerp(glide, 55f, 6f) * (1 - fs.ground);
-            float u = fs.phase, sh, flex;
-            if (u < 0.42f) {                                   // взмах вниз — быстрый, крыло раскрыто
-                float k = u / 0.42f;
-                sh = A * MathHelper.cos(k * MathHelper.PI);
-                flex = 0f;
-            } else {                                           // подъём — медленнее, кисть складывается
-                float k = (u - 0.42f) / 0.58f;
-                sh = -A * MathHelper.cos(k * MathHelper.PI);
-                flex = F * MathHelper.sin(k * MathHelper.PI);
-            }
-            sh += MathHelper.lerp(glide, 6f, 2f) - dive * 18f;   // парение — крылья чуть подняты, пике — прижаты
-            float elbow = -0.45f * flex, wrist = -flex;
-            // на земле крылья сложены вдоль спины, как у сидящей птицы
-            sh = MathHelper.lerp(fs.ground, sh, -24f);
-            elbow = MathHelper.lerp(fs.ground, elbow, -55f);
-            wrist = MathHelper.lerp(fs.ground, wrist, -95f);
-            float sweep = MathHelper.lerp(fs.ground, glide * 0.5f + dive * 0.6f, 0.65f);
+            float A = MathHelper.lerp(glide, 16f + 22f * climb, 4f) * (1 - dive * 0.6f);
+            A = MathHelper.lerp(fs.ground, A, 5f);
+            float bias = MathHelper.lerp(glide, 3f, 6f) - dive * 16f;
+            bias = MathHelper.lerp(fs.ground, bias, -10f);
+            float ph = fs.phase * MathHelper.TAU;
+            float s0 = A * MathHelper.sin(ph) + bias;
+            float s1 = 1.25f * A * MathHelper.sin(ph - 0.5f) + bias * 1.1f;
+            float s2 = 1.5f * A * MathHelper.sin(ph - 1.0f) + bias * 1.2f;
+            float sh = s0, elbow = s1 - s0 - 14f * fs.ground, wrist = s2 - s1 - 24f * fs.ground;
+            float sweep = MathHelper.lerp(fs.ground, glide * 0.5f + dive * 0.6f, 0.4f);
             // раскрытие в начале
             sh = MathHelper.lerp(o, -40f, sh);
             elbow = MathHelper.lerp(o, -70f, elbow);
@@ -278,7 +265,7 @@ public final class WingsClient {
                 Vec3d v = new Vec3d(0, -1, 0.28).normalize();
                 Vec3d n = u.crossProduct(v).normalize();
                 if (n.z < 0) n = n.multiply(-1);
-                Vec3d root = new Vec3d(-side * 1.0, 2.2, 2.4);
+                Vec3d root = new Vec3d(-side * 1.0, 2.2, 2.8);
                 int idx = 0;
                 for (float[] f : FEATHERS) {
                     idx++;
@@ -295,7 +282,7 @@ public final class WingsClient {
                     Vec3d h2 = u.multiply(-Math.sin(a2b)).add(v.multiply(Math.cos(a2b))).multiply(Math.cos(tw)).add(n.multiply(Math.sin(tw))).multiply(w);
                     Vec3d mid = base.add(d1.multiply(L * 0.55));
                     Vec3d tip = mid.add(d2.multiply(L * 0.45));
-                    float u0 = f[5] * 0.25f, u1 = u0 + 0.25f;
+                    float u0 = f[5] * 0.125f, u1 = u0 + 0.125f;
                     vtx(vc, mat, nm, base.subtract(h1), u0, 0, n, light, glow);
                     vtx(vc, mat, nm, base.add(h1), u1, 0, n, light, glow);
                     vtx(vc, mat, nm, mid.add(h2), u1, 0.55f, n, light, glow);
@@ -305,6 +292,52 @@ public final class WingsClient {
                     vtx(vc, mat, nm, tip.add(h2), u1, 1, n, light, glow);
                     vtx(vc, mat, nm, tip.subtract(h2), u0, 1, n, light, glow);
                 }
+                // кость переднего края: три бруска с рунными линиями
+                double[] H = rot(BONE[3][0] - BONE[2][0], BONE[3][1] - BONE[2][1], a2);
+                double[][] J = { { BONE[0][0], BONE[0][1] }, E, Wr, { Wr[0] + H[0], Wr[1] + H[1] } };
+                double inflate = glow ? 0.03 : 0;
+                for (int i = 0; i < 3; i++) {
+                    double du = J[i + 1][0] - J[i][0], dv = J[i + 1][1] - J[i][1], l = Math.max(1e-3, Math.hypot(du, dv));
+                    double ext = i == 0 ? 0.2 : 0.6;
+                    Vec3d dir = u.multiply(du / l).add(v.multiply(dv / l));
+                    Vec3d perp = u.multiply(-dv / l).add(v.multiply(du / l));
+                    Vec3d c = root.add(u.multiply((J[i][0] + J[i + 1][0]) / 2)).add(v.multiply((J[i][1] + J[i + 1][1]) / 2))
+                            .add(n.multiply(0.6));
+                    box(vc, mat, nm, c, dir.multiply(l / 2 + ext + inflate), perp.multiply(BONE_W[i] + inflate),
+                            n.multiply(BONE_D[i] + inflate), 0.5f, 0f, 1f, 0.25f, light, glow, 1f);
+                }
+            }
+            // золотая накладка на спине, из которой растут крылья (в пикселях модели, без масштаба крыльев)
+            double k = 1.0 / SCALE, inf = glow ? 0.03 : 0;
+            box(vc, mat, nm, new Vec3d(0, 3.0 * k, 2.8 * k), new Vec3d((3.0 + inf) * k, 0, 0), new Vec3d(0, (2.5 + inf) * k, 0),
+                    new Vec3d(0, 0, (0.8 + inf) * k), 0.5f, 0.25f, 0.75f, 0.75f, light, glow, 0f);
+        }
+
+        /**
+         * Брусок: центр c, полуоси ax (вдоль), ay, az. Боковые грани вдоль ax берут текстуру [u0..u1]×[v0..v1];
+         * если along = 0, задняя грань (+az) — эта текстура, остальные — торцевая заливка.
+         */
+        private static void box(VertexConsumer vc, Matrix4f mat, org.joml.Matrix3f nm, Vec3d c, Vec3d ax, Vec3d ay, Vec3d az,
+                                float u0, float v0, float u1, float v1, int light, boolean glow, float along) {
+            Vec3d[] faceN = { ay, ay.multiply(-1), az, az.multiply(-1) };
+            Vec3d[] faceS = { az, az, ay, ay };
+            for (int f = 0; f < 4; f++) {
+                Vec3d nn = faceN[f], ss = faceS[f];
+                Vec3d o = c.add(nn);
+                boolean main = along > 0.5f || f == 2;
+                float a0 = main ? u0 : 0.75f, a1 = main ? u1 : 0.875f, b0 = main ? v0 : 0.25f, b1 = main ? v1 : 0.5f;
+                Vec3d n1 = nn.normalize();
+                vtx(vc, mat, nm, o.subtract(ax).subtract(ss), a0, b0, n1, light, glow);
+                vtx(vc, mat, nm, o.add(ax).subtract(ss), a1, b0, n1, light, glow);
+                vtx(vc, mat, nm, o.add(ax).add(ss), a1, b1, n1, light, glow);
+                vtx(vc, mat, nm, o.subtract(ax).add(ss), a0, b1, n1, light, glow);
+            }
+            for (int sgn = -1; sgn <= 1; sgn += 2) {
+                Vec3d o = c.add(ax.multiply(sgn)), n1 = ax.normalize().multiply(sgn);
+                vtx(vc, mat, nm, o.subtract(ay).subtract(az), 0.75f, 0.25f, n1, light, glow);
+                vtx(vc, mat, nm, o.add(ay).subtract(az), 0.875f, 0.25f, n1, light, glow);
+                vtx(vc, mat, nm, o.add(ay).add(az), 0.875f, 0.5f, n1, light, glow);
+                vtx(vc, mat, nm, o.subtract(ay).add(az), 0.75f, 0.5f, n1, light, glow);
             }
         }
     }
