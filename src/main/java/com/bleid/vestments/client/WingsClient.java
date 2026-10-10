@@ -93,7 +93,7 @@ public final class WingsClient {
             float k = i / 8f;
             double ra = Math.toRadians(40 - 80 * k);
             float len = 22f + 6f * (float) Math.sin(k * Math.PI * 0.8);
-            f.add(new float[] { wr[0] + 1.5f * (float) Math.cos(ra), wr[1] + 1.5f * (float) Math.sin(ra), 38 - 88 * k, len, 3.4f, 0, 0 });
+            f.add(new float[] { wr[0] + 1.5f * (float) Math.cos(ra), wr[1] + 1.5f * (float) Math.sin(ra), 38 - 88 * k, len, 4.6f, 0, 0 });
         }
         for (int row = 0; row < 2; row++) {                      // кроющие перья в два ряда поверх
             float len = row == 0 ? 9f : 5f;
