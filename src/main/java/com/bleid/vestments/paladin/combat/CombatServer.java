@@ -260,7 +260,7 @@ public final class CombatServer {
 
     public static boolean canHit(PlayerEntity p, Entity e) {
         if (!(e instanceof LivingEntity le) || !le.isAlive() || le.isSpectator() || e == p) return false;
-        if (e instanceof MerchantEntity || e instanceof IronGolemEntity) return false;
+        if (e instanceof MerchantEntity) return false;           // жителей и торговцев широкие удары не задевают
         if (e instanceof TameableEntity t && t.isTamed() && p.getUuid().equals(t.getOwnerUuid())) return false;
         if (e instanceof PlayerEntity other && (other.isCreative() || p.isTeammate(other))) return false;
         return !e.isInvulnerable();
