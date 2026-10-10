@@ -86,10 +86,12 @@ public final class WingsClient {
     /** Тиков на рассыпание крыльев в конце. */
     static final int DISSOLVE = 30;
     /** «Кость» переднего края: плечо R0 → локоть E → запястье Wr → кончик H (плоскость крыла: u наружу, v вверх). */
-    private static final float[][] BONE = { { 0.5f, 0f }, { 9f, 1.8f }, { 17f, 3.8f }, { 22.5f, 5.6f } };
-    private static final float[] SEG = { 0f, 0.4f, 0.78f, 1f };
-    /** Толщина кости по сегментам: в плоскости крыла и поперёк (пиксели). */
-    private static final float[] BONE_W = { 1.5f, 1.3f, 1.1f }, BONE_D = { 1.15f, 1.0f, 0.85f };
+    private static final float[][] BONE = { { 0.5f, 0f }, { 8.5f, 3.4f }, { 16.5f, 2.4f }, { 23f, 6.8f } };
+    private static final float[] SEG = { 0f, 0.38f, 0.76f, 1f };
+    /** Изгиб всего крыла назад-вперёд (кончики «обнимают»): смещение по нормали = −CAMBER·u². */
+    private static final double CAMBER = 0.008;
+    /** Сегментов на перо (плавный изгиб). */
+    private static final int NS = 6;
     /**
      * Перо: {корень u, корень v, угол°, длина, ширина, вид (0 маховое, 1 второстепенное, 2 кроющее, 3 мелкое),
      * слой (0 нижний … 2 верхний), изгиб кончика°, поворот вокруг стержня°, сегмент кости (0 плечо, 1 предплечье, 2 кисть)}.
@@ -118,29 +120,29 @@ public final class WingsClient {
 
     private static float[][] build() {
         java.util.List<float[]> f = new java.util.ArrayList<>();
-        // слой 0: второстепенные вдоль руки — висят вниз зазубренными клинками, у корня короче
+        // слой 0: второстепенные вдоль руки — висят вниз, кончики плавно загибаются к телу
+        for (int i = 0; i <= 11; i++) {
+            float k = i / 11f, t = 0.03f + 0.72f * k;
+            add(f, t, -0.5f, -100 + 26 * k, 10.5f + 7.5f * (float) Math.sin(k * Math.PI * 0.78), 4.6f, 1, 0, -16 + 12 * k, 6);
+        }
+        // слой 0: маховые веером с кисти, «пальцы» на концах изгибаются вверх
+        for (int i = 0; i <= 8; i++) {
+            float k = i / 8f, t = 0.78f + 0.22f * k;
+            add(f, t, -0.4f, -62 + 64 * k, 18f + 3.5f * (float) Math.sin(k * Math.PI * 0.85) - 1.5f * k, 4.0f, 0, 0, 8 + 12 * k, 10);
+        }
+        // слой 1: большие кроющие
         for (int i = 0; i <= 10; i++) {
-            float k = i / 10f, t = 0.04f + 0.74f * k;
-            add(f, t, -0.6f, -98 + 26 * k, 10.5f + 7f * (float) Math.sin(Math.min(1f, k * 1.4f) * Math.PI / 2), 4.8f, 1, 0, -4, 6);
-        }
-        // слой 0: маховые веером с кисти — от «вниз-наружу» до почти горизонтали
-        for (int i = 0; i <= 7; i++) {
-            float k = i / 7f, t = 0.8f + 0.2f * k;
-            add(f, t, -0.4f, -66 + 60 * k, 18f + 3f * (float) Math.sin(k * Math.PI * 0.9), 4.2f, 0, 0, -6 + 4 * k, 10);
-        }
-        // слой 1: большие кроющие — вторая «волна» зубцов
-        for (int i = 0; i <= 9; i++) {
-            float k = i / 9f, t = 0.06f + 0.88f * k;
-            add(f, t, -0.2f, -92 + 50 * k, 8f + 3f * k, 4.4f, 2, 1, -3, 6);
+            float k = i / 10f, t = 0.05f + 0.9f * k;
+            add(f, t, -0.2f, -92 + 46 * k, 8f + 2.5f * k, 4.3f, 2, 1, -8 + 4 * k, 6);
         }
         // слой 2: мелкие кроющие у самой кости
-        for (int i = 0; i <= 11; i++) {
-            float k = i / 11f, t = 0.03f + 0.95f * k;
-            add(f, t, 0.3f, -88 + 50 * k, 3.6f, 3.6f, 3, 2, 0, 4);
+        for (int i = 0; i <= 13; i++) {
+            float k = i / 13f, t = 0.02f + 0.96f * k;
+            add(f, t, 0.3f, -88 + 48 * k, 3.8f, 3.6f, 3, 2, -4, 4);
         }
-        // пара «игл» над костью на кончике крыла
-        add(f, 1f, 0.6f, 14, 8.5f, 3f, 0, 1, 0, 6);
-        add(f, 0.97f, 0.7f, 30, 5.5f, 2.6f, 0, 1, 0, 6);
+        // крылышко над кистью
+        add(f, 1f, 0.5f, 18, 8.5f, 3f, 0, 1, 14, 6);
+        add(f, 0.96f, 0.6f, 34, 5.5f, 2.6f, 0, 1, 12, 6);
         return f.toArray(new float[0][]);
     }
 
@@ -272,45 +274,82 @@ public final class WingsClient {
                     int sg = (int) f[9];
                     double[] r = rot(f[0] - rest[sg][0], f[1] - rest[sg][1], segA[sg]);
                     double qu = origin[sg][0] + r[0], qv = origin[sg][1] + r[1];
-                    double a = Math.toRadians(f[2]) + segA[sg];
-                    double a2b = a + Math.toRadians(f[7]);
+                    double a = Math.toRadians(f[2]) + segA[sg], curl = Math.toRadians(f[7]);
                     double L = f[3], w = f[4] / 2, tw = Math.toRadians(f[8]);
-                    Vec3d base = root.add(u.multiply(qu)).add(v.multiply(qv)).add(n.multiply(f[6] * 0.17 + idx * 0.004 + (glow ? 0.012 : 0)));
-                    Vec3d d1 = u.multiply(Math.cos(a)).add(v.multiply(Math.sin(a)));
-                    Vec3d d2 = u.multiply(Math.cos(a2b)).add(v.multiply(Math.sin(a2b)));
-                    Vec3d h1 = u.multiply(-Math.sin(a)).add(v.multiply(Math.cos(a))).multiply(Math.cos(tw)).add(n.multiply(Math.sin(tw))).multiply(w);
-                    Vec3d h2 = u.multiply(-Math.sin(a2b)).add(v.multiply(Math.cos(a2b))).multiply(Math.cos(tw)).add(n.multiply(Math.sin(tw))).multiply(w);
-                    Vec3d mid = base.add(d1.multiply(L * 0.55));
-                    Vec3d tip = mid.add(d2.multiply(L * 0.45));
+                    double lift = f[6] * 0.17 + idx * 0.004 + (glow ? 0.012 : 0);
                     float u0 = f[5] * 0.125f, u1 = u0 + 0.125f;
-                    vtx(vc, mat, nm, base.subtract(h1), u0, 0, n, light, glow);
-                    vtx(vc, mat, nm, base.add(h1), u1, 0, n, light, glow);
-                    vtx(vc, mat, nm, mid.add(h2), u1, 0.55f, n, light, glow);
-                    vtx(vc, mat, nm, mid.subtract(h2), u0, 0.55f, n, light, glow);
-                    vtx(vc, mat, nm, mid.subtract(h2), u0, 0.55f, n, light, glow);
-                    vtx(vc, mat, nm, mid.add(h2), u1, 0.55f, n, light, glow);
-                    vtx(vc, mat, nm, tip.add(h2), u1, 1, n, light, glow);
-                    vtx(vc, mat, nm, tip.subtract(h2), u0, 1, n, light, glow);
+                    // перо — изогнутая лента из NS кусков: угол плавно набирает изгиб, середина выгнута назад,
+                    // опахало к кончику поворачивается вокруг стержня; всё крыло слегка выгнуто (camber)
+                    double pu = qu, pv = qv;
+                    Vec3d prevL = null, prevR = null;
+                    float prevT = 0;
+                    for (int i = 0; i <= NS; i++) {
+                        double sN = (double) i / NS;
+                        double ang = a + curl * Math.pow(sN, 1.4);
+                        if (i > 0) {
+                            double am = a + curl * Math.pow((i - 0.5) / NS, 1.4);
+                            pu += Math.cos(am) * L / NS;
+                            pv += Math.sin(am) * L / NS;
+                        }
+                        double bow = Math.sin(Math.PI * sN) * L * 0.07;
+                        Vec3d c = root.add(u.multiply(pu)).add(v.multiply(pv)).add(n.multiply(lift + bow - CAMBER * pu * pu));
+                        double t2 = tw * (0.3 + 0.7 * sN);
+                        Vec3d h = u.multiply(-Math.sin(ang)).add(v.multiply(Math.cos(ang))).multiply(Math.cos(t2))
+                                .add(n.multiply(Math.sin(t2))).multiply(w);
+                        Vec3d l = c.subtract(h), rr = c.add(h);
+                        float tv = (float) sN;
+                        if (prevL != null) {
+                            vtx(vc, mat, nm, prevL, u0, prevT, n, light, glow);
+                            vtx(vc, mat, nm, prevR, u1, prevT, n, light, glow);
+                            vtx(vc, mat, nm, rr, u1, tv, n, light, glow);
+                            vtx(vc, mat, nm, l, u0, tv, n, light, glow);
+                        }
+                        prevL = l; prevR = rr; prevT = tv;
+                    }
                 }
-                // кость переднего края: три бруска с рунными линиями
+                // кость переднего края: плавная дуга по сплайну через суставы, сужается к кончику
                 double[] H = rot(BONE[3][0] - BONE[2][0], BONE[3][1] - BONE[2][1], a2);
                 double[][] J = { { BONE[0][0], BONE[0][1] }, E, Wr, { Wr[0] + H[0], Wr[1] + H[1] } };
+                double[][] C = boneCurve(J);
                 double inflate = glow ? 0.03 : 0;
-                for (int i = 0; i < 3; i++) {
-                    double du = J[i + 1][0] - J[i][0], dv = J[i + 1][1] - J[i][1], l = Math.max(1e-3, Math.hypot(du, dv));
-                    double ext = i == 0 ? 0.2 : 0.6;
+                int cn = C.length - 1;
+                for (int i = 0; i < cn; i++) {
+                    double du = C[i + 1][0] - C[i][0], dv = C[i + 1][1] - C[i][1], l = Math.max(1e-3, Math.hypot(du, dv));
+                    double k = (i + 0.5) / cn;
                     Vec3d dir = u.multiply(du / l).add(v.multiply(dv / l));
                     Vec3d perp = u.multiply(-dv / l).add(v.multiply(du / l));
-                    Vec3d c = root.add(u.multiply((J[i][0] + J[i + 1][0]) / 2)).add(v.multiply((J[i][1] + J[i + 1][1]) / 2))
-                            .add(n.multiply(0.6));
-                    box(vc, mat, nm, c, dir.multiply(l / 2 + ext + inflate), perp.multiply(BONE_W[i] + inflate),
-                            n.multiply(BONE_D[i] + inflate), 0.5f, 0f, 1f, 0.25f, light, glow, 1f);
+                    double mu = (C[i][0] + C[i + 1][0]) / 2, mv = (C[i][1] + C[i + 1][1]) / 2;
+                    Vec3d c = root.add(u.multiply(mu)).add(v.multiply(mv)).add(n.multiply(0.6 - CAMBER * mu * mu));
+                    float ua = 0.5f + 0.5f * i / cn, ub = 0.5f + 0.5f * (i + 1) / cn;
+                    box(vc, mat, nm, c, dir.multiply(l / 2 + 0.22 + inflate), perp.multiply(1.35 - 0.8 * k + inflate),
+                            n.multiply(1.0 - 0.5 * k + inflate), ua, 0f, ub, 0.25f, light, glow, 1f);
                 }
             }
             // золотая накладка на спине, из которой растут крылья (в пикселях модели, без масштаба крыльев)
             double k = 1.0 / SCALE, inf = glow ? 0.03 : 0;
-            box(vc, mat, nm, new Vec3d(0, 3.0 * k, 2.8 * k), new Vec3d((3.0 + inf) * k, 0, 0), new Vec3d(0, (2.5 + inf) * k, 0),
-                    new Vec3d(0, 0, (0.8 + inf) * k), 0.5f, 0.25f, 0.75f, 0.75f, light, glow, 0f);
+            box(vc, mat, nm, new Vec3d(0, 2.8 * k, 2.6 * k), new Vec3d((2.4 + inf) * k, 0, 0), new Vec3d(0, (2.0 + inf) * k, 0),
+                    new Vec3d(0, 0, (0.6 + inf) * k), 0.5f, 0.25f, 0.75f, 0.75f, light, glow, 0f);
+        }
+
+        /** Сплайн Катмулла–Рома через 4 сустава, по 6 точек на сегмент. */
+        private static double[][] boneCurve(double[][] J) {
+            double[][] P = { { 2 * J[0][0] - J[1][0], 2 * J[0][1] - J[1][1] }, J[0], J[1], J[2], J[3],
+                    { 2 * J[3][0] - J[2][0], 2 * J[3][1] - J[2][1] } };
+            double[][] out = new double[19][];
+            int o = 0;
+            for (int i = 0; i < 3; i++) {
+                for (int k = 0; k < 6; k++) {
+                    double t = k / 6.0, t2 = t * t, t3 = t2 * t;
+                    double[] r = new double[2];
+                    for (int c = 0; c < 2; c++) {
+                        double p0 = P[i][c], p1 = P[i + 1][c], p2 = P[i + 2][c], p3 = P[i + 3][c];
+                        r[c] = 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
+                    }
+                    out[o++] = r;
+                }
+            }
+            out[o] = J[3];
+            return out;
         }
 
         /**
