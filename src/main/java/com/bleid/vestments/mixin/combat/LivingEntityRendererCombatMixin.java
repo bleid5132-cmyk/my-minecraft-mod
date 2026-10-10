@@ -72,8 +72,8 @@ public abstract class LivingEntityRendererCombatMixin {
             spin += p.spin * p.w * 0.5f;
         }
         if (L != null && L.ground > 0.001f && lean != 0) {
-            // наклон корпуса вокруг таза приподнимает стопы — опускаем тело обратно на землю
-            lift -= 0.9f * (1f - (float) Math.cos(Math.toRadians(lean))) * L.ground;
+            // ноги компенсируют наклон (см. BipedEntityModelCombatMixin), таз — на 0.15 блока ниже оси наклона
+            lift -= 0.15f * (1f - (float) Math.cos(Math.toRadians(lean))) * L.ground;
         }
         if (lift == 0 && spin == 0 && lean == 0 && roll == 0) return;
         matrices.translate(0, lift, 0);

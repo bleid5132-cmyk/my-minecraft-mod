@@ -50,7 +50,11 @@ public final class CombatClient {
     private static final Map<Integer, net.minecraft.item.Item[]> HELD = new HashMap<>();
     private static KeyBinding skillKey;
     private static int combo, idle, sprintTicks, buffer = -1;
-    private static boolean chainB;
+    private static int chainKind;
+
+    private static Clip[] chain(Moveset ms, int k) {
+        return k == 2 ? ms.comboC : k == 1 ? ms.comboB : ms.combo;
+    }
 
     private CombatClient() { }
 
@@ -160,14 +164,17 @@ public final class CombatClient {
             kind = 100;
             p.setSprinting(false);
         } else {
-            // серия выбирается в начале: стоя — основная, на ходу — вторая (другие удары)
-            Clip[] chain = chainB ? ms.comboB : ms.combo;
+            // серия выбирается в начале: стоя — основная, вперёд — вторая, вбок/назад — третья
+            Clip[] chain = chain(ms, chainKind);
             if (combo >= chain.length) combo = 0;
             if (combo == 0) {
-                chainB = ms.comboB.length > 0
-                        && (Math.abs(p.input.movementForward) > 0.1f || Math.abs(p.input.movementSideways) > 0.1f);
+                float fw = p.input.movementForward, sw = p.input.movementSideways;
+                chainKind = 0;
+                if ((Math.abs(sw) > 0.1f || fw < -0.1f) && ms.comboC.length > 0) chainKind = 2;
+                else if (fw > 0.1f && ms.comboB.length > 0) chainKind = 1;
+                chain = chain(ms, chainKind);
             }
-            kind = (chainB ? 50 : 0) + combo++;
+            kind = (chainKind == 2 ? 70 : chainKind == 1 ? 50 : 0) + combo++;
         }
         Clip c = ms.byKind(kind);
         if (c == null) return;

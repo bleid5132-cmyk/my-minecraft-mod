@@ -130,6 +130,15 @@ public final class Movesets {
         b2.stance.key(0, 0).key(0.46f, 1).key(1.0f, 0);
         b2.lift.key(0, 0).key(0.34f, 0.04f).key(0.46f, -0.08f).key(1.0f, 0);
         m.comboB = new Clip[] { b1, b2 };
+        // третья серия (вбок/назад): обратный горизонтальный с шагом в сторону, восходящий косой
+        Clip v1 = C(m, "v1", 0.78f, 0.12f).strike(S(0.16f, 0.22f, 0.34f, 0.54f, 6, -80, 70).dmg(1f).kb(0.35f).targets(1));
+        v1.stance.key(0, 0).key(0.34f, -0.5f).key(0.78f, 0);
+        v1.lean.key(0, 0).key(0.22f, -3).key(0.34f, 5).key(0.78f, 0);
+        Clip v2 = C(m, "v2", 0.85f, 0.1f).strike(S(0.18f, 0.24f, 0.36f, 0.6f, 45, -75, 110).dmg(1.15f).kb(0.4f).targets(1).hitstop(1));
+        v2.lean.key(0, 0).key(0.24f, 10).key(0.36f, -8).key(0.85f, 0);
+        v2.stance.key(0, 0).key(0.24f, 0.7f).key(0.85f, 0);
+        v2.lift.key(0, 0).key(0.24f, -0.04f).key(0.36f, 0.05f).key(0.85f, 0);
+        m.comboC = new Clip[] { v1, v2 };
         m.dash = dash; m.air = air; m.skill = skill;
         add(m);
     }
@@ -176,6 +185,18 @@ public final class Movesets {
         b3.lean.key(0, 0).key(0.26f, -4).key(0.36f, 14).key(0.9f, 0);
         b3.stance.key(0, 0).key(0.36f, 1).key(0.9f, 0);
         m.comboB = new Clip[] { b1, b2, b3 };
+        // третья серия: низкий подсекающий, косой сверху справа, разворот с обратным
+        Clip v1 = C(m, "v1", 0.72f, 0.1f).strike(S(0.12f, 0.16f, 0.28f, 0.46f, -22, 90, -80).dmg(1f).kb(0.35f).targets(2));
+        v1.lean.key(0, 0).key(0.28f, 12).key(0.72f, 0);
+        v1.lift.key(0, 0).key(0.28f, -0.08f).key(0.72f, 0);
+        v1.stance.key(0, 0).key(0.28f, 1).key(0.72f, 0);
+        Clip v2 = C(m, "v2", 0.72f, 0.08f).strike(S(0.12f, 0.15f, 0.27f, 0.45f, 135, 110, -60).dmg(1.05f).kb(0.4f).targets(2));
+        v2.spin.key(0, 0).key(0.15f, -10).key(0.27f, 14).key(0.72f, 0);
+        Clip v3 = C(m, "v3", 0.85f, 0.08f).strike(S(0.16f, 0.2f, 0.36f, 0.6f, 4, 100, -200).dmg(1.25f).kb(0.6f)
+                .targets(3).width(0.55f).hitstop(1).shake(0.12f));
+        v3.spin.key(0, 0).key(0.2f, 20).key(0.36f, -60).key(0.85f, 0);
+        v3.stance.key(0, 0).key(0.36f, -0.6f).key(0.85f, 0);
+        m.comboC = new Clip[] { v1, v2, v3 };
         m.dash = dash; m.air = air; m.skill = skill;
         add(m);
     }
@@ -224,6 +245,18 @@ public final class Movesets {
         b3.stance.key(0, 0).key(0.42f, 1).key(1.0f, 0);
         b3.lift.key(0, 0).key(0.3f, 0.1f).key(0.42f, -0.06f).key(1.0f, 0);
         m.comboB = new Clip[] { b1, b2, b3 };
+        // третья серия: восходящий косой, обратный с подшагом, рубящий двумя руками с разворотом
+        Clip v1 = C(m, "v1", 0.66f, 0.1f).strike(S(0.11f, 0.14f, 0.25f, 0.42f, 45, -80, 100).dmg(1f).kb(0.4f).targets(3));
+        v1.lean.key(0, 0).key(0.14f, 9).key(0.25f, -7).key(0.66f, 0);
+        Clip v2 = C(m, "v2", 0.66f, 0.08f).strike(S(0.1f, 0.13f, 0.25f, 0.42f, -4, -95, 90).dmg(1.05f).kb(0.4f).targets(3));
+        v2.spin.key(0, 0).key(0.13f, -25).key(0.25f, 25).key(0.66f, 0);
+        v2.step(0.1f, 0.25f, 0.35f);
+        Clip v3 = C(m, "v3", 1.0f, 0.08f).strike(S(0.24f, 0.3f, 0.42f, 0.74f, 110, 130, -50).heavy().two()
+                .dmg(1.5f).kb(0.75f).targets(3).hitstop(2).shake(0.3f));
+        v3.spin.key(0, 0).key(0.3f, -30).key(0.42f, 10).key(1.0f, 0);
+        v3.lean.key(0, 0).key(0.3f, -10).key(0.42f, 18).key(1.0f, 0);
+        v3.stance.key(0, 0).key(0.42f, 1).key(1.0f, 0);
+        m.comboC = new Clip[] { v1, v2, v3 };
         m.dash = dash; m.air = air; m.skill = skill;
         add(m);
     }
@@ -283,6 +316,22 @@ public final class Movesets {
         b4.step(0.2f, 0.5f, 0.9f);
         b4.stance.key(0, 0).key(0.3f, -0.5f).key(1.0f, 0);
         m.comboB = new Clip[] { b1, b2, b3, b4 };
+        // третья серия: два быстрых укола, восходящий двумя руками, круговой удар двумя руками
+        Clip v1 = C(m, "v1", 0.7f, 0.08f)
+                .strike(S(0.06f, 0.08f, 0.16f, 0.24f, 0, 0, 0).reach(1.0f, 1.9f).dmg(0.75f).kb(0.2f).targets(2))
+                .strike(S(0.26f, 0.28f, 0.36f, 0.5f, 0, 0, 0).reach(1.0f, 2.1f).dmg(0.9f).kb(0.4f).targets(2).hitstop(1));
+        v1.step(0.06f, 0.16f, 0.3f).step(0.26f, 0.36f, 0.4f);
+        v1.lean.key(0, 0).key(0.16f, 9).key(0.24f, 3).key(0.36f, 12).key(0.7f, 0);
+        v1.stance.key(0, 0).key(0.16f, 1).key(0.24f, 0.6f).key(0.36f, 1).key(0.7f, 0);
+        Clip v2 = C(m, "v2", 0.8f, 0.08f).strike(S(0.14f, 0.18f, 0.3f, 0.54f, 60, -85, 120).two()
+                .dmg(1.2f).kb(0.3f).targets(4).hitstop(2).shake(0.2f).event("launch"));
+        v2.lean.key(0, 0).key(0.18f, 12).key(0.3f, -12).key(0.8f, 0);
+        v2.lift.key(0, 0).key(0.18f, -0.06f).key(0.3f, 0.18f).key(0.8f, 0);
+        Clip v3 = C(m, "v3", 1.0f, 0.08f).strike(S(0.16f, 0.2f, 0.5f, 0.68f, -8, 95, -275).two()
+                .dmg(1.4f).kb(0.8f).targets(6).width(0.6f).hitstop(2).shake(0.35f));
+        v3.spin.key(0, 0).key(0.2f, 0).key(0.5f, -360).key(1.0f, -360);
+        v3.stance.key(0, 0).key(0.3f, -0.5f).key(1.0f, 0);
+        m.comboC = new Clip[] { v1, v2, v3 };
         m.dash = dash; m.air = air; m.skill = skill;
         add(m);
     }
@@ -349,6 +398,25 @@ public final class Movesets {
         b4.lean.key(0, 0).key(0.4f, 10).key(1.0f, 0);
         b4.stance.key(0, 0).key(0.4f, -1).key(1.0f, 0);
         m.comboB = new Clip[] { b1, b2, b3, b4 };
+        // третья серия: три быстрых разреза, разворот-вихрь, прыжок с ударом двумя руками
+        Clip v1 = C(m, "v1", 0.82f, 0.08f)
+                .strike(S(0.06f, 0.08f, 0.16f, 0.22f, 20, 80, -70).dmg(0.7f).kb(0.2f).targets(3))
+                .strike(S(0.24f, 0.26f, 0.34f, 0.4f, 160, 80, -70).dmg(0.75f).kb(0.25f).targets(3))
+                .strike(S(0.42f, 0.44f, 0.54f, 0.66f, 90, 110, -40).dmg(0.95f).kb(0.5f).targets(3).hitstop(2).shake(0.2f));
+        v1.spin.key(0, 0).key(0.08f, 12).key(0.16f, -14).key(0.26f, -12).key(0.34f, 12).key(0.54f, 0).key(0.82f, 0);
+        v1.lean.key(0, 0).key(0.44f, -6).key(0.54f, 14).key(0.82f, 0);
+        v1.step(0.42f, 0.54f, 0.4f);
+        Clip v2 = C(m, "v2", 0.82f, 0.06f).strike(S(0.1f, 0.12f, 0.4f, 0.56f, 6, 90, -270).dmg(1.2f).kb(0.6f)
+                .targets(6).width(0.6f).hitstop(1));
+        v2.spin.key(0, 0).key(0.12f, 0).key(0.4f, -360).key(0.82f, -360);
+        v2.lift.key(0, 0).key(0.25f, 0.12f).key(0.4f, 0);
+        Clip v3 = C(m, "v3", 1.05f, 0.08f).strike(S(0.26f, 0.34f, 0.46f, 0.78f, 90, 145, -50).heavy().two()
+                .dmg(1.6f).kb(0.9f).targets(5).hitstop(3).shake(0.5f).event("shock"));
+        v3.lift.key(0, 0).key(0.12f, 0).key(0.32f, 0.7f).key(0.46f, -0.08f).key(1.05f, 0);
+        v3.lean.key(0, 0).key(0.34f, -14).key(0.46f, 22).key(1.05f, 0);
+        v3.step(0.14f, 0.46f, 0.9f);
+        v3.stance.key(0, 0).key(0.46f, 1).key(1.05f, 0);
+        m.comboC = new Clip[] { v1, v2, v3 };
         m.dash = dash; m.air = air; m.skill = skill;
         add(m);
     }
@@ -426,6 +494,26 @@ public final class Movesets {
         b5.lean.key(0, 0).key(0.3f, -8).key(0.4f, 20).key(1.1f, 0);
         b5.stance.key(0, 0).key(0.4f, 1).key(1.1f, 0);
         m.comboB = new Clip[] { b1, b2, b3, b4, b5 };
+        // третья серия: шквал из трёх ударов, восходящий крест, вихрь двумя руками со взрывом
+        Clip v1 = C(m, "v1", 0.8f, 0.06f)
+                .strike(S(0.05f, 0.07f, 0.15f, 0.2f, 30, 90, -70).dmg(0.75f).kb(0.2f).targets(4))
+                .strike(S(0.22f, 0.24f, 0.32f, 0.38f, 150, 90, -70).dmg(0.8f).kb(0.25f).targets(4))
+                .strike(S(0.4f, 0.42f, 0.52f, 0.64f, 0, 0, 0).reach(1.1f, 2.3f).dmg(1f).kb(0.5f).targets(4).hitstop(2).shake(0.25f));
+        v1.spin.key(0, 0).key(0.07f, 12).key(0.15f, -14).key(0.24f, -12).key(0.32f, 14).key(0.42f, 0).key(0.8f, 0);
+        v1.step(0.4f, 0.52f, 0.6f);
+        v1.lean.key(0, 0).key(0.42f, -4).key(0.52f, 14).key(0.8f, 0);
+        v1.stance.key(0, 0).key(0.52f, 1).key(0.8f, 0);
+        Clip v2 = C(m, "v2", 0.88f, 0.06f)
+                .strike(S(0.08f, 0.1f, 0.2f, 0.28f, 45, -80, 110).dmg(0.9f).kb(0.25f).targets(5).hitstop(1))
+                .strike(S(0.3f, 0.32f, 0.44f, 0.6f, 135, -80, 110).two().dmg(1.05f).kb(0.3f).targets(5).hitstop(2).shake(0.3f).event("launch"));
+        v2.lean.key(0, 0).key(0.1f, 10).key(0.2f, -8).key(0.32f, 10).key(0.44f, -14).key(0.88f, 0);
+        v2.lift.key(0, 0).key(0.32f, -0.05f).key(0.44f, 0.3f).key(0.88f, 0);
+        Clip v3 = C(m, "v3", 1.1f, 0.06f).strike(S(0.18f, 0.22f, 0.6f, 0.78f, -10, 95, -450).two()
+                .dmg(1.7f).kb(1.1f).targets(8).width(0.7f).hitstop(3).shake(0.6f).event("burst"));
+        v3.spin.key(0, 0).key(0.22f, 0).key(0.6f, -540).key(1.1f, -540);
+        v3.lift.key(0, 0).key(0.22f, 0).key(0.4f, 0.3f).key(0.6f, 0).key(1.1f, 0);
+        v3.stance.key(0, 0).key(0.3f, -0.5f).key(1.1f, 0);
+        m.comboC = new Clip[] { v1, v2, v3 };
         m.dash = dash; m.air = air; m.skill = skill;
         add(m);
     }

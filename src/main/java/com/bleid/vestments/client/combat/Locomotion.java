@@ -146,17 +146,20 @@ public final class Locomotion {
             I.lean = 3f + 0.6f * breath;
             I.roll = 0.8f * shift;
             I.body = 0.06f + 0.02f * sway;
-            I.rLeg = 0.22f; I.lLeg = -0.24f; I.rLegR = 0.07f; I.lLegR = -0.08f;
-            I.kR = 0.32f + 0.04f * breath + 0.06f * shiftL; I.kL = 0.42f + 0.04f * breath + 0.06f * shiftR;
+            // передняя (левая) нога: бедро вперёд, голень вертикальна — стопа стоит плашмя;
+            // задняя (правая): отставлена назад, пятка чуть приподнята
+            I.kR = 0.12f + 0.02f * breath + 0.04f * shiftL; I.kL = 0.22f + 0.03f * breath + 0.04f * shiftR;
+            I.rLeg = 0.16f; I.lLeg = -I.kL; I.rLegR = 0.06f; I.lLegR = -0.07f;
         } else {                                  // расслабленно: вес то на одной, то на другой ноге
             I.bob = -0.003f * (1f + breath);
             I.turn = 3f * shift;
             I.lean = 1.2f + 0.5f * breath;
             I.roll = 1.8f * shift;
             I.body = 0.05f * shift;
-            I.rLeg = 0.05f * shift - 0.02f; I.lLeg = -0.05f * shift - 0.02f;
+            I.kR = 0.04f + 0.24f * shiftL; I.kL = 0.04f + 0.24f * shiftR;
+            // согнутое колено уходит вперёд, голень почти вертикальна — подошва на земле
+            I.rLeg = -I.kR * 0.9f + 0.02f * shift; I.lLeg = -I.kL * 0.9f - 0.02f * shift;
             I.rLegR = 0.035f + 0.02f * shiftL; I.lLegR = -0.035f - 0.02f * shiftR;
-            I.kR = 0.06f + 0.26f * shiftL; I.kL = 0.06f + 0.26f * shiftR;
         }
         if (sword) {
             I.rP = -0.16f + 0.03f * breath + 0.03f * sway; I.rY = -0.12f; I.rR = 0.14f; I.eR = 0.34f + 0.03f * breath;
@@ -276,7 +279,9 @@ public final class Locomotion {
      * бедро и голень по 6 пикселей, голень отклонена от вертикали на th + k.
      */
     public static float footDrop(float th, float k) {
-        return Math.max(0f, 12f - 6f * MathHelper.cos(th) - 6f * MathHelper.cos(th + k));
+        // самая нижняя точка стопы — край подошвы (стопа 4 пикселя в глубину, наклонена вместе с голенью)
+        float phi = th + k;
+        return Math.max(0f, 12f - 6f * MathHelper.cos(th) - 6f * MathHelper.cos(phi) - 2f * Math.abs(MathHelper.sin(phi)));
     }
 
     private static Loco mix(Loco a, Loco b, float t) {

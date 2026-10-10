@@ -122,6 +122,13 @@ public abstract class BipedEntityModelCombatMixin {
             }
             if (rightMain) { eR = eMain; eL = eOff; } else { eL = eMain; eR = eOff; }
         }
+        // корпус наклоняется от таза, а не вместе с ногами: ноги остаются в своих углах относительно земли
+        float leanDeg = (L != null ? L.lean * (1f - wc) : 0f) + (p != null && !p.clip.offOnly ? p.lean * p.w : 0f);
+        if (leanDeg != 0f) {
+            float lr = (float) Math.toRadians(leanDeg);
+            m.rightLeg.pitch -= lr;
+            m.leftLeg.pitch -= lr;
+        }
         m.hat.copyTransform(m.head);
         Bends.store(e, new float[] { Math.max(0, eR), Math.max(0, eL), Math.max(0, kR), Math.max(0, kL) });
     }

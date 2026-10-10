@@ -8,6 +8,8 @@ public final class Moveset {
     public Clip[] combo;
     /** Вторая серия — начинается, если игрок бьёт на ходу (другие удары той же стойки). */
     public Clip[] comboB = new Clip[0];
+    /** Третья серия — при движении вбок или назад (уклоняющиеся, круговые удары). */
+    public Clip[] comboC = new Clip[0];
     public Clip dash, air, skill, draw, sheathe;
     // след клинка
     public float[] trail = { 1f, 1f, 1f };
@@ -36,6 +38,7 @@ public final class Moveset {
         if (kind == 100) return dash;
         if (kind == 101) return air;
         if (kind == 200) return skill;
+        if (kind >= 70 && kind < 70 + comboC.length) return comboC[kind - 70];
         if (kind >= 50 && kind < 50 + comboB.length) return comboB[kind - 50];
         if (kind >= 0 && kind < combo.length) return combo[kind];
         return null;
