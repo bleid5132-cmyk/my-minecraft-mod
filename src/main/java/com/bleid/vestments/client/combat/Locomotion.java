@@ -31,7 +31,8 @@ public final class Locomotion {
         public float roll;                                 // покачивание таза, градусы
         public float eR, eL, kR, kL;                       // сгиб локтей и коленей, радианы (bendy-lib)
         public boolean armR = true, armL = true;           // можно ли трогать руку (не ест, не блокирует)
-        public float ground = 1f;                          // 1 — стоит на земле (стопы прижимаются к земле)
+        public float ground = 1f;
+        public float fly;                                  // 1 — полёт (ноги не компенсируют наклон, тело летит)                          // 1 — стоит на земле (стопы прижимаются к земле)
     }
 
     private static final class State {
@@ -39,6 +40,7 @@ public final class Locomotion {
         float move, run, air, rise;
         float fwdSpeed, accelLean, bank, prevBodyYaw = Float.NaN;
         float land, airVy;
+        float fly;
         float phase;                 // своя фаза шага — по пройденному пути (стопа не скользит)
         boolean wasAir;
         long frameNanos;
@@ -57,7 +59,7 @@ public final class Locomotion {
     public static boolean qualifies(LivingEntity e) {
         if (!(e instanceof PlayerEntity p)) return false;
         if (p.isSpectator() || p.isSleeping() || p.hasVehicle() || p.isFallFlying() || p.isSwimming()
-                || p.isInSneakingPose() || p.getPose() != EntityPose.STANDING || p.getAbilities().flying) return false;
+                || (p.isInSneakingPose() && !p.getAbilities().flying) || p.getPose() != EntityPose.STANDING) return false;
         return true;
     }
 
@@ -253,9 +255,30 @@ public final class Locomotion {
         Loco A = mix(F, J, s.rise);
 
         Loco out = mix(mix(mix(I, W, s.move), R, s.run * s.move), A, s.air);
+        // ---------------- полёт (по мотивам полёта Epic Fight): быстро — тело почти горизонтально, ноги
+        // вытянуты назад с согнутыми коленями, руки вдоль тела; на месте — парение, ноги свисают, руки в стороны
+        s.fly = approach(s.fly, p.getAbilities().flying && !onGround ? 1f : 0f, 5f, dt);
+        if (s.fly > 0.001f) {
+            float fastF = MathHelper.clamp(fwd / 0.45f, 0f, 1f), backF = MathHelper.clamp(-fwd / 0.3f, 0f, 1f);
+            float hov = MathHelper.sin(age * 0.11f);
+            Loco FL = new Loco();
+            FL.lean = 6f + 50f * fastF - 10f * backF + 2f * hov * (1 - fastF);
+            FL.bob = 0.05f * hov * (1 - fastF);
+            FL.turn = 0f;
+            FL.roll = 0f;
+            FL.body = 0f;
+            FL.rLeg = MathHelper.lerp(fastF, -0.12f + 0.05f * hov, 0.2f); FL.lLeg = MathHelper.lerp(fastF, 0.14f - 0.05f * hov, 0.12f);
+            FL.rLegR = 0.05f; FL.lLegR = -0.05f;
+            FL.kR = MathHelper.lerp(fastF, 0.55f, 0.35f); FL.kL = MathHelper.lerp(fastF, 0.3f, 0.6f);
+            if (sword) { FL.rP = MathHelper.lerp(fastF, -0.3f, 0.35f); FL.rR = 0.3f; FL.eR = 0.5f; }
+            else { FL.rP = MathHelper.lerp(fastF, -0.2f, 0.55f); FL.rR = MathHelper.lerp(fastF, 0.45f, 0.12f); FL.eR = MathHelper.lerp(fastF, 0.55f, 0.15f); }
+            if (shield) { FL.lP = MathHelper.lerp(fastF, -0.5f, 0.2f); FL.lY = 0.3f; FL.lR = -0.2f; FL.eL = 0.8f; }
+            else { FL.lP = MathHelper.lerp(fastF, -0.2f, 0.55f); FL.lR = MathHelper.lerp(fastF, -0.45f, -0.12f); FL.eL = MathHelper.lerp(fastF, 0.55f, 0.15f); }
+            out = mix(out, FL, s.fly, true);
+        }
         // разгон, вираж, приземление — поверх любой позы
         out.lean += s.accelLean * (1f - s.air) + 6f * s.land;
-        out.roll += s.bank * (1f - s.air);
+        out.roll += s.bank * Math.max(1f - s.air, s.fly);
         out.bob -= 0.02f * s.land;
         out.kR += 1.05f * s.land;
         out.kL += 0.9f * s.land;
@@ -280,6 +303,7 @@ public final class Locomotion {
         res.armR = true;
         res.armL = true;
         res.ground = 1f - s.air;
+        res.fly = s.fly;
         if (p.isUsingItem()) {
             boolean main = p.getActiveHand() == Hand.MAIN_HAND;
             boolean rightActive = main == rightHanded;

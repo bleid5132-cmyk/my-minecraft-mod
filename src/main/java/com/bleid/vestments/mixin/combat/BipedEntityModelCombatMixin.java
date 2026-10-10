@@ -126,7 +126,8 @@ public abstract class BipedEntityModelCombatMixin {
             if (rightMain) { eR = eMain; eL = eOff; } else { eL = eMain; eR = eOff; }
         }
         // корпус наклоняется от таза, а не вместе с ногами: ноги остаются в своих углах относительно земли
-        float leanDeg = (L != null ? L.lean * (1f - Locomotion.CHEST_LEAN) * (1f - wc) : 0f)
+        // в полёте ноги летят вместе с телом — наклон не компенсируем
+        float leanDeg = (L != null ? L.lean * (1f - Locomotion.CHEST_LEAN) * (1f - wc) * (1f - L.fly) : 0f)
                 + (p != null && !p.clip.offOnly && !p.clip.dodge ? p.lean * p.w : 0f);
         if (leanDeg != 0f) {
             float lr = (float) Math.toRadians(leanDeg);
