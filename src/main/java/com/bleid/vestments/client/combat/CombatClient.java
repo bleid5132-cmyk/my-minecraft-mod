@@ -49,6 +49,10 @@ public final class CombatClient {
     /** Что было в руках у игроков на прошлом такте — чтобы заметить, что меч/щит только что взяли. */
     private static final Map<Integer, net.minecraft.item.Item[]> HELD = new HashMap<>();
     private static KeyBinding skillKey;
+
+    public static KeyBinding skillKey() {
+        return skillKey;
+    }
     private static int combo, idle, sprintTicks, buffer = -1;
     private static int chainKind;
 

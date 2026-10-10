@@ -40,6 +40,7 @@ public class VestmentsClient implements ClientModInitializer {
         ScabbardFeature.register();
         WingsClient.register();
         PaladinKeys.register();
+        PaladinHud.register();
         SmallTooltipComponent.register();
         ClassSelectScreen.register();
         ServiceClient.register();

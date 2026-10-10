@@ -43,6 +43,8 @@ import net.minecraft.util.math.Vec3d;
  */
 public final class PaladinAbilities {
     public static final Identifier ABILITY = new Identifier(Vestments.MOD_ID, "pal_ability");
+    /** S2C: перезарядки способностей для значков на экране. */
+    public static final Identifier SYNC = new Identifier(Vestments.MOD_ID, "pal_ability_sync");
     public static final int HEAL = 0, TAUNT = 1, AURA = 2, DASH = 3, WINGS = 4;
     public static final String[] NAMES = { "lay_hands", "taunt", "aura", "dash", "wings" };
     private static final int[] RANK = { 1, 2, 3, 4, 5 };
@@ -52,6 +54,7 @@ public final class PaladinAbilities {
 
     private static final class St {
         final long[] ready = new long[5];
+        final int[] total = new int[5];
         int aura;
         long wingsUntil, martyrReady;
         int dashTicks;
@@ -74,6 +77,7 @@ public final class PaladinAbilities {
             server.execute(() -> use(player, id));
         });
         ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> ST.remove(h.getPlayer().getUuid()));
+        ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> sync(h.getPlayer()));
         ServerTickEvents.END_SERVER_TICK.register(PaladinAbilities::tick);
         // «Мученичество»: паладин-генерал рядом забирает смертельный удар союзника
         ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
@@ -85,6 +89,7 @@ public final class PaladinAbilities {
                 St s = st(pal);
                 if (w.getTime() < s.martyrReady || pal.getHealth() <= 2f) continue;
                 s.martyrReady = w.getTime() + MARTYR_CD;
+                sync(pal);
                 ally.setHealth(Math.min(ally.getMaxHealth(), 6f));
                 ally.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 60, 2));
                 Fx.play(w, "pal_martyr", ally.getPos().add(0, 1, 0), pal, 20, 0, 0, 0);
@@ -154,6 +159,8 @@ public final class PaladinAbilities {
             int cd = COOLDOWN[id];
             if (id == HEAL && ReliquaryItem.held(p)) cd = 30 * 20;
             s.ready[id] = now + cd;
+            s.total[id] = cd;
+            sync(p);
         }
     }
 
@@ -237,6 +244,22 @@ public final class PaladinAbilities {
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ITEM_ELYTRA_FLYING, SoundCategory.PLAYERS, 0.5f, 1.6f);
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 1f, 1.5f);
         return true;
+    }
+
+    /** Отправить игроку оставшиеся перезарядки (тики), их полную длину, ауру и «Мученичество». */
+    public static void sync(ServerPlayerEntity p) {
+        St s = st(p);
+        long now = p.getServerWorld().getTime();
+        net.minecraft.network.PacketByteBuf buf = net.fabricmc.fabric.api.networking.v1.PacketByteBufs.create();
+        for (int i = 0; i < 5; i++) {
+            buf.writeVarInt((int) Math.max(0, s.ready[i] - now));
+            buf.writeVarInt(Math.max(1, s.total[i]));
+        }
+        buf.writeVarInt(s.aura);
+        buf.writeVarInt((int) Math.max(0, s.martyrReady - now));
+        buf.writeVarInt(MARTYR_CD);
+        buf.writeVarInt((int) Math.max(0, s.wingsUntil - now));
+        ServerPlayNetworking.send(p, SYNC, buf);
     }
 
     public static boolean wingsActive(PlayerEntity p) {

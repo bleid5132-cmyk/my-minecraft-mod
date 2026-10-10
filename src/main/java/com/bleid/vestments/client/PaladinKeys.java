@@ -21,6 +21,10 @@ public final class PaladinKeys {
 
     private PaladinKeys() { }
 
+    public static KeyBinding binding(int i) {
+        return BINDINGS[i];
+    }
+
     public static void register() {
         for (int i = 0; i < KEYS.length; i++) {
             BINDINGS[i] = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.vestments.paladin_" + PaladinAbilities.NAMES[i],
