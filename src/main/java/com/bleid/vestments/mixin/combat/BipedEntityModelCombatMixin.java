@@ -31,6 +31,9 @@ public abstract class BipedEntityModelCombatMixin {
             return;
         }
         BipedEntityModel<?> m = (BipedEntityModel<?>) (Object) this;
+        // ваниль не сбрасывает pivotX/Z головы каждый кадр — сбрасываем сами, иначе сдвиг копится
+        m.head.pivotX = 0f;
+        m.head.pivotZ = 0f;
         float td = MathHelper.clamp(progress - e.age, 0f, 1f);
         CombatPose.Pose p = CombatPose.compute(e, td);
         float wc = p == null ? 0f : (p.clip.offOnly ? 0f : p.w);
