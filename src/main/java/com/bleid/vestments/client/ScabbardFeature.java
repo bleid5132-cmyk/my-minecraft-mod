@@ -51,7 +51,8 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
 
     private static ItemStack swordOf(AbstractClientPlayerEntity p) {
         ItemStack main = p.getMainHandStack();
-        if (main.getItem() instanceof PaladinSwordItem) {
+        if (main.getItem() instanceof PaladinSwordItem
+                && StaffModel.getScabbard(MinecraftClient.getInstance(), main.getItem()) != null) {
             LAST.put(p.getUuid(), main.copy());
             return main;
         }
@@ -59,7 +60,8 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
         if (p == mc.player) {
             for (int i = 0; i < 9; i++) {
                 ItemStack s = p.getInventory().getStack(i);
-                if (s.getItem() instanceof PaladinSwordItem) return s;
+                if (s.getItem() instanceof PaladinSwordItem
+                        && StaffModel.getScabbard(mc, s.getItem()) != null) return s;     // только мечи с ножнами
             }
             if (p.getOffHandStack().getItem() instanceof PaladinSwordItem) return p.getOffHandStack();
             return ItemStack.EMPTY;
@@ -80,7 +82,7 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
         MinecraftClient mc = MinecraftClient.getInstance();
         BakedModel sheath = StaffModel.getScabbard(mc, sword.getItem());
         if (sheath == null) return;
-        boolean inHand = p.getMainHandStack().getItem() instanceof PaladinSwordItem;
+        boolean inHand = p.getMainHandStack().getItem() == sword.getItem();
         boolean sheathed = !inHand;
         if (inHand && pose != null && pose.draw != null && !pose.draw.inHand) sheathed = true;
         if (putting) {

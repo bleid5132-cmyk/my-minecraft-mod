@@ -32,6 +32,8 @@ public final class StaffModel {
                 context.addModels(weaponModel(w));
                 context.addModels(scabbardModel(w));
             }
+            for (var w : com.bleid.vestments.paladin.PaladinGear.WEAPONS) context.addModels(weaponModel(w));
+            context.addModels(weaponModel(com.bleid.vestments.paladin.PaladinGear.RELIQUARY));
             for (var w : com.bleid.vestments.paladin.PaladinGear.SHIELDS) {
                 context.addModels(weaponModel(w));
                 Identifier id = net.minecraft.registry.Registries.ITEM.getId(w);

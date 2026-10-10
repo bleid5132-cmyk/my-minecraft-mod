@@ -244,12 +244,13 @@ public final class CombatClient {
             Playback cur = PLAY.get(pl.getId());
             boolean free = cur == null || cur.clip.visualOnly;
             if (!free) continue;
-            if (main != prev[0] && main instanceof PaladinSwordItem sword && sword.moveset() != null) {
+            if (main != prev[0] && main instanceof PaladinSwordItem sword && sword.moveset() != null
+                    && sword.moveset().draw != null) {
                 Moveset ms = sword.moveset();
                 PLAY.put(pl.getId(), new Playback(ms.draw, ms));
                 sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_LEATHER, 0.5f, 1.2f);
             } else if (main != prev[0] && prev[0] instanceof PaladinSwordItem old && old.moveset() != null
-                    && !(main instanceof PaladinSwordItem)) {
+                    && old.moveset().sheathe != null && !(main instanceof PaladinSwordItem)) {
                 // меч убрали из руки — он плавно возвращается в ножны
                 Moveset ms = old.moveset();
                 Playback pb = new Playback(ms.sheathe, ms);

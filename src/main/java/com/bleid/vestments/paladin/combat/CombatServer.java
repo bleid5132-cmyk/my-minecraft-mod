@@ -83,6 +83,7 @@ public final class CombatServer {
         });
         ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> STATES.remove(h.getPlayer().getUuid()));
         ServerTickEvents.END_SERVER_TICK.register(CombatServer::tick);
+        ServerTickEvents.END_SERVER_TICK.register(WeaponSkills::tick);
     }
 
     public static boolean consecrated(PlayerEntity p) {
@@ -230,15 +231,19 @@ public final class CombatServer {
 
     private static float baseDamage(ServerPlayerEntity p, State s) {
         float b = (float) p.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        // двуручное оружие со щитом или предметом во второй руке бьёт слабее
+        if (p.getMainHandStack().getItem() instanceof PaladinSwordItem w && w.twoHanded && !p.getOffHandStack().isEmpty()) b *= 0.6f;
         return s != null && consecrated(p) ? b * 1.3f : b;
     }
 
     /** Нанести удар: урон, отбрасывание, огонь от зачарования, эффект попадания. */
-    private static boolean damage(ServerPlayerEntity p, LivingEntity e, float dmg, float kb, int tier, float roll, Strike k) {
+    static boolean damage(ServerPlayerEntity p, LivingEntity e, float dmg, float kb, int tier, float roll, Strike k) {
         ServerWorld world = p.getServerWorld();
         e.timeUntilRegen = 0;
         boolean ok = e.damage(world.getDamageSources().playerAttack(p), dmg);
         if (!ok) return false;
+        WeaponSkills.onHit(p, e, dmg);
+        com.bleid.vestments.paladin.PaladinAbilities.onHit(p, e, dmg);
         Vec3d d = e.getPos().subtract(p.getPos());
         double l = Math.sqrt(d.x * d.x + d.z * d.z);
         float knock = kb + EnchantmentHelper.getKnockback(p) * 0.5f;
@@ -335,12 +340,12 @@ public final class CombatServer {
                 w.playSound(null, at.x, at.y, at.z, SoundEvents.ENTITY_LIGHTNING_BOLT_IMPACT, SoundCategory.PLAYERS, 1.2f, 0.9f);
                 w.playSound(null, at.x, at.y, at.z, SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.PLAYERS, 0.8f, 0.8f);
             }
-            default -> { }
+            default -> WeaponSkills.event(p, k, hits, base, tier);
         }
     }
 
     /** Удар по площади: всем, кого ещё не задело этим ударом (кроме игроков). */
-    private static void aoe(ServerPlayerEntity p, Vec3d at, double r, float dmg, float kb, float up, Set<Integer> skip, int tier) {
+    static void aoe(ServerPlayerEntity p, Vec3d at, double r, float dmg, float kb, float up, Set<Integer> skip, int tier) {
         ServerWorld w = p.getServerWorld();
         Box box = new Box(at, at).expand(r, 2.5, r);
         for (LivingEntity e : w.getEntitiesByClass(LivingEntity.class, box, x -> canHit(p, x) && !(x instanceof PlayerEntity))) {

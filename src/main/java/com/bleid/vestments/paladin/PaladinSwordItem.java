@@ -26,6 +26,8 @@ public class PaladinSwordItem extends SwordItem implements ClassItem {
     public final int rank;
     public final String skill;
     public final int skillCooldown;
+    /** Двуручное оружие: со щитом или предметом во второй руке бьёт слабее. */
+    public boolean twoHanded;
 
     public PaladinSwordItem(Settings settings, int rank, double damage, double speed, String skill, int skillCooldown,
                             int durability, Item repair) {
@@ -70,6 +72,10 @@ public class PaladinSwordItem extends SwordItem implements ClassItem {
         if (m != null) {
             lines.add(Text.translatable("tooltip.vestments.sword.combo", m.combo.length).formatted(Formatting.YELLOW));
         }
+        if (PaladinGear.WEAPONS.contains(this)) {
+            lines.add(Text.translatable("tooltip.vestments.weapon." + swordId()).formatted(Formatting.GRAY));
+        }
+        if (twoHanded) lines.add(Text.translatable("tooltip.vestments.two_handed").formatted(Formatting.RED));
         lines.add(Text.translatable("tooltip.vestments.sword.skill", Text.translatable("skill.vestments." + skill),
                 skillCooldown / 20).formatted(Formatting.GOLD));
         lines.add(Text.translatable("tooltip.vestments.skill." + skill).formatted(Formatting.GRAY));

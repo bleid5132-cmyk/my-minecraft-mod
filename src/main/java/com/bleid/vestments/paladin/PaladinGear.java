@@ -23,6 +23,9 @@ public final class PaladinGear {
     public static final List<PaladinSet> SETS = new ArrayList<>();
     public static final List<PaladinSwordItem> SWORDS = new ArrayList<>();
     public static final List<PaladinShieldItem> SHIELDS = new ArrayList<>();
+    /** Молоты, копьё, кистень (без ножен). */
+    public static final List<PaladinSwordItem> WEAPONS = new ArrayList<>();
+    public static ReliquaryItem RELIQUARY;
     private static final Map<Item, PaladinSet> BY_ITEM = new HashMap<>();
 
     private PaladinGear() { }
@@ -49,6 +52,14 @@ public final class PaladinGear {
         sword(3, "lord_sword", 8.0, 1.5, "consecrate", 25 * 20, 900, Items.GOLD_INGOT, Rarity.UNCOMMON);
         sword(4, "high_lord_sword", 9.0, 1.5, "cleave", 15 * 20, 1300, Items.DIAMOND, Rarity.RARE);
         sword(5, "general_sword", 10.5, 1.4, "judgment", 30 * 20, 2000, Items.DIAMOND, Rarity.EPIC);
+
+        //      звание id               урон  скор.  приём             перезар. прочн. ремонт
+        weapon(1, "warhammer", 7.5, 1.05, "hammer_throw", 12 * 20, 700, Items.IRON_INGOT, Rarity.UNCOMMON, false);
+        weapon(2, "holy_spear", 7.0, 1.3, "dawn_spear", 16 * 20, 800, Items.GOLD_INGOT, Rarity.RARE, false);
+        weapon(3, "flail", 8.0, 1.15, "punishing_chain", 14 * 20, 900, Items.IRON_INGOT, Rarity.RARE, false);
+        weapon(4, "greathammer", 12.5, 0.8, "heaven_crush", 18 * 20, 1500, Items.DIAMOND, Rarity.EPIC, true);
+        RELIQUARY = Registry.register(Registries.ITEM, new Identifier(Vestments.MOD_ID, "reliquary"),
+                new ReliquaryItem(new FabricItemSettings().maxCount(1).rarity(Rarity.EPIC)));
 
         shield(0, "junior_recruit_shield", 150, Items.OAK_PLANKS, Rarity.COMMON);
         shield(1, "recruit_shield", 260, Items.IRON_INGOT, Rarity.COMMON);
@@ -85,6 +96,14 @@ public final class PaladinGear {
         SWORDS.add(Registry.register(Registries.ITEM, new Identifier(Vestments.MOD_ID, id), item));
     }
 
+    private static void weapon(int rank, String id, double damage, double speed, String skill, int cd, int dur, Item repair,
+                               Rarity rarity, boolean twoHanded) {
+        PaladinSwordItem item = new PaladinSwordItem(new FabricItemSettings().rarity(rarity), rank, damage, speed, skill, cd,
+                dur, repair);
+        item.twoHanded = twoHanded;
+        WEAPONS.add(Registry.register(Registries.ITEM, new Identifier(Vestments.MOD_ID, id), item));
+    }
+
     private static void shield(int rank, String id, int dur, Item repair, Rarity rarity) {
         PaladinShieldItem item = new PaladinShieldItem(new FabricItemSettings().maxDamage(dur).rarity(rarity), rank, repair);
         SHIELDS.add(Registry.register(Registries.ITEM, new Identifier(Vestments.MOD_ID, id), item));
@@ -94,7 +113,9 @@ public final class PaladinGear {
         List<Item> l = new ArrayList<>();
         for (PaladinSet s : SETS) l.addAll(s.items());
         l.addAll(SWORDS);
+        l.addAll(WEAPONS);
         l.addAll(SHIELDS);
+        l.add(RELIQUARY);
         return l;
     }
 

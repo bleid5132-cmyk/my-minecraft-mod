@@ -69,7 +69,8 @@ public abstract class ItemRendererMixin {
             return shield != null ? shield : model;
         }
         if (stack.getItem() instanceof com.bleid.vestments.weapon.LiturgicalWeaponItem
-                || stack.getItem() instanceof com.bleid.vestments.paladin.PaladinSwordItem) {
+                || stack.getItem() instanceof com.bleid.vestments.paladin.PaladinSwordItem
+                || stack.getItem() instanceof com.bleid.vestments.paladin.ReliquaryItem) {
             BakedModel weapon = StaffModel.getWeapon(MinecraftClient.getInstance(), stack.getItem());
             return weapon != null ? weapon : model;
         }

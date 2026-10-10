@@ -37,7 +37,7 @@ final class PaladinFx {
             case "pal_judgment" -> judgment(w, pos, a);
             case "pal_undying" -> undying(e);
             case "pal_aura" -> aura(e, a);
-            default -> { return false; }
+            default -> { return PaladinMagicFx.play(w, type, pos, e, dur, a, b, c); }
         }
         return true;
     }

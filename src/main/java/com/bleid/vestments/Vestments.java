@@ -89,6 +89,7 @@ public class Vestments implements ModInitializer {
         com.bleid.vestments.classes.ClassRules.register();
         com.bleid.vestments.paladin.PaladinBonus.register();
         com.bleid.vestments.paladin.combat.CombatServer.register();
+        com.bleid.vestments.paladin.PaladinAbilities.register();
         StaffOfLightItem.registerEvents();
         com.bleid.vestments.classes.PlayerClasses.register();
         com.bleid.vestments.service.ServicePoints.register();
