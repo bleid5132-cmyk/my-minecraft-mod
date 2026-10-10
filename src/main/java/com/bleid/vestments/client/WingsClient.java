@@ -59,7 +59,8 @@ public final class WingsClient {
             long now = mc.world.getTime();
             ACTIVE.values().removeIf(t -> now > t[1] + 2);
             ClientPlayerEntity me = mc.player;
-            if (me != null && ACTIVE.containsKey(me.getId()) && !me.isOnGround() && !me.isSneaking() && !me.isTouchingWater()) {
+            if (me != null && ACTIVE.containsKey(me.getId()) && !me.isOnGround() && !me.isSneaking() && !me.isTouchingWater()
+                    && !me.getAbilities().flying) {
                 Vec3d v = me.getVelocity();
                 if (v.y < -0.035) me.setVelocity(v.x, -0.035, v.z);          // парение
             }

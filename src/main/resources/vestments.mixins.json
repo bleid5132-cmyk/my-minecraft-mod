@@ -16,7 +16,9 @@
     "combat.ClientPlayerEntityCombatMixin",
     "combat.CameraCombatMixin",
     "combat.PlayerEntityModelBendMixin",
-    "combat.GameRendererTiltMixin"
+    "combat.GameRendererTiltMixin",
+    "combat.OutlineMixin",
+    "combat.OutlineColorMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -53,6 +53,11 @@ public abstract class HeldItemFeatureRendererMixin {
     private void vestments$combatGrip(LivingEntity e, ItemStack stack, ModelTransformationMode mode, Arm arm,
                                       MatrixStack matrices, VertexConsumerProvider vcp, int light, CallbackInfo ci) {
         if (!(e instanceof PlayerEntity) || arm != e.getMainArm()) return;
+        // брошенный молот в полёте — в руке его нет
+        if (com.bleid.vestments.client.HammerClient.flying(e) && com.bleid.vestments.client.HammerClient.isHammer(stack)) {
+            ci.cancel();
+            return;
+        }
         CombatPose.Pose p = CombatPose.compute(e, net.minecraft.client.MinecraftClient.getInstance().getTickDelta());
         // меч убирается в ножны: пока он в руке (его рисует ScabbardFeature), новый предмет не показываем
         if (p != null && p.clip.reverse) {

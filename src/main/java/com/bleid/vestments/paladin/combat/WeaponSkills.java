@@ -36,6 +36,7 @@ public final class WeaponSkills {
         float dmg;
         int tier, age;
         String kind;
+        LivingEntity target;               // молот летит в подсвеченную цель (самонаведение)
         final Set<Integer> hit = new HashSet<>();
     }
 
@@ -51,7 +52,8 @@ public final class WeaponSkills {
         Vec3d[] fr = Blade.frame(p.getYaw(), p.getPitch());
         switch (k.event) {
             case "hammer_throw" -> {
-                Proj pr = proj(p, "hammer", 1.4, 18, base * 1.6f, tier, false);
+                Proj pr = proj(p, "hammer", 1.4, 22, base * 1.6f, tier, false);
+                pr.target = pickTarget(p);
                 PROJ.add(pr);
                 w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ITEM_TRIDENT_THROW, SoundCategory.PLAYERS, 1f, 0.7f);
             }
@@ -90,6 +92,33 @@ public final class WeaponSkills {
         }
     }
 
+    /** Цель броска: та, что подсвечена у игрока (если она честная), иначе — ближайшая к прицелу. */
+    private static LivingEntity pickTarget(ServerPlayerEntity p) {
+        int id = CombatServer.skillTarget(p);
+        if (id >= 0 && p.getServerWorld().getEntityById(id) instanceof LivingEntity e && CombatServer.canHit(p, e)
+                && e.squaredDistanceTo(p) < 24 * 24 && p.canSee(e)) return e;
+        return aimed(p, p.getServerWorld().getEntitiesByClass(LivingEntity.class, p.getBoundingBox().expand(22),
+                x -> CombatServer.canHit(p, x)));
+    }
+
+    /** Общий выбор цели по прицелу (клиент и сервер): в конусе ~7°, до 22 блоков, видимая, ближайшая к прицелу. */
+    public static LivingEntity aimed(PlayerEntity p, List<LivingEntity> cands) {
+        Vec3d eye = p.getEyePos(), look = p.getRotationVec(1f);
+        LivingEntity best = null;
+        double bestDot = 0.9925;
+        for (LivingEntity e : cands) {
+            if (e == p || !e.isAlive()) continue;
+            Vec3d to = e.getPos().add(0, e.getHeight() * 0.5, 0).subtract(eye);
+            double l = to.length();
+            if (l > 22 || l < 0.5) continue;
+            double dot = to.multiply(1 / l).dotProduct(look);
+            // крупным целям прощаем больше
+            double tol = Math.min(0.06, e.getWidth() * 0.5 / l);
+            if (dot + tol > bestDot && p.canSee(e)) { bestDot = dot + tol; best = e; }
+        }
+        return best;
+    }
+
     private static Proj proj(ServerPlayerEntity p, String kind, double speed, double max, float dmg, int tier, boolean pierce) {
         Proj pr = new Proj();
         pr.owner = p;
@@ -108,12 +137,17 @@ public final class WeaponSkills {
     static void tick(MinecraftServer server) {
         for (Iterator<Proj> it = PROJ.iterator(); it.hasNext(); ) {
             Proj pr = it.next();
-            if (!pr.owner.isAlive() || pr.owner.getServerWorld() != pr.world || ++pr.age > 200) { it.remove(); continue; }
+            if (!pr.owner.isAlive() || pr.owner.getServerWorld() != pr.world || ++pr.age > 200) {
+                if (pr.kind.equals("hammer")) Fx.play(pr.world, "pal_hammer_end", pr.pos, pr.owner, 0, 0, 0, 0);
+                it.remove();
+                continue;
+            }
             Vec3d from = pr.pos;
             if (pr.returning) {
                 Vec3d to = pr.owner.getEyePos().add(0, -0.3, 0).subtract(pr.pos);
                 double l = to.length();
                 if (l < 1.6) {
+                    Fx.play(pr.world, "pal_hammer_end", pr.pos, pr.owner, 0, 0, 0, 0);
                     pr.world.playSound(null, pr.owner.getX(), pr.owner.getY(), pr.owner.getZ(), SoundEvents.ITEM_TRIDENT_RETURN,
                             SoundCategory.PLAYERS, 1f, 1.1f);
                     it.remove();
@@ -122,6 +156,10 @@ public final class WeaponSkills {
                 pr.dir = to.multiply(1 / l);
                 pr.pos = pr.pos.add(pr.dir.multiply(Math.min(l, pr.speed * 1.1)));
             } else {
+                if (pr.target != null && pr.target.isAlive() && pr.target.getWorld() == pr.world) {
+                    Vec3d aim = pr.target.getPos().add(0, pr.target.getHeight() * 0.55, 0).subtract(pr.pos);
+                    if (aim.lengthSquared() > 1e-4) pr.dir = pr.dir.multiply(0.35).add(aim.normalize().multiply(0.65)).normalize();
+                }
                 Vec3d next = pr.pos.add(pr.dir.multiply(pr.speed));
                 HitResult hr = pr.world.raycast(new RaycastContext(pr.pos, next, RaycastContext.ShapeType.COLLIDER,
                         RaycastContext.FluidHandling.NONE, pr.owner));
@@ -143,7 +181,7 @@ public final class WeaponSkills {
                 }
             }
             if (pr.kind.equals("hammer")) {
-                Fx.play(pr.world, "pal_hammer", pr.pos, null, 0, pr.returning ? 1 : 0, pr.age, 0);
+                Fx.play(pr.world, "pal_hammer", pr.pos, pr.owner, 0, pr.returning ? 1 : 0, pr.age, 0);
             } else {
                 trail(pr, from);
             }

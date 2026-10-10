@@ -50,13 +50,14 @@ public final class PaladinAbilities {
     private static final int[] RANK = { 1, 2, 3, 4, 5 };
     private static final int[] COOLDOWN = { 45 * 20, 20 * 20, 10, 10 * 20, 90 * 20 };
     public static final int AURA_NONE = 0, AURA_PROTECT = 1, AURA_BLESS = 2, AURA_RETRIB = 3;
-    private static final int WINGS_TICKS = 200, MARTYR_CD = 180 * 20;
+    private static final int WINGS_TICKS = 300, MARTYR_CD = 180 * 20;
 
     private static final class St {
         final long[] ready = new long[5];
         final int[] total = new int[5];
         int aura;
         long wingsUntil, martyrReady;
+        boolean wingFlight;            // мы выдали полёт — по окончании забираем
         int dashTicks;
         Vec3d dashDir = Vec3d.ZERO;
         final Set<Integer> dashHit = new HashSet<>();
@@ -76,7 +77,14 @@ public final class PaladinAbilities {
             int id = buf.readVarInt();
             server.execute(() -> use(player, id));
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> ST.remove(h.getPlayer().getUuid()));
+        ServerPlayConnectionEvents.DISCONNECT.register((h, srv) -> {
+            St s = ST.remove(h.getPlayer().getUuid());
+            ServerPlayerEntity pl = h.getPlayer();
+            if (s != null && s.wingFlight && !pl.isCreative() && !pl.isSpectator()) {
+                pl.getAbilities().allowFlying = false;
+                pl.getAbilities().flying = false;
+            }
+        });
         ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> sync(h.getPlayer()));
         ServerTickEvents.END_SERVER_TICK.register(PaladinAbilities::tick);
         // «Мученичество»: паладин-генерал рядом забирает смертельный удар союзника
@@ -239,7 +247,16 @@ public final class PaladinAbilities {
     private static boolean wings(ServerPlayerEntity p, St s) {
         ServerWorld w = p.getServerWorld();
         s.wingsUntil = w.getTime() + WINGS_TICKS;
-        p.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, WINGS_TICKS, 0, false, false, true));
+        p.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, WINGS_TICKS + 60, 0, false, false, true));
+        // крылья дают полёт: взлёт двойным прыжком, как в творческом режиме
+        if (!p.getAbilities().allowFlying) {
+            p.getAbilities().allowFlying = true;
+            s.wingFlight = true;
+        }
+        p.getAbilities().flying = true;
+        p.sendAbilitiesUpdate();
+        p.setVelocity(p.getVelocity().add(0, 0.6, 0));
+        p.velocityModified = true;
         Fx.play(w, "pal_wings", p.getPos(), p, WINGS_TICKS, 0, 0, 0);
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ITEM_ELYTRA_FLYING, SoundCategory.PLAYERS, 0.5f, 1.6f);
         w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 1f, 1.5f);
@@ -311,6 +328,16 @@ public final class PaladinAbilities {
             }
             // крылья: без урона от падения
             if (now < s.wingsUntil) p.fallDistance = 0;
+            else if (s.wingFlight) {
+                // крылья исчезли: полёт кончается, плавное снижение под замедленным падением
+                s.wingFlight = false;
+                if (!p.isCreative() && !p.isSpectator()) {
+                    p.getAbilities().allowFlying = false;
+                    p.getAbilities().flying = false;
+                    p.sendAbilitiesUpdate();
+                }
+                p.fallDistance = 0;
+            }
             // ауры
             if (s.aura != AURA_NONE && now % 20 == 0) {
                 double r = auraRadius(p);

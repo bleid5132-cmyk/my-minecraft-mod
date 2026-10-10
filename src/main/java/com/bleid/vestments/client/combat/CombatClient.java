@@ -211,6 +211,7 @@ public final class CombatClient {
                     && !me.getItemCooldownManager().isCoolingDown(me.getMainHandStack().getItem())) {
                 PacketByteBuf buf = PacketByteBufs.create();
                 buf.writeVarInt(200);
+                buf.writeVarInt(com.bleid.vestments.client.HammerClient.target());
                 ClientPlayNetworking.send(CombatServer.ATTACK, buf);
             }
         }

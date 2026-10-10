@@ -30,6 +30,8 @@ public final class FirstPersonSword {
     public static boolean render(HeldItemRenderer renderer, AbstractClientPlayerEntity player, float tickDelta, Hand hand,
                                  ItemStack item, float equipProgress, MatrixStack matrices, VertexConsumerProvider vcp,
                                  int light) {
+        if (hand == Hand.MAIN_HAND && com.bleid.vestments.client.HammerClient.flying(player)
+                && com.bleid.vestments.client.HammerClient.isHammer(item)) return true;     // молот в полёте
         if (hand != Hand.MAIN_HAND || !(item.getItem() instanceof PaladinSwordItem)) return false;
         CombatPose.Pose p = CombatPose.compute(player, tickDelta);
         if (p == null || p.clip.offOnly || p.clip.dodge) return false;

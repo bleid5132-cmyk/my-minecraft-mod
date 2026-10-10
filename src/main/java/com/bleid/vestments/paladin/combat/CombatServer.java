@@ -66,6 +66,7 @@ public final class CombatServer {
         List<Set<Integer>> hits = new ArrayList<>();
         boolean[] preFired = new boolean[0], contactFired = new boolean[0];
         long buffUntil;
+        int skillTarget = -1;
     }
 
     private record Wave(ServerPlayerEntity owner, ServerWorld world, Vec3d dir, Set<Integer> hit, float dmg, int tier,
@@ -79,7 +80,12 @@ public final class CombatServer {
     public static void register() {
         ServerPlayNetworking.registerGlobalReceiver(ATTACK, (server, player, handler, buf, sender) -> {
             int kind = buf.readVarInt();
-            server.execute(() -> request(player, kind));
+            int target = buf.isReadable() ? buf.readVarInt() : -1;     // цель, подсвеченная у игрока (бросок молота)
+            server.execute(() -> {
+                State st = STATES.computeIfAbsent(player.getUuid(), k -> new State());
+                st.skillTarget = target;
+                request(player, kind);
+            });
         });
         ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> STATES.remove(h.getPlayer().getUuid()));
         ServerTickEvents.END_SERVER_TICK.register(CombatServer::tick);
@@ -128,6 +134,12 @@ public final class CombatServer {
     /** Показать приём игрока всем, кто его видит (кроме него самого). */
     public static void broadcast(ServerPlayerEntity who, Clip c) {
         for (ServerPlayerEntity viewer : PlayerLookup.tracking(who)) sendPlay(viewer, who, c);
+    }
+
+    /** Цель, которую игрок навёл перед особым приёмом (id сущности или -1). */
+    public static int skillTarget(ServerPlayerEntity p) {
+        State s = STATES.get(p.getUuid());
+        return s == null ? -1 : s.skillTarget;
     }
 
     /** Прервать текущий удар (уворот отменяет приём). */

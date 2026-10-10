@@ -27,7 +27,11 @@ final class PaladinMagicFx {
 
     static boolean play(ClientWorld w, String type, Vec3d pos, Entity e, int dur, float a, float b, float c) {
         switch (type) {
-            case "pal_hammer" -> hammer(pos, a > 0.5f, (int) b);
+            case "pal_hammer" -> {
+                com.bleid.vestments.client.HammerClient.update(e, pos, a > 0.5f, (int) b);
+                hammer(pos, a > 0.5f, (int) b);
+            }
+            case "pal_hammer_end" -> com.bleid.vestments.client.HammerClient.end(e);
             case "pal_dawn" -> dawn(pos, new Vec3d(a, b, c), dur);
             case "pal_stun" -> stun(e, dur, a > 0.5f);
             case "pal_taunt" -> taunt(e, a);
