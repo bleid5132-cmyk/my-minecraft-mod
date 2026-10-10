@@ -267,5 +267,9 @@
   "aura.vestments.3": "of retribution (30% of damage returned)",
   "message.vestments.martyr_saved": "%s took your killing blow!",
   "message.vestments.martyr_took": "You took the killing blow for %s",
-  "key.vestments.dodge": "Dodge (roll / backstep)"
+  "key.vestments.dodge": "Dodge (roll / backstep)",
+  "entity.vestments.crimson_seraph": "Crimson Seraph",
+  "entity.vestments.crimson_feather_projectile": "Crimson Feather",
+  "item.vestments.crimson_feather": "Crimson Feather",
+  "item.vestments.crimson_seraph_spawn_egg": "Crimson Seraph Spawn Egg"
 }

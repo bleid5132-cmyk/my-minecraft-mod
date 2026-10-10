@@ -39,6 +39,10 @@ public class VestmentsClient implements ClientModInitializer {
         StaffModel.register();
         ScabbardFeature.register();
         WingsClient.register();
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.boss.Bosses.CRIMSON_SERAPH,
+                com.bleid.vestments.client.boss.CrimsonSeraphRenderer::new);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.boss.Bosses.CRIMSON_FEATHER_PROJECTILE,
+                ctx -> new net.minecraft.client.render.entity.FlyingItemEntityRenderer<>(ctx, 1.6f, true));
         PaladinKeys.register();
         PaladinHud.register();
         DodgeClient.register();

@@ -267,5 +267,9 @@
   "aura.vestments.3": "возмездия (30% урона возвращается врагу)",
   "message.vestments.martyr_saved": "%s принял ваш смертельный удар на себя!",
   "message.vestments.martyr_took": "Вы приняли смертельный удар за %s",
-  "key.vestments.dodge": "Уворот (кувырок / отскок)"
+  "key.vestments.dodge": "Уворот (кувырок / отскок)",
+  "entity.vestments.crimson_seraph": "Багровый Серафим",
+  "entity.vestments.crimson_feather_projectile": "Багровое перо",
+  "item.vestments.crimson_feather": "Багровое перо",
+  "item.vestments.crimson_seraph_spawn_egg": "Яйцо призыва Багрового Серафима"
 }
