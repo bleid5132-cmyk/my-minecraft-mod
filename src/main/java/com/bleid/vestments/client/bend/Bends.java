@@ -43,7 +43,11 @@ public final class Bends {
 
     private Bends() { }
 
+    /** Предел сгиба локтя/колена: дальше bendy-lib искажает руку. */
+    public static final float MAX_BEND = 2.2f;
+
     public static void store(LivingEntity e, float[] v) {
+        if (v != null) for (int i = 0; i < Math.min(4, v.length); i++) v[i] = Math.min(v[i], MAX_BEND);
         current = v;
         if (e != null && v != null) LAST.put(e, v);
     }

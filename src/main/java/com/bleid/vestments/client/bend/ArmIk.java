@@ -27,7 +27,8 @@ public final class ArmIk {
         float l1 = UPPER, l2 = LOWER;
         float d = rel.length();
         Vector3f t = d < 1e-4f ? new Vector3f(0, 1, 0) : new Vector3f(rel).div(d);
-        d = Math.max(Math.abs(l1 - l2) + 0.05f, Math.min(l1 + l2 - 0.02f, d));
+        // не даём локтю сложиться сильнее ~125° — иначе изогнутая рука выглядит сломанной
+        d = Math.max(5.0f, Math.min(l1 + l2 - 0.02f, d));
         float cosA = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d);
         cosA = Math.max(-1f, Math.min(1f, cosA));
         float sinA = (float) Math.sqrt(1 - cosA * cosA);

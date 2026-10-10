@@ -39,6 +39,7 @@ public final class CombatPose {
     /** Локоть руки с мечом во время ударов: рука чуть согнута, предплечье продолжает клинок. */
     private static final float STRIKE_ELBOW = 0.32f;
     private static final Vector3f POLE_R = new Vector3f(-0.4f, 0.35f, 1f), POLE_L = new Vector3f(0.4f, 0.35f, 1f);
+    private static final Vector3f POLE_TWO = new Vector3f(0.55f, 1f, 0.25f);
 
     private CombatPose() { }
 
@@ -165,8 +166,15 @@ public final class CombatPose {
                 side.sub(new Vector3f(Y).mul(side.dot(Y)));
                 if (side.lengthSquared() > 1e-4f) side.normalize();
                 Vector3f grip = new Vector3f(hand).sub(new Vector3f(Y).mul(2.2f)).add(new Vector3f(side).mul(2.0f));
+                Vector3f rel = new Vector3f(grip).sub(po);
+                // рукоять ушла за спину или слишком далеко — вторая рука отпускает её, а не выворачивается
+                float reach = com.bleid.vestments.client.bend.ArmIk.UPPER + com.bleid.vestments.client.bend.ArmIk.LOWER;
+                tw *= MathHelper.clamp((reach + 1.5f - rel.length()) / 2.5f, 0f, 1f);
+                tw *= MathHelper.clamp((2.5f - rel.z) / 2.5f, 0f, 1f);
+                tw *= MathHelper.clamp((rel.x + 6f) / 4f, 0f, 1f);       // не тянуться через всё тело вправо
                 float[] a = new float[3];
-                float oe = com.bleid.vestments.client.bend.ArmIk.solve(grip.sub(po), POLE_L, a);
+                // локоть второй руки при хвате двумя руками смотрит вниз-наружу, а не назад
+                float oe = com.bleid.vestments.client.bend.ArmIk.solve(rel, POLE_TWO, a);
                 p.offPitch = lerpAngle(tw, p.offPitch, a[0]);
                 p.offYaw = lerpAngle(tw, p.offYaw, a[1]);
                 p.offRoll = lerpAngle(tw, p.offRoll, a[2]);

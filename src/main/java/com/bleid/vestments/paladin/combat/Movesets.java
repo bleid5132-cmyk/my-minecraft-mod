@@ -109,20 +109,20 @@ public final class Movesets {
     private static void warhammer() {
         Moveset m = new Moveset("warhammer", 2, 1.5f)
                 .trail(new float[] { 0.95f, 0.78f, 0.45f }, new float[] { 1f, 0.95f, 0.85f }, 0.55f, 0.12f, 1.2f, false);
-        Clip c1 = C(m, "c1", 1.0f, 0.1f).strike(S(0.22f, 0.3f, 0.42f, 0.68f, 80, 115, -40).heavy()
+        Clip c1 = C(m, "c1", 1.0f, 0.1f).strike(S(0.22f, 0.3f, 0.42f, 0.68f, 70, 115, -40).heavy()
                 .dmg(1f).kb(0.6f).targets(2).hitstop(2).shake(0.2f));
         c1.lean.key(0, 0).key(0.3f, -8).key(0.42f, 14).key(1.0f, 0);
         c1.stance.key(0, 0).key(0.42f, 1).key(1.0f, 0);
         c1.step(0.28f, 0.42f, 0.4f);
         Clip c2 = C(m, "c2", 0.85f, 0.08f).strike(S(0.16f, 0.22f, 0.34f, 0.58f, 8, 95, -85).dmg(1f).kb(0.7f).targets(3).hitstop(1));
         c2.spin.key(0, 0).key(0.22f, 20).key(0.34f, -25).key(0.85f, 0);
-        Clip c3 = C(m, "c3", 1.0f, 0.08f).strike(S(0.24f, 0.3f, 0.42f, 0.74f, 92, -70, 120).two()
+        Clip c3 = C(m, "c3", 1.0f, 0.08f).strike(S(0.24f, 0.3f, 0.42f, 0.74f, 70, -70, 120).two()
                 .dmg(1.2f).kb(0.3f).targets(3).hitstop(2).shake(0.25f).event("launch"));
         c3.lean.key(0, 0).key(0.3f, 12).key(0.42f, -12).key(1.0f, 0);
         c3.lift.key(0, 0).key(0.3f, -0.06f).key(0.42f, 0.15f).key(1.0f, 0);
         Clip b1 = C(m, "b1", 0.85f, 0.1f).strike(S(0.16f, 0.22f, 0.34f, 0.56f, 45, 110, -60).dmg(1f).kb(0.5f).targets(2).hitstop(1));
         b1.step(0.16f, 0.34f, 0.4f);
-        Clip b2 = C(m, "b2", 1.05f, 0.08f).strike(S(0.28f, 0.36f, 0.48f, 0.8f, 90, 140, -45).heavy().two()
+        Clip b2 = C(m, "b2", 1.05f, 0.08f).strike(S(0.28f, 0.36f, 0.48f, 0.8f, 70, 140, -45).heavy().two()
                 .dmg(1.4f).kb(0.8f).targets(4).width(0.6f).hitstop(3).shake(0.35f).event("crush"));
         b2.lean.key(0, 0).key(0.36f, -12).key(0.48f, 18).key(1.05f, 0);
         b2.lift.key(0, 0).key(0.36f, 0.08f).key(0.48f, -0.08f).key(1.05f, 0);
@@ -130,11 +130,11 @@ public final class Movesets {
                 .dmg(1.2f).kb(1.1f).targets(3).width(0.7f).hitstop(2).shake(0.3f));
         dash.step(0.06f, 0.28f, 1.4f);
         dash.lean.key(0, 0).key(0.28f, 14).key(0.85f, 0);
-        Clip air = C(m, "air", 0.9f, 0.08f).strike(S(0.1f, 0.16f, 0.3f, 0.6f, 92, 130, -70).heavy()
+        Clip air = C(m, "air", 0.9f, 0.08f).strike(S(0.1f, 0.16f, 0.3f, 0.6f, 70, 130, -70).heavy()
                 .dmg(1.4f).kb(0.6f).targets(4).hitstop(2).shake(0.35f).event("shock"));
         air.lean.key(0, 0).key(0.3f, 20).key(0.9f, 0);
         air.lockMove = false;
-        Clip skill = C(m, "hammer_throw", 0.9f, 0.08f).strike(S(0.2f, 0.3f, 0.36f, 0.6f, 90, 140, 10).targets(0).event("hammer_throw"));
+        Clip skill = C(m, "hammer_throw", 0.9f, 0.08f).strike(S(0.2f, 0.3f, 0.36f, 0.6f, 70, 140, 10).targets(0).event("hammer_throw"));
         skill.lean.key(0, 0).key(0.3f, -12).key(0.36f, 14).key(0.9f, 0);
         skill.stance.key(0, 0).key(0.36f, 1).key(0.9f, 0);
         skill.skill = true;
@@ -153,7 +153,7 @@ public final class Movesets {
                 .dmg(1f).kb(0.9f).targets(5).width(0.7f).hitstop(2).shake(0.3f));
         c1.spin.key(0, 0).key(0.34f, 30).key(0.5f, -40).key(1.15f, 0);
         c1.stance.key(0, 0).key(0.5f, -0.6f).key(1.15f, 0);
-        Clip c2 = C(m, "c2", 1.25f, 0.08f).strike(S(0.3f, 0.4f, 0.52f, 0.9f, 90, 140, -50).heavy().two()
+        Clip c2 = C(m, "c2", 1.25f, 0.08f).strike(S(0.3f, 0.4f, 0.52f, 0.9f, 70, 140, -50).heavy().two()
                 .dmg(1.3f).kb(0.8f).targets(5).width(0.7f).hitstop(3).shake(0.5f).event("shock"));
         c2.lean.key(0, 0).key(0.4f, -14).key(0.52f, 22).key(1.25f, 0);
         c2.lift.key(0, 0).key(0.4f, 0.12f).key(0.52f, -0.1f).key(1.25f, 0);
@@ -162,7 +162,7 @@ public final class Movesets {
                 .dmg(1.2f).kb(0.9f).targets(7).width(0.75f).hitstop(2).shake(0.35f));
         c3.spin.key(0, 0).key(0.26f, 0).key(0.62f, -360).key(1.15f, -360);
         c3.stance.key(0, 0).key(0.3f, -0.5f).key(1.15f, 0);
-        Clip b1 = C(m, "b1", 1.05f, 0.1f).strike(S(0.22f, 0.3f, 0.44f, 0.72f, 90, -80, 120).two()
+        Clip b1 = C(m, "b1", 1.05f, 0.1f).strike(S(0.22f, 0.3f, 0.44f, 0.72f, 70, -80, 120).two()
                 .dmg(1.1f).kb(0.3f).targets(4).hitstop(2).shake(0.3f).event("launch"));
         b1.lean.key(0, 0).key(0.3f, 14).key(0.44f, -14).key(1.05f, 0);
         b1.lift.key(0, 0).key(0.3f, -0.08f).key(0.44f, 0.18f).key(1.05f, 0);
@@ -170,16 +170,16 @@ public final class Movesets {
                 .dmg(1.35f).kb(0.9f).targets(5).width(0.7f).hitstop(3).shake(0.5f).event("shock"));
         b2.step(0.3f, 0.5f, 0.6f);
         b2.lean.key(0, 0).key(0.36f, -10).key(0.5f, 20).key(1.2f, 0);
-        Clip dash = C(m, "dash", 1.1f, 0.06f).strike(S(0.24f, 0.36f, 0.48f, 0.8f, 90, 140, -50).heavy().two()
+        Clip dash = C(m, "dash", 1.1f, 0.06f).strike(S(0.24f, 0.36f, 0.48f, 0.8f, 70, 140, -50).heavy().two()
                 .dmg(1.4f).kb(1f).targets(6).width(0.8f).hitstop(3).shake(0.55f).event("shock"));
         dash.leap(0.1f, 0.5f, 0.32f, -0.9f);
         dash.step(0.08f, 0.48f, 1.4f);
         dash.lean.key(0, 0).key(0.36f, -12).key(0.48f, 22).key(1.1f, 0);
-        Clip air = C(m, "air", 1.0f, 0.08f).strike(S(0.1f, 0.16f, 0.3f, 0.6f, 92, 130, -70).heavy().two()
+        Clip air = C(m, "air", 1.0f, 0.08f).strike(S(0.1f, 0.16f, 0.3f, 0.6f, 70, 130, -70).heavy().two()
                 .dmg(1.6f).kb(0.8f).targets(6).hitstop(3).shake(0.5f).event("shock"));
         air.lean.key(0, 0).key(0.3f, 22).key(1.0f, 0);
         air.lockMove = false;
-        Clip skill = C(m, "heaven_crush", 1.4f, 0.08f).strike(S(0.36f, 0.46f, 0.58f, 1.0f, 90, 150, -60).heavy().two()
+        Clip skill = C(m, "heaven_crush", 1.4f, 0.08f).strike(S(0.36f, 0.46f, 0.58f, 1.0f, 70, 150, -60).heavy().two()
                 .dmg(2f).kb(1.2f).targets(8).width(0.9f).hitstop(4).shake(0.9f).event("heaven_crush"));
         skill.leap(0.12f, 0.9f, 0.48f, -1.5f);
         skill.lean.key(0, 0).key(0.2f, -10).key(0.46f, -14).key(0.58f, 24).key(1.4f, 0);
@@ -241,7 +241,7 @@ public final class Movesets {
                 .trail(new float[] { 0.85f, 0.8f, 0.7f }, new float[] { 1f, 0.94f, 0.8f }, 0.55f, 0.16f, 0.9f, false);
         Clip c1 = C(m, "c1", 0.85f, 0.1f).strike(S(0.16f, 0.22f, 0.38f, 0.58f, 4, 110, -110).dmg(1f).kb(0.5f).targets(3).width(0.6f));
         c1.spin.key(0, 0).key(0.22f, 22).key(0.38f, -28).key(0.85f, 0);
-        Clip c2 = C(m, "c2", 0.95f, 0.08f).strike(S(0.2f, 0.26f, 0.38f, 0.64f, 90, 140, -40).heavy()
+        Clip c2 = C(m, "c2", 0.95f, 0.08f).strike(S(0.2f, 0.26f, 0.38f, 0.64f, 70, 140, -40).heavy()
                 .dmg(1.2f).kb(0.6f).targets(2).hitstop(2).shake(0.25f));
         c2.lean.key(0, 0).key(0.26f, -10).key(0.38f, 16).key(0.95f, 0);
         c2.stance.key(0, 0).key(0.38f, 1).key(0.95f, 0);
@@ -251,12 +251,12 @@ public final class Movesets {
         c3.spin.key(0, 0).key(0.14f, -20).key(0.26f, 22).key(0.42f, 20).key(0.56f, -26).key(0.95f, 0);
         Clip b1 = C(m, "b1", 1.0f, 0.08f).strike(S(0.16f, 0.2f, 0.52f, 0.7f, -6, 95, -275).dmg(1.1f).kb(0.6f).targets(6).width(0.65f));
         b1.spin.key(0, 0).key(0.2f, 0).key(0.52f, -360).key(1.0f, -360);
-        Clip b2 = C(m, "b2", 0.9f, 0.08f).strike(S(0.18f, 0.24f, 0.36f, 0.6f, 90, -70, 120).dmg(1.1f).kb(0.3f)
+        Clip b2 = C(m, "b2", 0.9f, 0.08f).strike(S(0.18f, 0.24f, 0.36f, 0.6f, 70, -70, 120).dmg(1.1f).kb(0.3f)
                 .targets(3).hitstop(2).shake(0.2f).event("launch"));
         b2.lean.key(0, 0).key(0.24f, 10).key(0.36f, -10).key(0.9f, 0);
         Clip dash = C(m, "dash", 0.85f, 0.06f).strike(S(0.1f, 0.14f, 0.3f, 0.52f, 8, 100, -100).dmg(1.2f).kb(0.8f).targets(4).width(0.6f).hitstop(1));
         dash.step(0.06f, 0.3f, 1.0f);
-        Clip air = C(m, "air", 0.9f, 0.08f).strike(S(0.1f, 0.16f, 0.3f, 0.6f, 92, 130, -70).heavy()
+        Clip air = C(m, "air", 0.9f, 0.08f).strike(S(0.1f, 0.16f, 0.3f, 0.6f, 70, 130, -70).heavy()
                 .dmg(1.45f).kb(0.6f).targets(4).hitstop(2).shake(0.35f).event("shock"));
         air.lean.key(0, 0).key(0.3f, 20).key(0.9f, 0);
         air.lockMove = false;
