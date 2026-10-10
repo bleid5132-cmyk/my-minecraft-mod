@@ -39,6 +39,7 @@ public final class Locomotion {
         float move, run, air, rise;
         float fwdSpeed, accelLean, bank, prevBodyYaw = Float.NaN;
         float land, airVy;
+        float phase;                 // своя фаза шага — по пройденному пути (стопа не скользит)
         boolean wasAir;
         long frameNanos;
         Loco cached, smooth;
@@ -127,9 +128,17 @@ public final class Locomotion {
         boolean holding = !p.getMainHandStack().isEmpty();
         boolean rightHanded = p.getMainArm() == net.minecraft.util.Arm.RIGHT;
 
-        float ph = limbPos * 0.6662f;
-        float c = MathHelper.cos(ph), sinP = MathHelper.sin(ph), sn = Math.abs(sinP);
         float amp = MathHelper.clamp(0.45f + limbSpeed * 0.9f, 0.45f, 1f);     // медленно — короче шаг
+        // фаза шага от пройденного пути: за время опоры стопа проходит под телом ровно столько,
+        // сколько прошло тело, — стопа «прилипает» к земле, а не скользит (длина цикла D = 3·sin A)
+        float aWalk = 0.62f * amp, aRun = 0.9f;
+        float aNow = MathHelper.lerp(s.run, aWalk, aRun);
+        float cycle = Math.max(0.6f, 3.3f * MathHelper.sin(aNow));
+        if (onGround && dt > 0) s.phase += (float) (2 * Math.PI) * hSpeed * dt * 20f / cycle;
+        else if (dt > 0 && hSpeed > 0.01f) s.phase += (float) (2 * Math.PI) * hSpeed * dt * 20f / cycle * 0.5f;
+        s.phase %= (float) (Math.PI * 200);
+        float ph = s.phase;
+        float c = MathHelper.cos(ph), sinP = MathHelper.sin(ph), sn = Math.abs(sinP);
         // перенос ноги (идёт вперёд): колено сгибается сильнее всего в середине переноса;
         // опора: лёгкий сгиб при постановке стопы (амортизация)
         float swR = Math.max(0f, -sinP), swL = Math.max(0f, sinP);
@@ -139,17 +148,17 @@ public final class Locomotion {
         float fR = Math.max(0f, -c), fL = Math.max(0f, c);
         float age = e.age + tickDelta;
         float breath = MathHelper.sin(age * 0.09f);
-        float shift = MathHelper.sin(age * 0.035f + e.getId());          // перенос веса, ~9 с
+        float shift = MathHelper.sin(age * 0.02f + e.getId()) * 0.6f;    // спокойный перенос веса, ~16 с
         float shiftR = Math.max(0f, shift), shiftL = Math.max(0f, -shift);
-        float sway = MathHelper.sin(age * 0.05f + 1.7f);                  // лёгкое покачивание оружия в стойке
+        float sway = MathHelper.sin(age * 0.04f + 1.7f) * 0.4f;           // едва заметное покачивание оружия
 
         // ---------------- покой
         Loco I = new Loco();
         if (armed) {                              // боевая стойка паладина
             I.bob = -0.004f * (1f + breath);          // дыхание: только чуть «оседает», не отрывая стоп
-            I.turn = -16f + 1.5f * sway;
+            I.turn = -16f + 0.5f * sway;
             I.lean = 3f + 0.6f * breath;
-            I.roll = 0.8f * shift;
+            I.roll = 0.25f * shift;
             I.body = 0.06f + 0.02f * sway;
             // передняя (левая) нога: бедро вперёд, голень вертикальна — стопа стоит плашмя;
             // задняя (правая): отставлена назад, пятка чуть приподнята
@@ -157,11 +166,11 @@ public final class Locomotion {
             I.rLeg = 0.16f; I.lLeg = -I.kL; I.rLegR = 0.06f; I.lLegR = -0.07f;
         } else {                                  // расслабленно: вес то на одной, то на другой ноге
             I.bob = -0.003f * (1f + breath);
-            I.turn = 3f * shift;
+            I.turn = 0.8f * shift;
             I.lean = 1.2f + 0.5f * breath;
-            I.roll = 1.8f * shift;
-            I.body = 0.05f * shift;
-            I.kR = 0.04f + 0.24f * shiftL; I.kL = 0.04f + 0.24f * shiftR;
+            I.roll = 0.5f * shift;
+            I.body = 0.015f * shift;
+            I.kR = 0.04f + 0.12f * shiftL; I.kL = 0.04f + 0.12f * shiftR;
             // согнутое колено уходит вперёд, голень почти вертикальна — подошва на земле
             I.rLeg = -I.kR * 0.9f + 0.02f * shift; I.lLeg = -I.kL * 0.9f - 0.02f * shift;
             I.rLegR = 0.035f + 0.02f * shiftL; I.lLegR = -0.035f - 0.02f * shiftR;
@@ -187,10 +196,12 @@ public final class Locomotion {
         W.lean = 4.5f;
         W.turn = (armed ? -6f : 0f) - 4f * c * amp;           // таз поворачивается за выносимой ногой
         W.roll = 1.6f * sinP * amp;
-        W.rLeg = (-0.12f - 0.52f * c) * amp;
-        W.lLeg = (-0.12f + 0.52f * c) * amp;
-        W.kR = 0.08f + (0.95f * kR + 0.14f * stR) * amp;
-        W.kL = 0.08f + (0.95f * kL + 0.14f * stL) * amp;
+        W.rLeg = -0.08f * amp - aWalk * c;
+        W.lLeg = -0.08f * amp + aWalk * c;
+        // опорная нога: пока бедро впереди, колено сгибается ровно настолько, чтобы голень стояла
+        // вертикально — подошва лежит на земле плашмя (у нас нет голеностопа)
+        W.kR = 0.05f + 0.95f * kR * amp + 0.95f * Math.max(0f, -W.rLeg) * stanceW(sinP);
+        W.kL = 0.05f + 0.95f * kL * amp + 0.95f * Math.max(0f, -W.lLeg) * stanceW(-sinP);
         W.body = (armed ? 0.22f : 0.17f) * c * amp;           // плечи — навстречу тазу
         if (sword) {
             W.rP = -0.24f + 0.22f * c * amp - 0.1f * fR; W.rY = 0.16f * c * amp - 0.08f; W.rR = 0.12f; W.eR = 0.36f + 0.18f * fR;
@@ -210,10 +221,10 @@ public final class Locomotion {
         R.lean = armed ? 22f : 16f;
         R.turn = -6f * c;
         R.roll = 1.4f * sinP;
-        R.rLeg = -0.25f - 0.88f * c;
-        R.lLeg = -0.25f + 0.88f * c;
-        R.kR = 0.2f + 1.55f * kR + 0.25f * stR;
-        R.kL = 0.2f + 1.55f * kL + 0.25f * stL;
+        R.rLeg = -0.2f - aRun * c;
+        R.lLeg = -0.2f + aRun * c;
+        R.kR = 0.15f + 1.55f * kR + 0.9f * Math.max(0f, -R.rLeg) * stanceW(sinP);
+        R.kL = 0.15f + 1.55f * kL + 0.9f * Math.max(0f, -R.lLeg) * stanceW(-sinP);
         R.body = 0.24f * c;
         if (sword) {
             R.rP = 0.42f + 0.34f * c; R.rY = -0.18f; R.rR = 0.36f; R.eR = 0.5f + 0.2f * fR;
@@ -283,6 +294,11 @@ public final class Locomotion {
      * Насколько стопа поднялась над землёй (пиксели модели) при наклоне бедра th и сгибе колена k:
      * бедро и голень по 6 пикселей, голень отклонена от вертикали на th + k.
      */
+    /** Вес опорной фазы ноги (sin фазы > 0 — нога идёт назад под телом). */
+    private static float stanceW(float sinP) {
+        return MathHelper.clamp(sinP * 2f + 0.5f, 0f, 1f);
+    }
+
     public static float footDrop(float th, float k) {
         // самая нижняя точка стопы — край подошвы (стопа 4 пикселя в глубину, наклонена вместе с голенью)
         float phi = th + k;
