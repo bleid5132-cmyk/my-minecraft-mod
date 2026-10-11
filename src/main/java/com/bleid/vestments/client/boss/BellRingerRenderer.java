@@ -41,11 +41,13 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
             HAMX = 19, BX = 20, BZ = 21, LIFT = 22, N = 23;
     private static final float[] OMEGA = { 15, 15, 15, 16, 16, 16, 16, 16, 16, 17, 17, 17, 14, 14, 17, 17, 17, 14, 14, 12, 9, 9, 15 };
 
-    private static final Vector3f BELL_REST = new Vector3f(0, 55, -18);
+    private static final Vector3f BELL_REST = new Vector3f(0, 97, 15);
+    /** Тело слеплено в старых пропорциях и увеличено в 1,4 раза — смещения таза умножаются на это же. */
+    private static final float BODY = 1.4f;
 
     public BellRingerRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
-        shadowRadius = 1.5f;
+        shadowRadius = 2.0f;
         shadowOpacity = 0.8f;
     }
 
@@ -120,6 +122,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         if (!dying) attackPose(e, a, k, p, sp);
         else dyingPose(d, p);
 
+        p[LIFT] *= BODY;
         Springs.step(sp, p, OMEGA, 0.8f);
 
         // ---- повороты частей
@@ -132,7 +135,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         rot[SHIN_R].set(p[SHR], 0, 0);
         rot[THIGH_L].set(p[THL], 0, 0);
         rot[SHIN_L].set(p[SHL], 0, 0);
-        rot[HEAD].set(p[HX], p[HY], 0);
+        rot[HEAD].set(p[HX] * 0.35f, p[HY], 0);
         rot[ARM_R].set(p[ARX], p[ARY], p[ARZ]);
         rot[FORE_R].set(p[FR], 0, 0);
         rot[HAND_R].set(p[HR], 0, 0);
@@ -140,7 +143,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         rot[ARM_L].set(p[ALX], p[ALY], p[ALZ]);
         rot[FORE_L].set(p[FL], 0, 0);
         rot[HAND_L].set(p[HL], 0, 0);
-        rot[BELL].set(p[BX], 0, p[BZ]);
+        rot[BELL].set(p[BX] + p[HX] * 0.35f, p[HY], p[BZ]);
         Matrix4f[] mats = m.pose(rot, sc);
         float lift = p[LIFT];
 
@@ -161,18 +164,18 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
                 s = s * s;
                 Vector3f piv = m.parts.get(HAMMER).pivot;
                 Vector3f hand = mats[HAMMER].transformPosition(new Vector3f(piv));
-                Vector3f g = new Vector3f(-16, 5 - lift, 15);
+                Vector3f g = new Vector3f(-22, 7 - lift, 21);
                 float bounce = d > 17 ? MathHelper.sin((d - 17) * 0.9f) * 6f * Math.max(0, 1 - (d - 17) / 10f) : 0;
                 mats[HAMMER] = new Matrix4f().translate(new Vector3f(hand).lerp(g, s)).rotateX((float) Math.toRadians(-88 * s + bounce))
                         .translate(-piv.x, -piv.y, -piv.z);
             }
             if (d >= D_BELL) {
-                float s = MathHelper.clamp((d - D_BELL) / 4.5f, 0f, 1f);
-                s = s * s;
-                float wob = d > D_BELL + 4.5f ? MathHelper.sin((d - D_BELL - 4.5f) * 0.7f) * 7f * Math.max(0, 1 - (d - D_BELL - 4.5f) / 18f) : 0;
-                float dy = -(34 + lift) * s, dz = -8 * s;
-                bellM = new Matrix4f().translate(0, dy, dz).translate(0, 34, -18).rotateX((float) Math.toRadians(wob))
-                        .translate(0, -34, 18);
+                float s = MathHelper.clamp((d - D_BELL) / 6f, 0f, 1f);
+                float arc = MathHelper.sin(s * MathHelper.PI);
+                float wob = d > D_BELL + 6 ? MathHelper.sin((d - D_BELL - 6) * 0.7f) * 7f * Math.max(0, 1 - (d - D_BELL - 6) / 18f) : 0;
+                float dy = -(80 + lift) * s * s + 14 * arc, dz = -50 * s;
+                bellM = new Matrix4f().translate(0, dy, dz).translate(0, 80, 15).rotateX((float) Math.toRadians(-75 * arc + wob))
+                        .translate(0, -80, -15);
             }
         }
         if (bellM != null) {
@@ -187,9 +190,9 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
             exempt[BELL] = true;
             if (BELL_G >= 0) exempt[BELL_G] = true;
             exempt[HAMMER] = true;
-            if (d >= D_ASH) stoneY = -6 + 90 * sm((d - D_ASH) / 9f);
-            if (d >= D_ASH + 6) crumbleY = 80 - 72 * sm((d - D_ASH - 6) / 16f);
-            if (d >= 150) crumbleY = 8 - 10 * sm((d - 150) / 50f);
+            if (d >= D_ASH) stoneY = -6 + 126 * sm((d - D_ASH) / 9f);
+            if (d >= D_ASH + 6) crumbleY = 112 - 100 * sm((d - D_ASH - 6) / 16f);
+            if (d >= 150) crumbleY = 12 - 14 * sm((d - 150) / 50f);
             if (d >= D_SPAWN + 1) {
                 hide[BELL] = true;
                 if (BELL_G >= 0) hide[BELL_G] = true;
@@ -208,13 +211,13 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
 
         // ---- цепи
         Matrix4f ent = new Matrix4f().rotateY((float) Math.toRadians(-bodyYaw)).scale(1 / 16f).translate(0, lift, 0);
-        Vector3f hand = new Matrix4f(ent).mul(mats[HAND_L]).transformPosition(new Vector3f(14, 22, 13));
+        Vector3f hand = new Matrix4f(ent).mul(mats[HAND_L]).transformPosition(new Vector3f(19.6f, 28, 17.5f));
         if (!dying && a == CHAINS && e.chainState() != 0) {
             Vec3d c = e.chainPos().subtract(e.getLerpedPos(td));
             drawChain(ms, vcp, hand, new Vector3f((float) c.x, (float) c.y, (float) c.z), light, 0.11f);
         }
         if (bellM != null && a == SWING) {
-            Vector3f top = new Matrix4f(ent).mul(bellM).transformPosition(new Vector3f(0, 76, -18));
+            Vector3f top = new Matrix4f(ent).mul(bellM).transformPosition(new Vector3f(0, 122, 15));
             drawChain(ms, vcp, hand, top, light, 0.12f);
         }
         super.render(e, yaw, td, ms, vcp, light);
@@ -224,20 +227,21 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         switch (a) {
             case SMASH -> {
                 float w1 = sm(k / 12f) * (1 - sm((k - 13) / 4f));
-                mix(p, w1, TX, -6, TY, -15, ARX, -175, ARZ, 10, FR, -42, ALX, -165, ALZ, -24, FL, -38, LIFT, -2, HX, -16, HAMX, 0);
+                mix(p, w1, TX, -6, TY, -15, ARX, -175, ARZ, 10, FR, -42, ALX, -40, ALZ, 35, FL, -30, LIFT, -2, HX, -16, HAMX, 0);
                 float w2 = sm((k - 13) / 4f) * (1 - sm((k - 32) / 16f));
-                mix(p, w2, TX, 30, TY, 5, ARX, -68, ARZ, 6, FR, -5, ALX, -60, ALZ, -22, FL, -12, LIFT, -5,
+                mix(p, w2, TX, 30, TY, 5, ARX, -60, ARZ, 6, FR, -5, ALX, -30, ALZ, 28, FL, -20, LIFT, -5,
                         THR, -25, SHR, 30, THL, -12, SHL, 18, HX, -22, HAMX, 0);
             }
             case TOLL -> {
-                float w1 = sm(k / 10f) * (1 - sm((k - 9) / 4f));
-                mix(p, w1, TY, 20, ARX, -130, FR, -22, TX, -2, HX, -12);
+                float w1 = sm(k / 9f) * (1 - sm((k - 9) / 4f));
+                mix(p, w1, TX, -6, TY, -25, ALX, 1.8f, ALY, 11, ALZ, 37, FL, -143.5f, HX, -10, ARX, -20, ARZ, -14);
                 float w2 = sm((k - 9) / 4f) * (1 - sm((k - 22) / 20f));
-                mix(p, w2, TX, -12, TY, -10, ARX, -206, ARZ, 8, FR, -62, HX, 12, ALX, 20, ALZ, 20);
+                mix(p, w2, TX, 14, TY, -16, ALX, 1.9f, ALY, -1, ALZ, 38, FL, -160, HX, 6, ARX, -14, ARZ, -18, LIFT, -2);
+                if (k > 9 && k <= 14) p[BX] += 22 * sm((k - 9) / 4f);
                 if (k > 14) {
                     float q = k - 14;
-                    p[BX] += 18 * MathHelper.sin(q * 0.55f) * (float) Math.exp(-q * 0.07f);
-                    p[BZ] += 5 * MathHelper.sin(q * 0.8f) * (float) Math.exp(-q * 0.1f);
+                    p[BX] += 22 * MathHelper.cos(q * 0.55f) * (float) Math.exp(-q * 0.06f);
+                    p[BZ] += 6 * MathHelper.sin(q * 0.8f) * (float) Math.exp(-q * 0.1f);
                 }
             }
             case CHAINS -> {
@@ -269,10 +273,10 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
                 float w0 = sm(k / 8f) * (1 - sm((k - 10) / 3f));
                 mix(p, w0, LIFT, -9, THR, -50, SHR, 62, THL, -50, SHL, 62, TX, 24, ARX, -40, ALX, -36, HX, -24);
                 float air = sm((k - 10) / 4f) * (sp.mark < 0 ? 1 : 1 - sm((k - sp.mark) / 2f));
-                mix(p, air, ARX, -172, FR, -44, ALX, -150, ALZ, -20, FL, -40, THR, -34, SHR, 52, THL, -20, SHL, 40, TX, -8, HX, -18);
+                mix(p, air, ARX, -172, FR, -44, ALX, -60, ALZ, 40, FL, -30, THR, -34, SHR, 52, THL, -20, SHL, 40, TX, -8, HX, -18);
                 if (sp.mark >= 0) {
                     float w = sm((k - sp.mark) / 2f) * (1 - sm((k - sp.mark - 6) / 10f));
-                    mix(p, w, TX, 30, ARX, -68, FR, -5, ALX, -60, ALZ, -22, FL, -12, LIFT, -7, THR, -30, SHR, 36, THL, -30, SHL, 36, HX, -22);
+                    mix(p, w, TX, 30, ARX, -60, FR, -5, ALX, -30, ALZ, 28, FL, -20, LIFT, -7, THR, -30, SHR, 36, THL, -30, SHL, 36, HX, -22);
                 }
             }
             default -> { }

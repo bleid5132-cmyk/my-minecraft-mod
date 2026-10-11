@@ -162,8 +162,7 @@ public final class BellBossClient {
                 }
                 spawn(RING, p.x, p.y, p.z).size(0.8f, 4.5f).ease().color(WHITE).life(10).fade(0f, 0.8f);
                 spawn(RING, p.x, p.y, p.z).delay(3).size(0.6f, 3.4f).ease().color(CANDLE).life(10).fade(0f, 0.8f);
-                Vec3d safe = e.local(0, 0, -1.1);
-                spawn(ORB, safe.x, gy - 0.04, safe.z).mode(Mode.FLAT).size(2.6f).color(CANDLE).alpha(0.18f).life(24).fade(0.1f, 0.5f);
+                spawn(ORB, e.getX(), gy - 0.04, e.getZ()).mode(Mode.FLAT).size(2.6f).color(CANDLE).alpha(0.18f).life(24).fade(0.1f, 0.5f);
                 for (int i = 0; i < 6; i++) {
                     double ang = rr(0, Math.PI * 2);
                     spawn(GLINT, p.x, p.y, p.z).vel(Math.cos(ang) * 0.2, rr(0, 0.15), Math.sin(ang) * 0.2).drag(0.9f).size(0.25f, 0.05f).color(WHITE).life(16);
@@ -220,9 +219,9 @@ public final class BellBossClient {
             case BellRingerEntity.E_ASH -> {
                 task(age -> {
                     if (!e.isAlive()) return false;
-                    double top = 4.6 - age * 0.18;
+                    double top = 6.8 - age * 0.26;
                     for (int i = 0; i < 6; i++) {
-                        double ang = rr(0, Math.PI * 2), r = rr(0, 1.0);
+                        double ang = rr(0, Math.PI * 2), r = rr(0, 1.4);
                         spawn(SMOKE, e.getX() + Math.cos(ang) * r, e.getY() + rr(0.3, Math.max(0.6, top)), e.getZ() + Math.sin(ang) * r)
                                 .vel(rr(-0.02, 0.02), rr(-0.03, 0.04), rr(-0.02, 0.02)).gravity(-0.002f).drag(0.95f)
                                 .size(0.25f, 0.8f).color(ASH).alpha(0.5f).life(40 + R().nextInt(20));
@@ -233,7 +232,7 @@ public final class BellBossClient {
                 });
             }
             case BellRingerEntity.E_RAGE -> {
-                Vec3d h = e.local(0, 4.1, 1.1);
+                Vec3d h = e.local(0, 5.94, 1.36);
                 spawn(FLARE, h.x, h.y, h.z).size(2.4f, 0.4f).color(CANDLE).life(10);
                 for (int i = 0; i < 24; i++) {
                     spawn(FLAME, h.x, h.y, h.z).vel(rr(-0.2, 0.2), rr(0, 0.25), rr(-0.2, 0.2)).drag(0.9f).size(0.2f, 0.05f).colors(CANDLE, EMBER).life(16);
@@ -249,19 +248,19 @@ public final class BellBossClient {
             // свечные глаза в пустоте капюшона
             if (e.age % 2 == 0) {
                 for (int s = -1; s <= 1; s += 2) {
-                    Vec3d h = e.local(s * 0.17, 4.12, 1.15);
+                    Vec3d h = e.local(s * 0.2, 5.98, 1.36);
                     spawn(FLAME, h.x + rr(-0.02, 0.02), h.y, h.z + rr(-0.02, 0.02)).vel(0, 0.012, 0).size(0.07f, 0.02f)
                             .colors(CANDLE, EMBER).life(6 + r.nextInt(4)).fade(0.1f, 0.5f);
                 }
             }
             if (e.rage() && e.age % 3 == 0) {
-                Vec3d h = e.local(rr(-0.5, 0.5), rr(1.5, 4), rr(-0.6, 0.8));
+                Vec3d h = e.local(rr(-0.7, 0.7), rr(2, 5.5), rr(-0.8, 1.1));
                 spawn(ORB, h.x, h.y, h.z).vel(0, 0.03, 0).size(0.05f, 0.01f).color(EMBER).life(20);
             }
         }
         // пепел осыпается с рясы
         if (!e.dying() && e.age % 4 == 0) {
-            Vec3d h = e.local(rr(-0.8, 0.8), rr(0.5, 3.5), rr(-0.8, 0.6));
+            Vec3d h = e.local(rr(-1.1, 1.1), rr(0.5, 5), rr(-1.1, 0.9));
             spawn(SMOKE, h.x, h.y, h.z).vel(0, -0.01, 0).size(0.08f, 0.2f).color(ASH).alpha(0.45f).life(30);
         }
         // след колокола при размахе

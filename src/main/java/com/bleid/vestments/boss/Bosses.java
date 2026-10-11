@@ -38,7 +38,7 @@ public final class Bosses {
     public static final EntityType<BellRingerEntity> BELL_RINGER = Registry.register(Registries.ENTITY_TYPE,
             new Identifier(Vestments.MOD_ID, "bell_ringer"),
             FabricEntityTypeBuilder.<BellRingerEntity>create(SpawnGroup.MONSTER, BellRingerEntity::new)
-                    .dimensions(EntityDimensions.fixed(2.4f, 4.8f)).fireImmune().trackRangeBlocks(96).trackedUpdateRate(2).build());
+                    .dimensions(EntityDimensions.fixed(3.0f, 7.4f)).fireImmune().trackRangeBlocks(96).trackedUpdateRate(2).build());
 
     public static final EntityType<SilentBellEntity> SILENT_BELL = Registry.register(Registries.ENTITY_TYPE,
             new Identifier(Vestments.MOD_ID, "silent_bell"),

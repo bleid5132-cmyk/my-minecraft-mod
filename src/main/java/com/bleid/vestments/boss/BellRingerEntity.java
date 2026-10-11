@@ -31,8 +31,8 @@ import org.joml.Vector3f;
 
 /**
  * Звонарь Безмолвного Собора — первая стадия. Сгорбленный великан в пепельной рясе с бронзовой кувалдой
- * и треснувшим колоколом на цепях за спиной.
- * Удар молотом с трещиной (через секунду по ней проходит волна), набат (звуковое кольцо; под колоколом безопасно),
+ * и треснувшим колоколом на цепях вместо головы.
+ * Удар молотом с трещиной (через секунду по ней проходит волна), набат (рвёт колокол-голову рукой — звуковое кольцо; вплотную безопасно),
  * цепь-гарпун (подтягивает к удару; ломается, если ударить по ней в полёте), после половины здоровья —
  * погребальный размах колоколом по кругу и прыжки. Смерть — тишина и пробуждение Колокола.
  */
@@ -225,7 +225,7 @@ public class BellRingerEntity extends BossBase {
             begin(TOLL);
             return;
         }
-        if (d < 5.0) {
+        if (d < 6.0) {
             begin(SMASH);
             return;
         }
@@ -267,7 +267,7 @@ public class BellRingerEntity extends BossBase {
         if (k <= 13 && t != null) faceTarget(t, 10f);
         if (k == 10) sound(SoundEvents.ENTITY_WARDEN_ATTACK_IMPACT, 1.5f, 0.5f);
         if (k == 18) {
-            Vec3d p = local(0.75, 0, 3.2);
+            Vec3d p = local(0.35, 0, 4.65);
             p = new Vec3d(p.x, ground(p), p.z);
             for (LivingEntity e : enemies(new Box(p, p).expand(2.4, 2.6, 2.4))) {
                 if (hdist(e.getPos(), p) > 2.4) continue;
@@ -315,15 +315,14 @@ public class BellRingerEntity extends BossBase {
         if (k == 14) {
             sound(SoundEvents.BLOCK_BELL_USE, 5f, 0.5f);
             sound(SoundEvents.BLOCK_BELL_RESONATE, 4f, 0.6f);
-            event(E_TOLL, local(0, 3.4, -1.1), 0);
+            event(E_TOLL, local(0, 6.1, 0.94), 0);
         }
         if (k >= 14 && k <= 29) {
             double r = (k - 14) * 0.75 + 0.6;
-            Vec3d safe = local(0, 0, -1.1);
             for (LivingEntity e : enemies(getBoundingBox().expand(r + 1, 3, r + 1))) {
                 double hd = hdist(e.getPos(), getPos());
                 if (hd < r - 0.9 || hd > r + 0.3 || hit.contains(e.getId())) continue;
-                if (hdist(e.getPos(), safe) < 2.4) continue;          // под колоколом звук не задевает
+                if (hd < 2.6) continue;                                // прямо под колоколом-головой звук не задевает
                 hit.add(e.getId());
                 e.damage(getDamageSources().mobAttack(this), 8f);
                 e.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 100, 0), this);
@@ -337,7 +336,7 @@ public class BellRingerEntity extends BossBase {
         int st = chainState();
         if (k <= 10 && t != null) faceTarget(t, 12f);
         if (k == 10 && t != null) {
-            chainPos = local(-0.9, 2.3, 1.3);
+            chainPos = local(-0.8, 5.0, 3.0);
             Vec3d aim = t.getPos().add(0, t.getHeight() * 0.55, 0);
             chainVel = aim.subtract(chainPos).normalize().multiply(1.3);
             chainDist = 0;
@@ -388,7 +387,7 @@ public class BellRingerEntity extends BossBase {
                 setChain(0, null);
                 return;
             }
-            Vec3d dst = getPos().add(forward().multiply(2.4));
+            Vec3d dst = getPos().add(forward().multiply(4.4));
             Vec3d to = dst.subtract(v.getPos());
             double d = Math.sqrt(to.x * to.x + to.z * to.z);
             if (d < 1.3 || chainTicks > 26) {
@@ -462,8 +461,8 @@ public class BellRingerEntity extends BossBase {
                 landTick = k;
                 setVelocity(0, getVelocity().y, 0);
                 Vec3d p = getPos();
-                for (LivingEntity e : enemies(getBoundingBox().expand(4.2, 2, 4.2))) {
-                    if (hdist(e.getPos(), p) > 4.2) continue;
+                for (LivingEntity e : enemies(getBoundingBox().expand(5, 2, 5))) {
+                    if (hdist(e.getPos(), p) > 5) continue;
                     e.damage(getDamageSources().mobAttack(this), 14f);
                     knock(e, 1.2, 0.6);
                 }
@@ -523,18 +522,18 @@ public class BellRingerEntity extends BossBase {
         setVelocity(0, getVelocity().y, 0);
         if (k % 10 == 0) forgetMe();
         if (k == D_HAMMER) {
-            Vec3d p = local(0.9, 0, 2.0);
+            Vec3d p = local(1.4, 0, 2.75);
             soundAt(p, SoundEvents.BLOCK_ANVIL_LAND, 1.4f, 0.35f);
             event(E_HAMMER_DROP, p, 0);
         }
         if (k >= 25 && k <= 55 && (k - 25) % 10 == 0) {
             int i = (k - 25) / 10;
-            Vec3d p = local(i % 2 == 0 ? -0.7 : 0.7, 3.6 - i * 0.25, -0.7);
+            Vec3d p = local(i % 2 == 0 ? -0.9 : 0.9, 5.8 - i * 0.2, 0.4);
             soundAt(p, SoundEvents.BLOCK_CHAIN_BREAK, 2.5f, 0.45f + i * 0.08f);
             event(E_SNAP, p, i);
         }
         if (k == D_BELL + 4) {
-            Vec3d p = local(0, 0, -1.6);
+            Vec3d p = local(0, 0, -2.2);
             soundAt(p, SoundEvents.BLOCK_ANVIL_LAND, 1.2f, 0.3f);
             event(E_BELL_FALL, p, 0);
         }
@@ -543,7 +542,7 @@ public class BellRingerEntity extends BossBase {
         if (k == D_SPAWN && getWorld() instanceof net.minecraft.server.world.ServerWorld sw) {
             SilentBellEntity bell = Bosses.SILENT_BELL.create(sw);
             if (bell != null) {
-                Vec3d p = local(0, 0, -1.6);
+                Vec3d p = local(0, 0, -2.2);
                 bell.refreshPositionAndAngles(p.x, ground(p), p.z, getYaw(), 0);
                 bell.setYaw(getYaw());
                 bell.bodyYaw = getYaw();
