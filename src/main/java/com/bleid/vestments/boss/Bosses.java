@@ -28,6 +28,14 @@ public final class Bosses {
 
     public static void init() {
         BossEffects.init();
+        // вместо смерти Сераэль каменеет: статуя рассыпается только от удара игрока
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
+            if (entity instanceof SeraelEntity s && !s.statue()) {
+                s.petrify();
+                return false;
+            }
+            return true;
+        });
         FabricDefaultAttributeRegistry.register(SERAEL, SeraelEntity.createAttributes());
     }
 }

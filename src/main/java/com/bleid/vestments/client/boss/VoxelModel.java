@@ -106,6 +106,15 @@ public final class VoxelModel {
 
     /** Рисует все части по готовым матрицам; color — множитель цвета обычных частей. */
     public void render(MatrixStack ms, VertexConsumer vc, int light, int overlay, Matrix4f[] mats, float r, float g, float b) {
+        render(ms, vc, false, light, overlay, mats, r, g, b, -1e9f);
+    }
+
+    /**
+     * С окаменением: грани ниже высоты stoneY (в покое модели) — каменные и не светятся; так камень «ползёт» от ног
+     * к нимбу. Два прохода: stonePass = false — живые грани, true — каменные (вызывающий подаёт буфер каменной текстуры).
+     */
+    public void render(MatrixStack ms, VertexConsumer vc, boolean stonePass, int light, int overlay, Matrix4f[] mats,
+                       float r, float g, float b, float stoneY) {
         for (int i = 0; i < parts.size(); i++) {
             Part p = parts.get(i);
             ms.push();
@@ -114,14 +123,18 @@ public final class VoxelModel {
             e.getNormalMatrix().mul(new Matrix3f(mats[i]).normal());
             Matrix4f pm = e.getPositionMatrix();
             Matrix3f nm = e.getNormalMatrix();
-            int li = p.glow ? 0xF000F0 : light;
-            float cr = p.glow ? 1f : r, cg = p.glow ? 1f : g, cb = p.glow ? 1f : b;
             float[] v = p.v;
             byte[] n = p.n;
-            for (int q = 0, o = 0; q < n.length / 3; q++) {
+            for (int q = 0, o = 0; q < n.length / 3; q++, o += 20) {
                 float nx = n[q * 3], ny = n[q * 3 + 1], nz = n[q * 3 + 2];
-                for (int c = 0; c < 4; c++, o += 5) {
-                    vc.vertex(pm, v[o], v[o + 1], v[o + 2]).color(cr, cg, cb, 1f).texture(v[o + 3], v[o + 4])
+                boolean st = (v[o + 1] + v[o + 6] + v[o + 11] + v[o + 16]) * 0.25f < stoneY;
+                if (st != stonePass) continue;
+                VertexConsumer out = vc;
+                boolean gl = p.glow && !st;
+                int li = gl ? 0xF000F0 : light;
+                float cr = gl ? 1f : r, cg = gl ? 1f : g, cb = gl ? 1f : b;
+                for (int c = 0, oo = o; c < 4; c++, oo += 5) {
+                    out.vertex(pm, v[oo], v[oo + 1], v[oo + 2]).color(cr, cg, cb, 1f).texture(v[oo + 3], v[oo + 4])
                             .overlay(overlay).light(li).normal(nm, nx, ny, nz).next();
                 }
             }

@@ -24,6 +24,7 @@ import org.joml.Vector3f;
 @Environment(EnvType.CLIENT)
 public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
     private static final Identifier TEX = new Identifier("vestments", "textures/entity/serael.png");
+    private static final Identifier STONE = new Identifier("vestments", "textures/entity/serael_stone.png");
     private static final Identifier MODEL = new Identifier("vestments", "models/entity/serael.vxm");
     private static VoxelModel model;
     private static int TORSO, THIGH_R, SHIN_R, THIGH_L, SHIN_L, HEAD, HALO, ARM_R, FORE_R, HAND_R, ARM_L, FORE_L, HAND_L, WING_R, WING_L;
@@ -84,7 +85,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         float torsoX, torsoY, torsoZ, headX, headY;
         float thR, shR, thL, shL, thRZ, thLZ;
         float armRX, armRZ, foreR, handR, armLX, armLZ, foreL, handL;
-        float wingZ, wingY, wingX, haloScale = 1f, lift, pitch;
+        float wingZ, wingY, wingX, haloScale = 1f, lift, pitch, armRY;
 
         /** Плавно приблизить к позе цели с весом w. */
         void blend(Pose o, float w) {
@@ -95,18 +96,18 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             armRX = lerp(w, armRX, o.armRX); armRZ = lerp(w, armRZ, o.armRZ); foreR = lerp(w, foreR, o.foreR); handR = lerp(w, handR, o.handR);
             armLX = lerp(w, armLX, o.armLX); armLZ = lerp(w, armLZ, o.armLZ); foreL = lerp(w, foreL, o.foreL); handL = lerp(w, handL, o.handL);
             wingZ = lerp(w, wingZ, o.wingZ); wingY = lerp(w, wingY, o.wingY); wingX = lerp(w, wingX, o.wingX);
-            haloScale = lerp(w, haloScale, o.haloScale); lift = lerp(w, lift, o.lift); pitch = lerp(w, pitch, o.pitch);
+            haloScale = lerp(w, haloScale, o.haloScale); lift = lerp(w, lift, o.lift); pitch = lerp(w, pitch, o.pitch); armRY = lerp(w, armRY, o.armRY);
         }
 
         float[] arr() {
             return new float[] { torsoX, torsoY, torsoZ, headX, headY, thR, shR, thL, shL, thRZ, thLZ, armRX, armRZ, foreR, handR,
-                    armLX, armLZ, foreL, handL, wingZ, wingY, wingX, haloScale, lift, pitch };
+                    armLX, armLZ, foreL, handL, wingZ, wingY, wingX, haloScale, lift, pitch, armRY };
         }
 
         void set(float[] a) {
             torsoX = a[0]; torsoY = a[1]; torsoZ = a[2]; headX = a[3]; headY = a[4]; thR = a[5]; shR = a[6]; thL = a[7]; shL = a[8];
             thRZ = a[9]; thLZ = a[10]; armRX = a[11]; armRZ = a[12]; foreR = a[13]; handR = a[14]; armLX = a[15]; armLZ = a[16];
-            foreL = a[17]; handL = a[18]; wingZ = a[19]; wingY = a[20]; wingX = a[21]; haloScale = a[22]; lift = a[23]; pitch = a[24];
+            foreL = a[17]; handL = a[18]; wingZ = a[19]; wingY = a[20]; wingX = a[21]; haloScale = a[22]; lift = a[23]; pitch = a[24]; armRY = a[25];
         }
 
         Pose copy() {
@@ -168,13 +169,14 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             Pose base = p;
             switch (a) {
                 case SeraelEntity.SWING -> {
-                    // замах вправо двумя руками, широкий горизонтальный удар справа налево, проводка, возврат
-                    Pose wind = key(base, q -> { q.lift = -3f; q.torsoY = -38f; q.torsoX = -2f; q.thR = 8f; q.shR = 34f; q.thL = -28f; q.shL = 36f;
-                        q.armRX = -74f; q.armRZ = -34f; q.foreR = -38f; q.handR = -24f; q.armLX = -58f; q.armLZ = -24f; q.foreL = -62f; q.handL = -10f;
-                        q.wingZ = 24f; q.wingY = -6f; });
-                    Pose hit = key(base, q -> { q.lift = -3.5f; q.torsoY = 46f; q.torsoX = 10f; q.thR = -32f; q.shR = 30f; q.thL = 10f; q.shL = 26f;
-                        q.armRX = -78f; q.armRZ = 32f; q.foreR = -8f; q.handR = -6f; q.armLX = -66f; q.armLZ = 40f; q.foreL = -30f;
-                        q.wingZ = 10f; q.wingY = 30f; });
+                    // одноручный широкий взмах: рука вытянута горизонтально, клинок продолжает её линию и смотрит
+                    // на противника; замах вправо-назад, удар справа налево, левая рука уходит назад для равновесия
+                    Pose wind = key(base, q -> { q.lift = -3f; q.torsoY = -34f; q.torsoX = -2f; q.thR = 8f; q.shR = 34f; q.thL = -28f; q.shL = 36f;
+                        q.armRX = -88f; q.armRY = -80f; q.armRZ = 0f; q.foreR = -6f; q.handR = 52f;
+                        q.armLX = -55f; q.armLZ = 28f; q.foreL = -40f; q.handL = 0f; q.wingZ = 24f; q.wingY = -6f; });
+                    Pose hit = key(base, q -> { q.lift = -3.5f; q.torsoY = 44f; q.torsoX = 10f; q.thR = -32f; q.shR = 30f; q.thL = 10f; q.shL = 26f;
+                        q.armRX = -90f; q.armRY = 72f; q.armRZ = 0f; q.foreR = 0f; q.handR = 52f;
+                        q.armLX = 35f; q.armLZ = 46f; q.foreL = -25f; q.wingZ = 10f; q.wingY = 30f; });
                     p = base.copy();
                     p.blend(wind, sm(tk / 14f));
                     p.blend(hit, sm((tk - 14f) / 5f));
@@ -281,12 +283,16 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             }
         }
 
-        // ---- смерть: падает на колени, запрокидывает голову, крылья опадают
-        float death = e.deathTime > 0 ? MathHelper.clamp((e.deathTime + td) / 30f, 0f, 1f) : 0f;
-        if (death > 0) {
-            Pose d = key(p, q -> { q.lift = -16f; q.thR = -88f; q.shR = 120f; q.thL = -84f; q.shL = 118f; q.torsoX = 8f; q.headX = -42f;
-                q.armRX = -14f; q.foreR = -6f; q.armLX = 10f; q.wingZ = -32f; q.wingY = 24f; });
-            p.blend(d, death);
+        // ---- поражение: опускается на колени, вонзает клинок перед собой и каменеет от ног к нимбу
+        float st = e.statue() ? e.age - e.clientStatueStart + td : -1f;
+        float stoneY = -1e9f;
+        if (st >= 0) {
+            Pose kneel = new Pose();
+            kneel.lift = -23f; kneel.thR = -6f; kneel.shR = 92f; kneel.thL = -2f; kneel.shL = 92f; kneel.thRZ = -2f; kneel.thLZ = 2f;
+            kneel.torsoX = 12f; kneel.headX = 32f; kneel.armRX = -44f; kneel.foreR = -18f; kneel.handR = 70f;
+            kneel.armLX = -46f; kneel.armLZ = -16f; kneel.foreL = -30f; kneel.wingZ = -18f; kneel.wingY = 26f; kneel.wingX = 4f;
+            p.blend(kneel, sm(st / 18f));
+            stoneY = (st - 16f) / 40f * 130f - 6f;
         }
 
         // ---- сглаживание: каждый сустав догоняет целевую позу пружиной (без рывков между позами и атаками)
@@ -320,9 +326,9 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         rot[THIGH_L].set(p.thL, 0, p.thLZ);
         rot[SHIN_L].set(p.shL, 0, 0);
         rot[HEAD].set(p.headX, p.headY, 0);
-        rot[HALO].set(0, t * 1.6f, 0);
+        rot[HALO].set(0, (st >= 0 ? Math.min(t, e.clientStatueStart + 50) : t) * 1.6f, 0);
         sc[HALO] = p.haloScale;
-        rot[ARM_R].set(p.armRX, 0, p.armRZ);
+        rot[ARM_R].set(p.armRX, p.armRY, p.armRZ);
         rot[FORE_R].set(p.foreR, 0, 0);
         rot[HAND_R].set(p.handR, 0, 0);
         rot[ARM_L].set(p.armLX, 0, p.armLZ);
@@ -331,7 +337,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         rot[WING_L].set(p.wingX, p.wingY, p.wingZ);
         rot[WING_R].set(p.wingX, -p.wingY, -p.wingZ);
         float bodyYaw0 = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
-        if (HAIR1 >= 0) hair(e, HAIR.computeIfAbsent(e.getId(), id -> new Hair()), p, t, bodyYaw0, rot);
+        if (HAIR1 >= 0) hair(e, HAIR.computeIfAbsent(e.getId(), id -> new Hair()), p, t, bodyYaw0, rot, st > 45f);
         Matrix4f[] mats = m.pose(rot, sc);
 
         float bodyYaw = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
@@ -346,8 +352,9 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             ms.translate(0, -55, 0);
         }
         int overlay = LivingEntityRenderer.getOverlay(e, 0f);
-        float dim = 1f - 0.35f * death;
-        m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), light, overlay, mats, dim, dim, dim);
+        float dim = 1f;
+        m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), false, light, overlay, mats, dim, dim, dim, stoneY);
+        if (stoneY > -100f) m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(STONE)), true, light, overlay, mats, 1f, 1f, 1f, stoneY);
 
         ms.pop();
         super.render(e, yaw, td, ms, vcp, light);
@@ -363,11 +370,11 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         float prevYaw = Float.NaN;
     }
 
-    private static void hair(SeraelEntity e, Hair h, Pose p, float t, float bodyYaw, Vector3f[] rot) {
+    private static void hair(SeraelEntity e, Hair h, Pose p, float t, float bodyYaw, Vector3f[] rot, boolean frozen) {
         long now = System.nanoTime();
         float dt = h.nanos == 0 ? 0f : Math.min(0.05f, (now - h.nanos) / 1e9f);
         h.nanos = now;
-        if (net.minecraft.client.MinecraftClient.getInstance().isPaused()) dt = 0f;
+        if (net.minecraft.client.MinecraftClient.getInstance().isPaused() || frozen) dt = 0f;
         float y = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
         double vx = e.getX() - e.prevX, vy = e.getY() - e.prevY, vz = e.getZ() - e.prevZ;
         float fwd = (float) (-Math.sin(y) * vx + Math.cos(y) * vz), left = (float) (Math.cos(y) * vx + Math.sin(y) * vz);

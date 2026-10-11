@@ -62,12 +62,16 @@ public class SeraelEntity extends HostileEntity {
     private static final TrackedData<Integer> ATTACK = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> ENRAGED = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Float> CHARGE = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    private static final TrackedData<Boolean> STATUE = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private int statueTicks;
+    /** Клиент: тик, когда началось окаменение. */
+    public int clientStatueStart;
     private static final TrackedData<Integer> EVENT = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Vector3f> EVENT_POS = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.VECTOR3F);
     private static final TrackedData<Float> EVENT_ARG = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
     /** События для клиентских эффектов. */
     public static final int E_ARC = 1, E_SLASH = 2, E_PETAL_ZONE = 3, E_PETAL_FALL = 4, E_HALO_RING = 5, E_DIVE_MARK = 6, E_IMPACT = 7,
-            E_SHIELD_BREAK = 8, E_SHIELD_BOOM = 9, E_ROAR = 10, E_SHIELD_HIT = 11, E_DASH = 12, E_BACKSTEP = 13;
+            E_SHIELD_BREAK = 8, E_SHIELD_BOOM = 9, E_ROAR = 10, E_SHIELD_HIT = 11, E_DASH = 12, E_BACKSTEP = 13, E_SHATTER = 14;
     private int queued = -1, strafeDir = 1;
     private Vec3d dashDir = Vec3d.ZERO;
     private final Set<Entity> dashHit = new HashSet<>();
@@ -117,6 +121,7 @@ public class SeraelEntity extends HostileEntity {
         dataTracker.startTracking(ATTACK, IDLE);
         dataTracker.startTracking(ENRAGED, false);
         dataTracker.startTracking(CHARGE, -1f);
+        dataTracker.startTracking(STATUE, false);
         dataTracker.startTracking(EVENT, 0);
         dataTracker.startTracking(EVENT_POS, new Vector3f());
         dataTracker.startTracking(EVENT_ARG, 0f);
@@ -139,6 +144,48 @@ public class SeraelEntity extends HostileEntity {
     /** −1 — щита нет; иначе 0..1 — накопленный заряд щита. */
     public float shieldCharge() {
         return dataTracker.get(CHARGE);
+    }
+
+    /** Побеждена: стоит на коленях каменной статуей, пока игрок её не разобьёт. */
+    public boolean statue() {
+        return dataTracker.get(STATUE);
+    }
+
+    /** Вместо смерти — окаменение. */
+    public void petrify() {
+        if (statue()) return;
+        dataTracker.set(STATUE, true);
+        statueTicks = 0;
+        setHealth(1f);
+        setAttack(IDLE);
+        shield = false;
+        dataTracker.set(CHARGE, -1f);
+        arc.clear(); arcBoom.clear(); burns.clear(); queued = -1;
+        setNoGravity(false);
+        setTarget(null);
+        bossBar.setPercent(0f);
+        bossBar.setVisible(false);
+        sound(SoundEvents.ENTITY_ALLAY_DEATH, 3f, 0.55f);
+        sound(SoundEvents.ENTITY_VEX_DEATH, 2.5f, 0.8f);
+    }
+
+    private void shatter() {
+        ServerWorld w = (ServerWorld) getWorld();
+        net.minecraft.particle.BlockStateParticleEffect stone = new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.STONE.getDefaultState());
+        w.spawnParticles(stone, getX(), getY() + 2.5, getZ(), 500, 1.2, 2.4, 1.2, 0.3);
+        w.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.FALLING_DUST, Blocks.GRAVEL.getDefaultState()),
+                getX(), getY() + 3, getZ(), 160, 1.8, 2.6, 1.8, 0.02);
+        w.spawnParticles(ParticleTypes.ASH, getX(), getY() + 3, getZ(), 200, 2, 3, 2, 0.05);
+        event(E_SHATTER, getPos(), 0f);
+        sound(SoundEvents.BLOCK_STONE_BREAK, 4f, 0.5f);
+        sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 4f, 0.7f);
+        sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 1.5f, 1.5f);
+        dropStack(new ItemStack(Items.NETHER_STAR));
+        dropStack(new ItemStack(Items.NETHERITE_SCRAP, 2 + random.nextInt(3)));
+        dropStack(new ItemStack(Items.GOLD_BLOCK, 3 + random.nextInt(3)));
+        net.minecraft.entity.ExperienceOrbEntity.spawn(w, getPos().add(0, 1, 0), 500);
+        bossBar.clearPlayers();
+        discard();
     }
 
     public int eventValue() {
@@ -165,6 +212,7 @@ public class SeraelEntity extends HostileEntity {
     public void onTrackedDataSet(TrackedData<?> data) {
         super.onTrackedDataSet(data);
         if (ATTACK.equals(data)) clientAttackStart = age;
+        if (STATUE.equals(data)) clientStatueStart = age;
     }
 
     private void setAttack(int a) {
@@ -178,6 +226,14 @@ public class SeraelEntity extends HostileEntity {
     @Override
     protected void mobTick() {
         super.mobTick();
+        if (statue()) {
+            statueTicks++;
+            setTarget(null);
+            setVelocity(getVelocity().multiply(0, 1, 0));
+            if (statueTicks >= 18 && statueTicks <= 58 && statueTicks % 6 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2f, 0.6f + statueTicks * 0.01f);
+            if (statueTicks == 60) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
+            return;
+        }
         bossBar.setPercent(getHealth() / getMaxHealth());
         LivingEntity t = getTarget();
         if (t != null && (!t.isAlive() || t instanceof PlayerEntity p && (p.isCreative() || p.isSpectator()))) {
@@ -190,7 +246,9 @@ public class SeraelEntity extends HostileEntity {
             dataTracker.set(ENRAGED, true);
             setAttack(ROAR);
             a = ROAR;
-            sound(SoundEvents.ENTITY_ENDER_DRAGON_GROWL, 4f, 0.7f);
+            sound(SoundEvents.ENTITY_GHAST_SCREAM, 4f, 1.3f);
+            sound(SoundEvents.ENTITY_VEX_CHARGE, 3f, 0.75f);
+            sound(SoundEvents.ENTITY_ALLAY_HURT, 3f, 0.6f);
         }
         if (a != IDLE) {
             attackTick++;
@@ -577,6 +635,13 @@ public class SeraelEntity extends HostileEntity {
     public boolean damage(DamageSource source, float amount) {
         if (getWorld().isClient) return false;
         if (source.getAttacker() == this) return false;
+        if (statue()) {
+            boolean byPlayer = source.getAttacker() instanceof PlayerEntity;
+            if (byPlayer && statueTicks > 55 || source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD)
+                    || source.isOf(net.minecraft.entity.damage.DamageTypes.GENERIC_KILL)) shatter();
+            else if (byPlayer) sound(SoundEvents.BLOCK_STONE_HIT, 1.5f, 0.8f);
+            return false;
+        }
         if (shield && !source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD)) {
             charge += amount;
             dataTracker.set(CHARGE, Math.min(1f, charge / SHIELD_HP));
@@ -718,12 +783,14 @@ public class SeraelEntity extends HostileEntity {
         super.readCustomDataFromNbt(nbt);
         if (hasCustomName()) bossBar.setName(getDisplayName());
         dataTracker.set(ENRAGED, nbt.getBoolean("Enraged"));
+        if (nbt.getBoolean("Statue")) { dataTracker.set(STATUE, true); statueTicks = 100; bossBar.setVisible(false); }
     }
 
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
         nbt.putBoolean("Enraged", enraged());
+        nbt.putBoolean("Statue", statue());
     }
 
     @Override

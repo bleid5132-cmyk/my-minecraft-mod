@@ -70,6 +70,7 @@ public final class SeraelClient {
             case SeraelEntity.E_ROAR -> roar(p);
             case SeraelEntity.E_DASH -> dash(e, p);
             case SeraelEntity.E_BACKSTEP -> backstep(p);
+            case SeraelEntity.E_SHATTER -> shatter(p);
             default -> { }
         }
     }
@@ -279,6 +280,21 @@ public final class SeraelClient {
         }
     }
 
+    /** Статуя рассыпается в пыль. */
+    private static void shatter(Vec3d c) {
+        float[] dust = { 0.62f, 0.6f, 0.56f };
+        for (int j = 0; j < 70; j++) {
+            double ang = rr(0, Math.PI * 2), sp = rr(0.05, 0.3);
+            spawn(SMOKE, c.x + rr(-0.8, 0.8), c.y + rr(0.2, 5.5), c.z + rr(-0.8, 0.8)).vel(Math.cos(ang) * sp, rr(0, 0.08), Math.sin(ang) * sp).drag(0.92f)
+                    .size(0.6f, 1.6f).color(dust).alpha(0.5f).life(30 + R().nextInt(30)).fade(0.05f, 0.7f);
+        }
+        spawn(SHOCK, c.x, c.y + 0.07, c.z).mode(Mode.FLAT).size(0.5f, 5f).ease().color(dust).alpha(0.6f).life(16).fade(0f, 0.7f);
+        spawn(FLARE, c.x, c.y + 6.3, c.z).size(1.5f, 4f).ease().colors(WHITE, GOLD).life(14).fade(0f, 0.7f);
+        for (int j = 0; j < 24; j++) {
+            spawn(GLINT, c.x, c.y + 6.3, c.z).vel(rr(-0.2, 0.2), rr(0, 0.25), rr(-0.2, 0.2)).gravity(0.01f).size(0.14f, 0f).color(GOLD).life(30);
+        }
+    }
+
     private static void roar(Vec3d c) {
         for (int i = 0; i < 3; i++) {
             spawn(SHOCK, c.x, c.y + 0.07, c.z).mode(Mode.FLAT).delay(i * 4).size(0.5f, 9f).ease().colors(WHITE, CRIMSON).life(16).fade(0f, 0.7f);
@@ -296,6 +312,19 @@ public final class SeraelClient {
     private static void tick(ClientWorld w, SeraelEntity e) {
         Random R = w.random;
         double cx = e.getX(), cy = e.getY(), cz = e.getZ();
+        if (e.statue()) {
+            // окаменение: серая пыль поднимается вместе с границей камня
+            int st = e.age - e.clientStatueStart;
+            if (st > 14 && st < 60) {
+                double hy = cy + ((st - 16) / 40.0 * 130 - 6) / 16.0;
+                for (int i = 0; i < 4; i++) {
+                    double ang = R.nextDouble() * Math.PI * 2, r = 0.4 + R.nextDouble() * 0.9;
+                    spawn(SMOKE, cx + Math.cos(ang) * r, hy, cz + Math.sin(ang) * r).vel(0, 0.02, 0).size(0.4f, 0.9f)
+                            .color(0.55f, 0.53f, 0.5f).alpha(0.45f).life(18).fade(0.1f, 0.6f);
+                }
+            }
+            return;
+        }
         boolean dead = e.deathTime > 0;
         float yaw = e.bodyYaw * MathHelper.RADIANS_PER_DEGREE;
         double lx = Math.cos(yaw), lz = Math.sin(yaw), fx = -Math.sin(yaw), fz = Math.cos(yaw);
