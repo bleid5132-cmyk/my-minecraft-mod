@@ -62,6 +62,13 @@ public class SeraelEntity extends HostileEntity {
     private static final TrackedData<Integer> ATTACK = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> ENRAGED = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Float> CHARGE = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    private static final TrackedData<Integer> EVENT = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Vector3f> EVENT_POS = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.VECTOR3F);
+    private static final TrackedData<Float> EVENT_ARG = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    /** События для клиентских эффектов. */
+    public static final int E_ARC = 1, E_SLASH = 2, E_PETAL_ZONE = 3, E_PETAL_FALL = 4, E_HALO_RING = 5, E_DIVE_MARK = 6, E_IMPACT = 7,
+            E_SHIELD_BREAK = 8, E_SHIELD_BOOM = 9, E_ROAR = 10, E_SHIELD_HIT = 11;
+    private int eventSeq;
     public static final DustParticleEffect DARK = new DustParticleEffect(new Vector3f(0.32f, 0.05f, 0.45f), 1.8f);
     public static final DustParticleEffect VOIDP = new DustParticleEffect(new Vector3f(0.7f, 0.25f, 1f), 1.2f);
     public static final DustParticleEffect CRIMSON = new DustParticleEffect(new Vector3f(0.85f, 0.06f, 0.12f), 1.3f);
@@ -107,6 +114,9 @@ public class SeraelEntity extends HostileEntity {
         dataTracker.startTracking(ATTACK, IDLE);
         dataTracker.startTracking(ENRAGED, false);
         dataTracker.startTracking(CHARGE, -1f);
+        dataTracker.startTracking(EVENT, 0);
+        dataTracker.startTracking(EVENT_POS, new Vector3f());
+        dataTracker.startTracking(EVENT_ARG, 0f);
     }
 
     @Override
@@ -126,6 +136,26 @@ public class SeraelEntity extends HostileEntity {
     /** −1 — щита нет; иначе 0..1 — накопленный заряд щита. */
     public float shieldCharge() {
         return dataTracker.get(CHARGE);
+    }
+
+    public int eventValue() {
+        return dataTracker.get(EVENT);
+    }
+
+    public Vec3d eventPos() {
+        Vector3f v = dataTracker.get(EVENT_POS);
+        return new Vec3d(v.x, v.y, v.z);
+    }
+
+    public float eventArg() {
+        return dataTracker.get(EVENT_ARG);
+    }
+
+    private void event(int type, Vec3d p, float arg) {
+        eventSeq++;
+        dataTracker.set(EVENT_POS, new Vector3f((float) p.x, (float) p.y, (float) p.z));
+        dataTracker.set(EVENT_ARG, arg);
+        dataTracker.set(EVENT, (eventSeq << 4) | type);
     }
 
     @Override
@@ -227,6 +257,7 @@ public class SeraelEntity extends HostileEntity {
         switch (a) {
             case SWING -> {
                 // дуга удара справа налево перед собой; каждая точка взрывается через 30 тиков
+                if (k == 14) event(E_ARC, getPos(), getYaw());
                 if (k >= 14 && k <= 19) {
                     int per = 3;
                     for (int j = 0; j < per; j++) {
@@ -250,8 +281,7 @@ public class SeraelEntity extends HostileEntity {
                 if (k == 11) {
                     sound(SoundEvents.ENTITY_IRON_GOLEM_ATTACK, 2.5f, 0.5f);
                     Vec3d c = local(0, 0.2, 3.2);
-                    w.spawnParticles(ParticleTypes.SWEEP_ATTACK, c.x, c.y + 1, c.z, 3, 0.6, 0.4, 0.6, 0);
-                    w.spawnParticles(DARK, c.x, c.y + 0.3, c.z, 30, 1, 0.2, 1, 0);
+                    event(E_SLASH, new Vec3d(c.x, ground(c), c.z), getYaw());
                     for (LivingEntity e : enemies(new Box(c, c).expand(2.6, 3, 2.6))) {
                         e.damage(getDamageSources().mobAttack(this), rage ? 19 : 14);
                         knock(e, 0.8, 0.5);
@@ -259,16 +289,19 @@ public class SeraelEntity extends HostileEntity {
                 }
             }
             case PETALS -> {
-                if (k == 8 && t != null) petalZone = new Vec3d(t.getX(), ground(t.getPos()), t.getZ());
-                if (petalZone == null) break;
                 double R = rage ? 8.5 : 7;
+                if (k == 8 && t != null) {
+                    petalZone = new Vec3d(t.getX(), ground(t.getPos()), t.getZ());
+                    event(E_PETAL_ZONE, petalZone, (float) R);
+                }
+                if (petalZone == null) break;
+                if (k == 48) event(E_PETAL_FALL, petalZone, (float) R);
                 if (k > 8 && k < 48) {
-                    for (int i = 0; i < 14; i++) {
+                    if (k % 2 == 0) {
                         double ang = random.nextDouble() * Math.PI * 2, r = Math.sqrt(random.nextDouble()) * R;
-                        w.spawnParticles(i % 2 == 0 ? PETAL : CRIMSON, petalZone.x + Math.cos(ang) * r, petalZone.y + 6 + random.nextDouble() * 2.5,
+                        w.spawnParticles(PETAL, petalZone.x + Math.cos(ang) * r, petalZone.y + 6 + random.nextDouble() * 2.5,
                                 petalZone.z + Math.sin(ang) * r, 1, 0, 0, 0, 0);
                     }
-                    if (k % 4 == 0) ring(w, petalZone.add(0, 0.15, 0), R, CRIMSON, 48);
                 }
                 if (k == 46) sound(SoundEvents.ITEM_TRIDENT_RIPTIDE_1, 3f, 1.3f);
                 if (k >= 48 && k < 70) {
@@ -277,8 +310,6 @@ public class SeraelEntity extends HostileEntity {
                         double ang = random.nextDouble() * Math.PI * 2, r = Math.sqrt(random.nextDouble()) * R;
                         double x = petalZone.x + Math.cos(ang) * r, z = petalZone.z + Math.sin(ang) * r;
                         double gy = ground(new Vec3d(x, petalZone.y + 3, z));
-                        for (int s = 0; s < 6; s++) w.spawnParticles(CRIMSON, x, gy + 7 - s * 1.2, z, 1, 0, 0, 0, 0);
-                        w.spawnParticles(ParticleTypes.CRIT, x, gy + 0.2, z, 3, 0.2, 0.05, 0.2, 0.2);
                         for (LivingEntity e : enemies(new Box(x - 1.3, gy - 0.5, z - 1.3, x + 1.3, gy + 3, z + 1.3))) {
                             e.damage(getDamageSources().indirectMagic(this, this), rage ? 8 : 6);
                         }
@@ -290,17 +321,16 @@ public class SeraelEntity extends HostileEntity {
             case HALO -> {
                 Vec3d hp = getPos().add(0, 6.3, 0);
                 if (k < 30 && k % 5 == 0) {
-                    w.spawnParticles(GOLD, hp.x, hp.y, hp.z, 12 + k, 0.5, 0.2, 0.5, 0.02);
                     sound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 2.5f, 0.6f + k * 0.03f);
                 }
                 if (k == 30) {
                     sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 2f, 1.8f);
                     sound(SoundEvents.BLOCK_BEACON_POWER_SELECT, 3f, 1.6f);
                     waveHit.clear();
+                    event(E_HALO_RING, getPos(), rage ? 12f : 10.2f);
                 }
                 if (k >= 30 && k <= 42) {
                     double r = (k - 30) * (rage ? 1.0 : 0.85);
-                    for (double hy : new double[] { 0.3, 1.4, 2.6, 4.2, 6.3 }) ring(w, getPos().add(0, hy, 0), r, GOLD, (int) (12 + r * 6));
                     for (LivingEntity e : enemies(getBoundingBox().expand(r + 1, 2, r + 1))) {
                         double dd = Math.sqrt(MathHelper.square(e.getX() - getX()) + MathHelper.square(e.getZ() - getZ()));
                         if (dd > r + 0.6 || waveHit.contains(e)) continue;
@@ -318,15 +348,16 @@ public class SeraelEntity extends HostileEntity {
                     if (k % 6 == 0) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2.5f, 0.8f);
                 } else if (k < 40) {
                     setVelocity(getVelocity().multiply(0.7));
-                    if (k == 34 && t != null) diveMark = new Vec3d(t.getX(), ground(t.getPos()), t.getZ());
-                    if (diveMark != null) ring(w, diveMark.add(0, 0.2, 0), 2.5, CRIMSON, 30);
+                    if (k == 34 && t != null) {
+                        diveMark = new Vec3d(t.getX(), ground(t.getPos()), t.getZ());
+                        event(E_DIVE_MARK, diveMark, 0f);
+                    }
                     if (k == 39) sound(SoundEvents.ENTITY_BLAZE_SHOOT, 3f, 0.5f);
                 } else if (impactTick < 0) {
                     if (diveMark == null) diveMark = t != null ? t.getPos() : getPos().add(0, -10, 0);
                     Vec3d dir = diveMark.subtract(getPos());
                     double len = dir.length();
                     setVelocity(dir.multiply(Math.min(2.0, len) / Math.max(1e-3, len)));
-                    w.spawnParticles(ParticleTypes.FLAME, getX(), getY() + 4, getZ(), 10, 1.6, 2, 1.6, 0.02);
                     if (len < 1.6 || isOnGround() || k > 75) impact(w, rage);
                 }
             }
@@ -336,6 +367,7 @@ public class SeraelEntity extends HostileEntity {
             }
             case ROAR -> {
                 if (k == 10) {
+                    event(E_ROAR, getPos(), 0f);
                     w.spawnParticles(ParticleTypes.ASH, getX(), getY() + 3, getZ(), 300, 4, 3, 4, 0.05);
                     w.spawnParticles(PETAL, getX(), getY() + 4, getZ(), 120, 5, 3, 5, 0.05);
                     for (LivingEntity e : enemies(getBoundingBox().expand(8))) {
@@ -354,8 +386,8 @@ public class SeraelEntity extends HostileEntity {
         setVelocity(Vec3d.ZERO);
         Vec3d c = getPos();
         sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 4f, 0.6f);
-        w.spawnParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y + 0.5, c.z, 1, 0, 0, 0, 0);
-        w.spawnParticles(ParticleTypes.LAVA, c.x, c.y + 0.5, c.z, 40, 2, 0.3, 2, 0);
+        w.spawnParticles(ParticleTypes.LAVA, c.x, c.y + 0.5, c.z, 30, 2, 0.3, 2, 0);
+        event(E_IMPACT, new Vec3d(c.x, ground(c), c.z), 0f);
         for (LivingEntity e : enemies(getBoundingBox().expand(4.5, 1.5, 4.5))) {
             e.damage(getDamageSources().mobAttack(this), rage ? 26 : 20);
             knock(e, 1.6, 0.7);
@@ -369,7 +401,7 @@ public class SeraelEntity extends HostileEntity {
         dataTracker.set(CHARGE, -1f);
         ServerWorld w = (ServerWorld) getWorld();
         sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 3f, 0.8f);
-        w.spawnParticles(DARK, getX(), getY() + 3, getZ(), 220, 3, 3, 3, 0.1);
+        event(E_SHIELD_BOOM, getPos(), 0f);
         for (LivingEntity e : enemies(getBoundingBox().expand(7))) {
             e.damage(getDamageSources().indirectMagic(this, this), enraged() ? 16 : 12);
             knock(e, 1.8, 0.6);
@@ -382,10 +414,9 @@ public class SeraelEntity extends HostileEntity {
         ServerWorld w = (ServerWorld) getWorld();
         sound(SoundEvents.BLOCK_GLASS_BREAK, 4f, 0.5f);
         sound(SoundEvents.ENTITY_WITHER_BREAK_BLOCK, 2f, 0.8f);
-        w.spawnParticles(VOIDP, getX(), getY() + 3, getZ(), 260, 2.6, 3, 2.6, 0.2);
-        w.spawnParticles(ParticleTypes.FLASH, getX(), getY() + 3, getZ(), 1, 0, 0, 0, 0);
         for (LivingEntity e : enemies(getBoundingBox().expand(5))) knock(e, 1.0, 0.3);
         setAttack(STUNNED);
+        event(E_SHIELD_BREAK, getPos(), 0f);
     }
 
     private void tickArc() {
@@ -396,12 +427,10 @@ public class SeraelEntity extends HostileEntity {
             Vec3d p = arc.get(i);
             int boom = arcBoom.get(i);
             if (age < boom) {
-                w.spawnParticles(DARK, p.x, p.y, p.z, 2, 0.12, 0.12, 0.12, 0);
-                if (random.nextInt(3) == 0) w.spawnParticles(VOIDP, p.x, p.y, p.z, 1, 0.1, 0.1, 0.1, 0.01);
+                if (random.nextInt(4) == 0) w.spawnParticles(ParticleTypes.SMOKE, p.x, p.y, p.z, 1, 0.1, 0.1, 0.1, 0.0);
             } else {
                 any = true;
-                w.spawnParticles(ParticleTypes.EXPLOSION, p.x, p.y, p.z, 1, 0, 0, 0, 0);
-                w.spawnParticles(DARK, p.x, p.y, p.z, 18, 0.6, 0.6, 0.6, 0.05);
+                w.spawnParticles(ParticleTypes.LARGE_SMOKE, p.x, p.y, p.z, 3, 0.4, 0.4, 0.4, 0.02);
                 for (LivingEntity e : enemies(new Box(p, p).expand(2.0, 2.6, 2.0))) {
                     if (waveHit.contains(e)) continue;
                     waveHit.add(e);
@@ -478,7 +507,7 @@ public class SeraelEntity extends HostileEntity {
         if (shield && !source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD)) {
             charge += amount;
             dataTracker.set(CHARGE, Math.min(1f, charge / SHIELD_HP));
-            ((ServerWorld) getWorld()).spawnParticles(VOIDP, getX(), getY() + 3, getZ(), 20, 1.5, 2, 1.5, 0.1);
+            event(E_SHIELD_HIT, source.getPosition() != null ? source.getPosition() : getPos().add(0, 3, 0), charge / SHIELD_HP);
             sound(SoundEvents.BLOCK_AMETHYST_BLOCK_HIT, 2f, 0.6f + charge / SHIELD_HP);
             if (charge >= SHIELD_HP) breakShield();
             return false;

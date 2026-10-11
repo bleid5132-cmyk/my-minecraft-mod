@@ -11,7 +11,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -30,7 +29,6 @@ public final class VoxelModel {
         public final boolean glow;
         final float[] v;      // на вершину: x y z u v
         final byte[] n;       // на квад: нормаль
-        final List<Integer> children = new ArrayList<>();
 
         Part(String name, int parent, Vector3f pivot, boolean glow, float[] v, byte[] n) {
             this.name = name;
@@ -43,7 +41,6 @@ public final class VoxelModel {
     }
 
     public final List<Part> parts = new ArrayList<>();
-    private final List<Integer> roots = new ArrayList<>();
 
     public static VoxelModel load(Identifier file) {
         VoxelModel m = new VoxelModel();
@@ -75,11 +72,6 @@ public final class VoxelModel {
                 }
                 m.parts.add(new Part(name, parent, piv, glow, v, n));
             }
-            for (int i = 0; i < m.parts.size(); i++) {
-                int p = m.parts.get(i).parent;
-                if (p >= 0) m.parts.get(p).children.add(i);
-                else m.roots.add(i);
-            }
         } catch (Exception e) {
             com.bleid.vestments.Vestments.LOGGER.error("Не удалось загрузить модель {}", file, e);
         }
@@ -91,44 +83,49 @@ public final class VoxelModel {
         return -1;
     }
 
-    /**
-     * Рисует модель. rot[i] — углы части (градусы: x, y, z; порядок Y·X·Z), scale[i] — масштаб части,
-     * color — множитель цвета обычных частей (вспышка урона и т.п.).
-     */
-    public void render(MatrixStack ms, VertexConsumer vc, int light, int overlay, Vector3f[] rot, float[] scale,
-                       float r, float g, float b) {
-        for (int i : roots) renderPart(i, ms, vc, light, overlay, rot, scale, r, g, b);
+    /** Матрицы частей в пространстве модели: родитель · T(опора) · Ry·Rx·Rz · S · T(−опора). */
+    public Matrix4f[] pose(Vector3f[] rot, float[] scale) {
+        Matrix4f[] out = new Matrix4f[parts.size()];
+        for (int i = 0; i < parts.size(); i++) {
+            Part p = parts.get(i);
+            Matrix4f m = p.parent >= 0 && out[p.parent] != null ? new Matrix4f(out[p.parent]) : new Matrix4f();
+            Vector3f a = rot[i];
+            float s = scale[i];
+            if (a.lengthSquared() > 0 || s != 1f) {
+                m.translate(p.pivot);
+                if (a.y != 0) m.rotateY((float) Math.toRadians(a.y));
+                if (a.x != 0) m.rotateX((float) Math.toRadians(a.x));
+                if (a.z != 0) m.rotateZ((float) Math.toRadians(a.z));
+                if (s != 1f) m.scale(s);
+                m.translate(-p.pivot.x, -p.pivot.y, -p.pivot.z);
+            }
+            out[i] = m;
+        }
+        return out;
     }
 
-    private void renderPart(int i, MatrixStack ms, VertexConsumer vc, int light, int overlay, Vector3f[] rot, float[] scale,
-                            float r, float g, float b) {
-        Part p = parts.get(i);
-        ms.push();
-        Vector3f a = rot[i];
-        float s = scale[i];
-        if (a.lengthSquared() > 0 || s != 1f) {
-            ms.translate(p.pivot.x, p.pivot.y, p.pivot.z);
-            if (a.y != 0) ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(a.y));
-            if (a.x != 0) ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees(a.x));
-            if (a.z != 0) ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(a.z));
-            if (s != 1f) ms.scale(s, s, s);
-            ms.translate(-p.pivot.x, -p.pivot.y, -p.pivot.z);
-        }
-        MatrixStack.Entry e = ms.peek();
-        Matrix4f pm = e.getPositionMatrix();
-        Matrix3f nm = e.getNormalMatrix();
-        int li = p.glow ? 0xF000F0 : light;
-        float cr = p.glow ? 1f : r, cg = p.glow ? 1f : g, cb = p.glow ? 1f : b;
-        float[] v = p.v;
-        byte[] n = p.n;
-        for (int q = 0, o = 0; q < n.length / 3; q++) {
-            float nx = n[q * 3], ny = n[q * 3 + 1], nz = n[q * 3 + 2];
-            for (int c = 0; c < 4; c++, o += 5) {
-                vc.vertex(pm, v[o], v[o + 1], v[o + 2]).color(cr, cg, cb, 1f).texture(v[o + 3], v[o + 4])
-                        .overlay(overlay).light(li).normal(nm, nx, ny, nz).next();
+    /** Рисует все части по готовым матрицам; color — множитель цвета обычных частей. */
+    public void render(MatrixStack ms, VertexConsumer vc, int light, int overlay, Matrix4f[] mats, float r, float g, float b) {
+        for (int i = 0; i < parts.size(); i++) {
+            Part p = parts.get(i);
+            ms.push();
+            MatrixStack.Entry e = ms.peek();
+            e.getPositionMatrix().mul(mats[i]);
+            e.getNormalMatrix().mul(new Matrix3f(mats[i]).normal());
+            Matrix4f pm = e.getPositionMatrix();
+            Matrix3f nm = e.getNormalMatrix();
+            int li = p.glow ? 0xF000F0 : light;
+            float cr = p.glow ? 1f : r, cg = p.glow ? 1f : g, cb = p.glow ? 1f : b;
+            float[] v = p.v;
+            byte[] n = p.n;
+            for (int q = 0, o = 0; q < n.length / 3; q++) {
+                float nx = n[q * 3], ny = n[q * 3 + 1], nz = n[q * 3 + 2];
+                for (int c = 0; c < 4; c++, o += 5) {
+                    vc.vertex(pm, v[o], v[o + 1], v[o + 2]).color(cr, cg, cb, 1f).texture(v[o + 3], v[o + 4])
+                            .overlay(overlay).light(li).normal(nm, nx, ny, nz).next();
+                }
             }
+            ms.pop();
         }
-        for (int c : p.children) renderPart(c, ms, vc, light, overlay, rot, scale, r, g, b);
-        ms.pop();
     }
 }
