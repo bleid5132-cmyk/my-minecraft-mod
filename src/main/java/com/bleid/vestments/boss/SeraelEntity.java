@@ -468,7 +468,12 @@ public class SeraelEntity extends HostileEntity {
                 if (k >= 3 && k <= 11) {
                     boolean near = t != null && squaredDistanceTo(t) < 2.8 * 2.8;
                     double sp = near ? 0.2 : (rage ? 1.45 : 1.25);
-                    setVelocity(dashDir.x * sp, getVelocity().y, dashDir.z * sp);
+                    // летит на крыльях низко над землёй
+                    setNoGravity(true);
+                    double gy = ground(getPos());
+                    double vy = MathHelper.clamp((gy + 0.45 - getY()) * 0.35, -0.3, 0.3);
+                    setVelocity(dashDir.x * sp, vy, dashDir.z * sp);
+                    if (k == 4) sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2.5f, 1.2f);
                     for (LivingEntity e : enemies(getBoundingBox().expand(0.6))) {
                         if (dashHit.add(e)) {
                             e.damage(getDamageSources().mobAttack(this), rage ? 9 : 6);
@@ -477,6 +482,7 @@ public class SeraelEntity extends HostileEntity {
                     }
                     if (near && k < 9) attackTick = 11;
                 }
+                if (k == 12) setNoGravity(false);
             }
             case BACKSTEP -> {
                 if (k == 2) {

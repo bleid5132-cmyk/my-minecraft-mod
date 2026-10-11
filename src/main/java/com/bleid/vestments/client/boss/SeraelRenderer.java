@@ -251,17 +251,20 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                     p.blend(slump, env(k, 0.1f, 0.2f));
                 }
                 case SeraelEntity.DASH -> {
-                    // низкий рывок: корпус вперёд, крылья назад, клинок отведён для удара
-                    Pose crouch = key(base, q -> { q.lift = -3.5f; q.torsoX = 22f; q.thR = -20f; q.shR = 56f; q.thL = 14f; q.shL = 48f;
-                        q.armRX = 24f; q.armRZ = -10f; q.foreR = -20f; q.handR = -30f; q.armLX = -20f; q.foreL = -40f; q.wingZ = 22f; q.wingY = 20f; });
-                    float run = MathHelper.sin(tk * 1.4f);
-                    Pose rush = key(base, q -> { q.lift = -2f; q.torsoX = 38f; q.headX = -24f; q.thR = -44f * run - 10f; q.shR = 40f + 30f * Math.max(0f, run);
-                        q.thL = 44f * run - 10f; q.shL = 40f + 30f * Math.max(0f, -run); q.armRX = 38f; q.armRZ = -16f; q.foreR = -14f; q.handR = -36f;
-                        q.armLX = 30f; q.armLZ = 12f; q.foreL = -30f; q.wingY = 64f; q.wingZ = -6f; q.wingX = 8f; });
+                    // рывок на крыльях: замах крыльями, мощный взмах вниз — и она низко летит к цели,
+                    // ноги вместе вытянуты назад, корпус лёг вперёд, клинок отведён для удара
+                    Pose prep = key(base, q -> { q.lift = -3f; q.torsoX = 16f; q.thR = -18f; q.shR = 46f; q.thL = 10f; q.shL = 40f;
+                        q.armRX = 22f; q.armRZ = -10f; q.foreR = -18f; q.handR = -28f; q.armLX = -16f; q.foreL = -36f;
+                        q.wingZ = 48f; q.wingY = -12f; q.wingX = -6f; });
+                    Pose glide = key(base, q -> { q.lift = 7f; q.torsoX = 50f; q.headX = -32f; q.thR = 24f; q.shR = 12f; q.thL = 28f; q.shL = 16f;
+                        q.thRZ = 2f; q.thLZ = -2f; q.armRX = 40f; q.armRZ = -14f; q.foreR = -10f; q.handR = -30f; q.armLX = 26f; q.armLZ = 16f; q.foreL = -20f;
+                        q.wingZ = -14f; q.wingY = 58f; q.wingX = 8f; });
+                    Pose land = key(base, q -> { q.lift = -3f; q.torsoX = 20f; q.thR = -24f; q.shR = 50f; q.thL = 10f; q.shL = 40f;
+                        q.armRX = 18f; q.foreR = -20f; q.handR = -20f; q.armLX = -10f; q.foreL = -34f; q.wingZ = 22f; q.wingY = 18f; });
                     p = base.copy();
-                    p.blend(crouch, sm(tk / 3f));
-                    p.blend(rush, sm((tk - 3f) / 2.5f));
-                    p.blend(crouch, sm((tk - 11f) / 4f));
+                    p.blend(prep, sm(tk / 3f));
+                    p.blend(glide, sm((tk - 3f) / 3f));
+                    p.blend(land, sm((tk - 11f) / 4f));
                 }
                 case SeraelEntity.BACKSTEP -> {
                     // отскок назад взмахом крыльев: ноги поджаты, клинок в защите
