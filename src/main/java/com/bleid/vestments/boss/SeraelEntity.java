@@ -10,7 +10,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.ActiveTargetGoal;
 import net.minecraft.entity.ai.goal.RevengeGoal;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -134,7 +133,6 @@ public class SeraelEntity extends HostileEntity {
     @Override
     protected void initGoals() {
         targetSelector.add(1, new RevengeGoal(this));
-        targetSelector.add(2, new ActiveTargetGoal<>(this, PlayerEntity.class, false));
     }
 
     public int attack() {
@@ -268,15 +266,14 @@ public class SeraelEntity extends HostileEntity {
         }
         bossBar.setPercent(getHealth() / getMaxHealth());
         LivingEntity t = getTarget();
-        if (t != null && (!t.isAlive() || t instanceof PlayerEntity p && (p.isCreative() || p.isSpectator()))) {
+        if (t != null && (!BossBase.prey(this, t) || squaredDistanceTo(t) > 64 * 64)) {
             setTarget(null);
             t = null;
         }
-        // агрится на ближайшего игрока (для совместного боя): переключается, если другой заметно ближе
+        // враждебна ко всем: агрится на ближайшее существо, игроки чуть в приоритете
         if (age % 10 == 0) {
-            PlayerEntity near = getWorld().getClosestPlayer(getX(), getY(), getZ(), 48, e -> e instanceof PlayerEntity pl && pl.isAlive()
-                    && !pl.isCreative() && !pl.isSpectator());
-            if (near != null && (t == null || near != t && distanceTo(near) + 2.5 < distanceTo(t))) {
+            LivingEntity near = BossBase.nearestPrey(this, 40);
+            if (near != null && (t == null || near != t && BossBase.preyDist(this, near) + 2.5 < BossBase.preyDist(this, t))) {
                 setTarget(near);
                 t = near;
             }
@@ -860,8 +857,7 @@ public class SeraelEntity extends HostileEntity {
     }
 
     private List<LivingEntity> enemies(Box box) {
-        return getWorld().getEntitiesByClass(LivingEntity.class, box, e -> e != this && e.isAlive()
-                && !(e instanceof SeraelEntity) && !(e instanceof PlayerEntity p && (p.isCreative() || p.isSpectator())));
+        return getWorld().getEntitiesByClass(LivingEntity.class, box, e -> BossBase.prey(this, e));
     }
 
     private void sound(SoundEvent s, float vol, float pitch) {

@@ -131,22 +131,50 @@ public abstract class BossBase extends HostileEntity {
         return cds.getOrDefault(a, 0) <= 0;
     }
 
-    /** Цель — ближайший живой игрок (для совместного боя). */
+    /** Цель — ближайшее живое существо (боссы враждебны ко всем); игроки чуть в приоритете. */
     protected LivingEntity pickTarget() {
         LivingEntity t = getTarget();
-        if (t != null && (!t.isAlive() || t instanceof PlayerEntity p && (p.isCreative() || p.isSpectator()) || squaredDistanceTo(t) > 64 * 64)) {
+        if (t != null && (!prey(this, t) || squaredDistanceTo(t) > 64 * 64)) {
             setTarget(null);
             t = null;
         }
         if (age % 10 == 0) {
-            PlayerEntity near = getWorld().getClosestPlayer(getX(), getY(), getZ(), 48, e -> e instanceof PlayerEntity pl && pl.isAlive()
-                    && !pl.isCreative() && !pl.isSpectator());
-            if (near != null && (t == null || near != t && distanceTo(near) + 2.5 < distanceTo(t))) {
+            LivingEntity near = nearestPrey(this, 40);
+            if (near != null && (t == null || near != t && preyDist(this, near) + 2.5 < preyDist(this, t))) {
                 setTarget(near);
                 t = near;
             }
         }
         return t;
+    }
+
+    /** Можно ли боссу охотиться на это существо: живое, не он сам, не зритель/творческий, не стойка, не «мёртвый» босс. */
+    public static boolean prey(LivingEntity self, LivingEntity e) {
+        if (e == self || !e.isAlive() || e.isInvulnerable()) return false;
+        if (e instanceof PlayerEntity p && (p.isCreative() || p.isSpectator())) return false;
+        if (e instanceof net.minecraft.entity.decoration.ArmorStandEntity) return false;
+        if (e instanceof SeraelEntity s && s.statue()) return false;
+        if (e instanceof BellRingerEntity r && r.dying()) return false;
+        if (e instanceof SilentBellEntity b && b.state() != SilentBellEntity.S_FIGHT) return false;
+        if (self instanceof SilentBellEntity && e.getCommandTags().contains("vestments_choir")) return false;   // свой хор
+        return true;
+    }
+
+    /** Расстояние с поправкой: игрок «ближе» на 4 блока — бой с игроком не сбивается на случайную курицу. */
+    public static double preyDist(LivingEntity self, LivingEntity e) {
+        return self.distanceTo(e) - (e instanceof PlayerEntity ? 4 : 0);
+    }
+
+    public static LivingEntity nearestPrey(LivingEntity self, double range) {
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity e : self.getWorld().getEntitiesByClass(LivingEntity.class, self.getBoundingBox().expand(range), e -> prey(self, e))) {
+            if (self.squaredDistanceTo(e) > range * range) continue;
+            if (!(e instanceof PlayerEntity) && !self.canSee(e)) continue;
+            double d = preyDist(self, e);
+            if (d < bd) { bd = d; best = e; }
+        }
+        return best;
     }
 
     protected void faceTarget(LivingEntity t, float step) {
@@ -180,8 +208,7 @@ public abstract class BossBase extends HostileEntity {
     }
 
     protected List<LivingEntity> enemies(Box box) {
-        return getWorld().getEntitiesByClass(LivingEntity.class, box, e -> e != this && e.isAlive() && !(e instanceof BossBase)
-                && !(e instanceof PlayerEntity p && (p.isCreative() || p.isSpectator())) && !e.getCommandTags().contains("vestments_choir"));
+        return getWorld().getEntitiesByClass(LivingEntity.class, box, e -> prey(this, e));
     }
 
     protected void knock(LivingEntity e, double h, double up) {
