@@ -30,6 +30,7 @@
     "StructurePoolAccessor",
     "MobEntityAccessor",
     "MobEntitySoulMixin",
-    "LivingEntityDamageMixin"
+    "LivingEntityDamageMixin",
+    "BossEffectsMixin"
   ]
 }

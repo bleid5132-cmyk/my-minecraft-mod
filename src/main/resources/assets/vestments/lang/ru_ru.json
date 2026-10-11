@@ -267,5 +267,9 @@
   "aura.vestments.3": "возмездия (30% урона возвращается врагу)",
   "message.vestments.martyr_saved": "%s принял ваш смертельный удар на себя!",
   "message.vestments.martyr_took": "Вы приняли смертельный удар за %s",
-  "key.vestments.dodge": "Уворот (кувырок / отскок)"
+  "key.vestments.dodge": "Уворот (кувырок / отскок)",
+  "entity.vestments.serael": "Сераэль, Пепельный Нимб",
+  "item.vestments.serael_spawn_egg": "Яйцо призыва: Сераэль, Пепельный Нимб",
+  "effect.vestments.exhaustion": "Истощение",
+  "effect.vestments.stun": "Оглушение"
 }

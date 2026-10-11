@@ -39,6 +39,9 @@ public class VestmentsClient implements ClientModInitializer {
         StaffModel.register();
         ScabbardFeature.register();
         WingsClient.register();
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.boss.Bosses.SERAEL,
+                com.bleid.vestments.client.boss.SeraelRenderer::new);
+        com.bleid.vestments.client.boss.SeraelClient.register();
         PaladinKeys.register();
         PaladinHud.register();
         DodgeClient.register();

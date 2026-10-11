@@ -62,6 +62,7 @@ public class Vestments implements ModInitializer {
     public void onInitialize() {
         com.bleid.vestments.gear.RankGear.init();
         com.bleid.vestments.paladin.PaladinGear.init();
+        com.bleid.vestments.boss.Bosses.init();
         // своя вкладка в творческом инвентаре: всё из мода в одном месте
         Registry.register(Registries.ITEM_GROUP, new Identifier(MOD_ID, "main"),
                 net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup.builder()
@@ -83,6 +84,7 @@ public class Vestments implements ModInitializer {
                             entries.add(HOLY_ALTAR_ITEM);
                             // паладин
                             com.bleid.vestments.paladin.PaladinGear.allItems().forEach(entries::add);
+                            entries.add(com.bleid.vestments.boss.Bosses.SERAEL_SPAWN_EGG);
                         })
                         .build());
         SetBonus.register();
