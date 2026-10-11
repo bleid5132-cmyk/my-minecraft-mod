@@ -24,11 +24,11 @@ import org.joml.Vector3f;
 @Environment(EnvType.CLIENT)
 public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
     private static final Identifier TEX = new Identifier("vestments", "textures/entity/serael.png");
-    private static final Identifier DRESS = new Identifier("vestments", "textures/entity/serael_dress.png");
     private static final Identifier MODEL = new Identifier("vestments", "models/entity/serael.vxm");
     private static VoxelModel model;
     private static int TORSO, THIGH_R, SHIN_R, THIGH_L, SHIN_L, HEAD, HALO, ARM_R, FORE_R, HAND_R, ARM_L, FORE_L, HAND_L, WING_R, WING_L;
-    private static final Map<Integer, ClothSkirt> SKIRTS = new HashMap<>();
+    private static final Map<Integer, Hair> HAIR = new HashMap<>();
+    private static int HAIR1, HAIR2, HAIR3, LOCK_R, LOCK_L;
 
     public SeraelRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
@@ -44,12 +44,14 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             ARM_R = model.index("arm_r"); FORE_R = model.index("fore_r"); HAND_R = model.index("hand_r");
             ARM_L = model.index("arm_l"); FORE_L = model.index("fore_l"); HAND_L = model.index("hand_l");
             WING_R = model.index("wing_r"); WING_L = model.index("wing_l");
+            HAIR1 = model.index("hair1"); HAIR2 = model.index("hair2"); HAIR3 = model.index("hair3");
+            LOCK_R = model.index("lock_r"); LOCK_L = model.index("lock_l");
         }
         return model;
     }
 
     static void forget(int id) {
-        SKIRTS.remove(id);
+        HAIR.remove(id);
     }
 
     @Override
@@ -259,6 +261,8 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         rot[HAND_L].set(p.handL, 0, 0);
         rot[WING_L].set(p.wingX, p.wingY, p.wingZ);
         rot[WING_R].set(p.wingX, -p.wingY, -p.wingZ);
+        float bodyYaw0 = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
+        if (HAIR1 >= 0) hair(e, HAIR.computeIfAbsent(e.getId(), id -> new Hair()), p, t, bodyYaw0, rot);
         Matrix4f[] mats = m.pose(rot, sc);
 
         float bodyYaw = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
@@ -271,45 +275,52 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         float dim = 1f - 0.35f * death;
         m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), light, overlay, mats, dim, dim, dim);
 
-        // ---- юбка-ткань
-        ClothSkirt skirt = SKIRTS.computeIfAbsent(e.getId(), id -> new ClothSkirt());
-        double ex = MathHelper.lerp(td, e.prevX, e.getX()), ey = MathHelper.lerp(td, e.prevY, e.getY()), ez = MathHelper.lerp(td, e.prevZ, e.getZ());
-        float cy = MathHelper.cos(bodyYaw * MathHelper.RADIANS_PER_DEGREE), sy = MathHelper.sin(bodyYaw * MathHelper.RADIANS_PER_DEGREE);
-        ClothSkirt.Frame fr = new ClothSkirt.Frame() {
-            @Override
-            public void toWorld(float x, float y, float z, double[] out) {
-                // поворот на −yaw вокруг Y: (x, z) → (x·cos + z·(−sin)… ) как в ms.multiply
-                double lx = x / 16.0, ly = (y + lift) / 16.0, lz = z / 16.0;
-                out[0] = ex + lx * cy - lz * sy;
-                out[1] = ey + ly;
-                out[2] = ez + lx * sy + lz * cy;
-            }
-
-            @Override
-            public void toLocal(double x, double y, double z, float[] out) {
-                double wx = x - ex, wy = y - ey, wz = z - ez;
-                out[0] = (float) ((wx * cy + wz * sy) * 16);
-                out[1] = (float) (wy * 16 - lift);
-                out[2] = (float) ((-wx * sy + wz * cy) * 16);
-            }
-        };
-        float[][] caps = {
-                cap(mats[TORSO], -3.2f, 47f, 0, 3.2f, 47f, 0, 7.4f),
-                cap(mats[TORSO], 0, 49f, 0, 0, 56f, 0, 6.5f),
-                cap(mats[THIGH_R], -4.2f, 46f, 0, -4.7f, 26.5f, 0.8f, 5.6f),
-                cap(mats[THIGH_L], 4.2f, 46f, 0, 4.7f, 26.5f, 0.8f, 5.6f),
-                cap(mats[SHIN_R], -4.7f, 26.5f, 0.8f, -4.9f, 7f, -0.4f, 3.9f),
-                cap(mats[SHIN_L], 4.7f, 26.5f, 0.8f, 4.9f, 7f, -0.4f, 3.9f),
-        };
-        float wind = 0.6f + 1.6f * mv + (a == SeraelEntity.DIVE || a == SeraelEntity.ROAR || a == SeraelEntity.HALO ? 2.5f : 0f);
-        if (!net.minecraft.client.MinecraftClient.getInstance().isPaused()) skirt.simulate(fr, mats[TORSO], caps, t / 20f, wind);
-        skirt.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(DRESS)), light, overlay, dim, dim, dim);
         ms.pop();
         super.render(e, yaw, td, ms, vcp, light);
     }
 
-    private static float[] cap(Matrix4f m, float ax, float ay, float az, float bx, float by, float bz, float r) {
-        Vector3f a = m.transformPosition(ax, ay, az, new Vector3f()), b = m.transformPosition(bx, by, bz, new Vector3f());
-        return new float[] { a.x, a.y, a.z, b.x, b.y, b.z, r };
+    /**
+     * Лёгкая физика волос: пружины с затуханием для трёх звеньев косы и двух прядей. Волосы свисают вниз
+     * независимо от наклона головы и тела, отлетают назад при движении, вбок — при поворотах и шаге в сторону.
+     */
+    static final class Hair {
+        final float[] ax = new float[5], az = new float[5], vx = new float[5], vz = new float[5];
+        long nanos;
+        float prevYaw = Float.NaN;
+    }
+
+    private static void hair(SeraelEntity e, Hair h, Pose p, float t, float bodyYaw, Vector3f[] rot) {
+        long now = System.nanoTime();
+        float dt = h.nanos == 0 ? 0f : Math.min(0.05f, (now - h.nanos) / 1e9f);
+        h.nanos = now;
+        if (net.minecraft.client.MinecraftClient.getInstance().isPaused()) dt = 0f;
+        float y = bodyYaw * MathHelper.RADIANS_PER_DEGREE;
+        double vx = e.getX() - e.prevX, vy = e.getY() - e.prevY, vz = e.getZ() - e.prevZ;
+        float fwd = (float) (-Math.sin(y) * vx + Math.cos(y) * vz), left = (float) (Math.cos(y) * vx + Math.sin(y) * vz);
+        float yawRate = Float.isNaN(h.prevYaw) ? 0f : MathHelper.wrapDegrees(bodyYaw - h.prevYaw) / Math.max(dt * 20f, 1e-3f);
+        h.prevYaw = bodyYaw;
+        float dynX = MathHelper.clamp(fwd * 70f + Math.max(0f, (float) -vy) * 45f, -10f, 75f);
+        float dynZ = MathHelper.clamp(-left * 60f - yawRate * 1.6f, -45f, 45f);
+        float comp = -(p.torsoX + p.headX) * 0.9f;
+        float[] tx = { comp + dynX + 3f * MathHelper.sin(t * 0.05f), dynX * 0.35f + 4f * MathHelper.sin(t * 0.07f + 1f), dynX * 0.3f + 5f * MathHelper.sin(t * 0.09f + 2f),
+                comp * 0.8f + dynX * 0.3f, comp * 0.8f + dynX * 0.3f };
+        float[] tz = { dynZ, dynZ * 0.4f + 3f * MathHelper.sin(t * 0.06f), dynZ * 0.35f + 3f * MathHelper.sin(t * 0.08f + 1f), dynZ * 0.4f - 4f, dynZ * 0.4f + 4f };
+        float[] k = { 70f, 48f, 36f, 60f, 60f };
+        for (int i = 0; i < 5; i++) {
+            float c = 2f * (float) Math.sqrt(k[i]) * 0.35f;
+            int steps = Math.max(1, (int) Math.ceil(dt / 0.008f));
+            float sd = dt / steps;
+            for (int s = 0; s < steps; s++) {
+                h.vx[i] += (k[i] * (tx[i] - h.ax[i]) - c * h.vx[i]) * sd;
+                h.vz[i] += (k[i] * (tz[i] - h.az[i]) - c * h.vz[i]) * sd;
+                h.ax[i] += h.vx[i] * sd;
+                h.az[i] += h.vz[i] * sd;
+            }
+        }
+        rot[HAIR1].set(h.ax[0], 0, h.az[0]);
+        rot[HAIR2].set(h.ax[1], 0, h.az[1]);
+        rot[HAIR3].set(h.ax[2], 0, h.az[2]);
+        rot[LOCK_R].set(h.ax[3], 0, h.az[3]);
+        rot[LOCK_L].set(h.ax[4], 0, h.az[4]);
     }
 }
