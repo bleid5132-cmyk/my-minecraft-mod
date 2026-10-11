@@ -169,8 +169,7 @@ public class SeraelEntity extends HostileEntity {
         setTarget(null);
         bossBar.setPercent(0f);
         bossBar.setVisible(false);
-        sound(SoundEvents.ENTITY_ALLAY_DEATH, 3f, 0.55f);
-        sound(SoundEvents.ENTITY_VEX_DEATH, 2.5f, 0.8f);
+        forgetMe();
     }
 
     private static final TrackedData<Integer> CRUMBLE = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
@@ -254,6 +253,7 @@ public class SeraelEntity extends HostileEntity {
         if (statue()) {
             statueTicks++;
             setTarget(null);
+            if (statueTicks % 10 == 0) forgetMe();
             setVelocity(getVelocity().multiply(0, 1, 0));
             if (statueTicks == 20) {
                 // клинок вонзается в землю перед ней
@@ -493,6 +493,11 @@ public class SeraelEntity extends HostileEntity {
             case BARRIER -> {
                 setVelocity(getVelocity().multiply(0, 1, 0));
                 if (k % 20 == 0) sound(SoundEvents.BLOCK_BEACON_AMBIENT, 2f, 0.5f);
+                // под барьером медленно восстанавливает здоровье (~7% за всё время)
+                if (k % 10 == 0 && shield) {
+                    heal(getMaxHealth() * 0.004f);
+                    if (k % 20 == 0) sound(SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, 1.2f, 0.7f);
+                }
             }
             case DASH -> {
                 if (k == 3 && t != null) {
@@ -885,17 +890,37 @@ public class SeraelEntity extends HostileEntity {
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return SoundEvents.ENTITY_ALLAY_AMBIENT_WITHOUT_ITEM;
+        return statue() ? null : SoundEvents.ENTITY_ALLAY_AMBIENT_WITHOUT_ITEM;
     }
 
     @Override
     protected SoundEvent getHurtSound(DamageSource source) {
-        return SoundEvents.ENTITY_VEX_HURT;
+        return statue() ? null : SoundEvents.ENTITY_VEX_HURT;
     }
 
     @Override
     protected SoundEvent getDeathSound() {
-        return SoundEvents.ENTITY_WITHER_DEATH;
+        return statue() ? null : SoundEvents.ENTITY_WITHER_DEATH;
+    }
+
+    /** Статуя — не цель: обычные мобы её не замечают и не атакуют. */
+    @Override
+    public boolean canTakeDamage() {
+        return !statue() && super.canTakeDamage();
+    }
+
+    @Override
+    public boolean canBeHitByProjectile() {
+        return !statue() && super.canBeHitByProjectile();
+    }
+
+    /** Мобы, уже нацеленные на неё, теряют цель. */
+    private void forgetMe() {
+        for (net.minecraft.entity.mob.MobEntity m : getWorld().getEntitiesByClass(net.minecraft.entity.mob.MobEntity.class,
+                getBoundingBox().expand(48), m -> m.getTarget() == this)) {
+            m.setTarget(null);
+            if (m instanceof net.minecraft.entity.mob.Angerable an) an.stopAnger();
+        }
     }
 
     @Override

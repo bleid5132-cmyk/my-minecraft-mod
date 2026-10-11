@@ -39,7 +39,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         float[] x, v;
         long nanos;
     }
-    private static int HAIR1, HAIR2, HAIR3, LOCK_R, LOCK_L;
+    private static int HAIR1, HAIR2, HAIR3, LOCK_R, LOCK_L, SWORD = -1;
 
     public SeraelRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
@@ -54,7 +54,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             THIGH_L = model.index("thigh_l"); SHIN_L = model.index("shin_l"); HEAD = model.index("head"); HALO = model.index("halo");
             ARM_R = model.index("arm_r"); FORE_R = model.index("fore_r"); HAND_R = model.index("hand_r");
             ARM_L = model.index("arm_l"); FORE_L = model.index("fore_l"); HAND_L = model.index("hand_l");
-            WING_R = model.index("wing_r"); WING_L = model.index("wing_l");
+            WING_R = model.index("wing_r"); WING_L = model.index("wing_l"); SWORD = model.index("sword");
             HAIR1 = model.index("hair1"); HAIR2 = model.index("hair2"); HAIR3 = model.index("hair3");
             LOCK_R = model.index("lock_r"); LOCK_L = model.index("lock_l");
         }
@@ -65,6 +65,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         HAIR.remove(id);
         HALOS.remove(id);
         TRAILS.remove(id);
+        BLADES.remove(id);
         SMOOTH.remove(id);
     }
 
@@ -402,6 +403,12 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         if (stoneY > -100f) m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(STONE)), true, light, overlay, mats, 1f, 1f, 1f, stoneY, crumbleY);
 
         ms.pop();
+        // мировые (относительно сущности) координаты клинка — для следа удара
+        Matrix4f ent = new Matrix4f().rotateY((float) Math.toRadians(-bodyYaw)).scale(1 / 16f).translate(0, lift, 0);
+        if (Math.abs(p.pitch) > 0.01f) ent.translate(0, 55, 0).rotateX((float) Math.toRadians(p.pitch)).translate(0, -55, 0);
+        if (SWORD >= 0) ent.mul(mats[SWORD]);
+        swordTrail(e, td, ent, ms, vcp);
+        if (e.shieldCharge() >= 0f) barrier(e, td, t, ms, vcp);
         trail(e, td, ms, vcp);
         super.render(e, yaw, td, ms, vcp, light);
     }
@@ -519,6 +526,118 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                 band(vc, pm, x0 - nx, y0 + 4.3f, z0 - nz, x0 + nx, y0 + 4.3f, z0 + nz, x1 + nx, y1 + 4.3f, z1 + nz, x1 - nx, y1 + 4.3f, z1 - nz, a0, a1);
             }
         }
+    }
+
+    // ---------------------------------------------------------------- след клинка при ударах
+
+    private static final Map<Integer, java.util.ArrayDeque<double[]>> BLADES = new HashMap<>();
+    private static final float BLADE_LIFE = 0.32f;
+    private static final Vector3f GRIP = new Vector3f(-13.4f, 44.6f, 2.0f), BLADE_DIR = new Vector3f(0f, -0.62f, 0.785f).normalize();
+
+    private static void swordTrail(SeraelEntity e, float td, Matrix4f ent, MatrixStack ms, VertexConsumerProvider vcp) {
+        java.util.ArrayDeque<double[]> q = BLADES.computeIfAbsent(e.getId(), id -> new java.util.ArrayDeque<>());
+        double now = System.nanoTime() / 1e9;
+        double ex = MathHelper.lerp(td, e.prevX, e.getX()), ey = MathHelper.lerp(td, e.prevY, e.getY()), ez = MathHelper.lerp(td, e.prevZ, e.getZ());
+        int a = e.attack();
+        float tk = e.age - e.clientAttackStart + td;
+        boolean on = !e.statue() && (a == SeraelEntity.SWING && tk > 11f && tk < 25f || a == SeraelEntity.SLASH && tk > 7f && tk < 16f
+                || a == SeraelEntity.PETALS && tk > 43f && tk < 52f || a == SeraelEntity.DIVE && tk > 39f && tk < 63f
+                || a == SeraelEntity.DASH && tk > 9f && tk < 16f);
+        if (on) {
+            Vector3f b = ent.transformPosition(new Vector3f(BLADE_DIR).mul(12f).add(GRIP));
+            Vector3f t = ent.transformPosition(new Vector3f(BLADE_DIR).mul(68f).add(GRIP));
+            q.addLast(new double[] { ex + b.x, ey + b.y, ez + b.z, ex + t.x, ey + t.y, ez + t.z, now });
+        }
+        while (!q.isEmpty() && now - q.peekFirst()[6] > BLADE_LIFE) q.pollFirst();
+        if (q.size() < 2) return;
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TRAIL_TEX));
+        Matrix4f pm = ms.peek().getPositionMatrix();
+        double[] prev = null;
+        for (double[] s : q) {
+            if (prev != null) {
+                float a0 = (float) Math.max(0, 1 - (now - prev[6]) / BLADE_LIFE), a1 = (float) Math.max(0, 1 - (now - s[6]) / BLADE_LIFE);
+                bladeQuad(vc, pm, prev, s, ex, ey, ez, a0 * a0, a1 * a1);
+            }
+            prev = s;
+        }
+    }
+
+    private static void bladeQuad(VertexConsumer vc, Matrix4f pm, double[] p0, double[] p1, double ex, double ey, double ez, float a0, float a1) {
+        // свежий край — белый с фиолетом, хвост — алый
+        float r0 = (0.75f + 0.25f * a0) * a0, g0 = (0.15f + 0.65f * a0 * a0) * a0, b0 = (0.55f + 0.45f * a0) * a0;
+        float r1 = (0.75f + 0.25f * a1) * a1, g1 = (0.15f + 0.65f * a1 * a1) * a1, b1 = (0.55f + 0.45f * a1) * a1;
+        int ov = net.minecraft.client.render.OverlayTexture.DEFAULT_UV;
+        vc.vertex(pm, (float) (p0[0] - ex), (float) (p0[1] - ey), (float) (p0[2] - ez)).color(r0, g0, b0, a0).texture(0f, 0.1f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+        vc.vertex(pm, (float) (p0[3] - ex), (float) (p0[4] - ey), (float) (p0[5] - ez)).color(r0, g0, b0, a0).texture(0f, 0.5f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+        vc.vertex(pm, (float) (p1[3] - ex), (float) (p1[4] - ey), (float) (p1[5] - ez)).color(r1, g1, b1, a1).texture(1f, 0.5f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+        vc.vertex(pm, (float) (p1[0] - ex), (float) (p1[1] - ey), (float) (p1[2] - ez)).color(r1, g1, b1, a1).texture(1f, 0.1f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+    }
+
+    // ---------------------------------------------------------------- купол «Демонического барьера»
+
+    private static void barrier(SeraelEntity e, float td, float t, MatrixStack ms, VertexConsumerProvider vcp) {
+        float charge = Math.max(0f, e.shieldCharge());
+        float tk = e.attack() == SeraelEntity.BARRIER ? e.age - e.clientAttackStart + td : 20f;
+        float appear = sm(tk / 6f);
+        if (appear <= 0.01f) return;
+        double ex = MathHelper.lerp(td, e.prevX, e.getX()), ey = MathHelper.lerp(td, e.prevY, e.getY()), ez = MathHelper.lerp(td, e.prevZ, e.getZ());
+        net.minecraft.util.math.Vec3d cam = net.minecraft.client.MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
+        float R = 3.4f * (0.7f + 0.3f * appear) * (1f + 0.015f * MathHelper.sin(t * 0.5f)), cy = 2.9f;
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TRAIL_TEX));
+        Matrix4f pm = ms.peek().getPositionMatrix();
+        int LON = 32, LAT = 20;
+        float[][] px = new float[LAT + 1][LON + 1], py = new float[LAT + 1][LON + 1], pz = new float[LAT + 1][LON + 1], in = new float[LAT + 1][LON + 1];
+        for (int i = 0; i <= LAT; i++) {
+            float th = MathHelper.PI * i / LAT;
+            for (int j = 0; j <= LON; j++) {
+                float ph = MathHelper.TAU * j / LON;
+                float nx = MathHelper.sin(th) * MathHelper.cos(ph), ny = MathHelper.cos(th), nz = MathHelper.sin(th) * MathHelper.sin(ph);
+                float x = nx * R, y = ny * R * 1.05f + cy, z = nz * R;
+                double vx = cam.x - (ex + x), vy = cam.y - (ey + y), vz = cam.z - (ez + z), vl = Math.sqrt(vx * vx + vy * vy + vz * vz);
+                float rim = 1f - (float) Math.abs((nx * vx + ny * vy + nz * vz) / Math.max(1e-4, vl));
+                rim = rim * rim * rim;
+                // бегущие вверх волны энергии и шестигранная «сетка» из долгот и широт
+                float wave = 0.5f + 0.5f * MathHelper.sin(ny * 9f - t * 0.35f);
+                float grid = (float) Math.pow(Math.abs(MathHelper.sin(ph * 6f + t * 0.03f)) * Math.abs(MathHelper.sin(th * 6f)), 6.0);
+                float crack = charge > 0.4f ? (float) Math.max(0, MathHelper.sin(ph * 17f + th * 23f + t * 0.9f) - (1.2f - charge)) * 3f : 0f;
+                px[i][j] = x; py[i][j] = y; pz[i][j] = z;
+                in[i][j] = appear * (0.08f + 0.9f * rim + 0.18f * wave * (0.4f + rim) + 0.5f * grid + crack);
+            }
+        }
+        int ov = net.minecraft.client.render.OverlayTexture.DEFAULT_UV;
+        float cr = 0.42f + 0.5f * charge, cg = 0.08f + 0.35f * charge * charge, cb = 0.9f + 0.1f * charge;
+        for (int i = 0; i < LAT; i++) {
+            for (int j = 0; j < LON; j++) {
+                int[][] idx = { { i, j }, { i, j + 1 }, { i + 1, j + 1 }, { i + 1, j } };
+                for (int[] c : idx) {
+                    float k = Math.min(1.6f, in[c[0]][c[1]]);
+                    vc.vertex(pm, px[c[0]][c[1]], py[c[0]][c[1]], pz[c[0]][c[1]]).color(cr * k, cg * k, cb * k, 1f).texture(0.5f, 0.5f)
+                            .overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+                }
+            }
+        }
+        // два наклонённых вращающихся кольца рун вокруг купола
+        for (int ring = 0; ring < 2; ring++) {
+            float tilt = ring == 0 ? 0.35f : -0.5f, spin = t * (ring == 0 ? 0.04f : -0.03f), rr = R * 1.06f, hw = 0.16f;
+            int N = 48;
+            for (int j = 0; j < N; j++) {
+                float a0 = MathHelper.TAU * j / N + spin, a1 = MathHelper.TAU * (j + 1) / N + spin;
+                float bright = appear * (0.5f + 0.5f * MathHelper.sin(j * 1.7f + t * 0.4f)) * (0.8f + charge);
+                float[] p0 = ringPt(a0, rr, tilt, cy), p1 = ringPt(a1, rr, tilt, cy);
+                float r = 0.9f * bright, g = 0.35f * bright, b = 1f * bright;
+                vc.vertex(pm, p0[0], p0[1] - hw, p0[2]).color(r, g, b, 1f).texture(0f, 0.1f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+                vc.vertex(pm, p0[0], p0[1] + hw, p0[2]).color(r, g, b, 1f).texture(0f, 0.9f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+                vc.vertex(pm, p1[0], p1[1] + hw, p1[2]).color(r, g, b, 1f).texture(1f, 0.9f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+                vc.vertex(pm, p1[0], p1[1] - hw, p1[2]).color(r, g, b, 1f).texture(1f, 0.1f).overlay(ov).light(0xF000F0).normal(0, 1, 0).next();
+            }
+        }
+    }
+
+    private static float[] ringPt(float a, float r, float tilt, float cy) {
+        float x = MathHelper.cos(a) * r, z = MathHelper.sin(a) * r;
+        float y = z * MathHelper.sin(tilt);
+        z = z * MathHelper.cos(tilt);
+        return new float[] { x, y + cy, z };
     }
 
     private static void band(VertexConsumer vc, Matrix4f pm, float ax, float ay, float az, float bx, float by, float bz,

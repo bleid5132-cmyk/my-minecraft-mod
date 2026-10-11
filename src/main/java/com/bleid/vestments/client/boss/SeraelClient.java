@@ -330,8 +330,8 @@ public final class SeraelClient {
         if (e.statue()) {
             // окаменение: серая пыль поднимается вместе с границей камня
             int st = e.age - e.clientStatueStart;
-            if (st > 14 && st < 60) {
-                double hy = cy + ((st - 16) / 40.0 * 130 - 6) / 16.0;
+            if (st > 30 && st < 74) {
+                double hy = cy + Math.max(0, (st - 32) / 40.0 * 136 - 6 - 23) / 16.0;
                 for (int i = 0; i < 4; i++) {
                     double ang = R.nextDouble() * Math.PI * 2, r = 0.4 + R.nextDouble() * 0.9;
                     spawn(SMOKE, cx + Math.cos(ang) * r, hy, cz + Math.sin(ang) * r).vel(0, 0.02, 0).size(0.4f, 0.9f)
@@ -362,6 +362,12 @@ public final class SeraelClient {
                 double ex = cx + lx * s * 0.13 + fx * 0.36, ez = cz + lz * s * 0.13 + fz * 0.36;
                 spawn(FLARE, ex, cy + 5.53, ez).size(0.09f).color(GOLD).alpha(0.8f).life(2).fade(0f, 0f);
             }
+        }
+        // барьер: искры жизни стягиваются к ней — она восстанавливает здоровье
+        if (e.shieldCharge() >= 0 && e.age % 2 == 0) {
+            double ang = R.nextDouble() * Math.PI * 2, r = 2.6 + R.nextDouble();
+            double x = cx + Math.cos(ang) * r, z = cz + Math.sin(ang) * r, y = cy + 0.5 + R.nextDouble() * 4;
+            spawn(GLINT, x, y, z).vel((cx - x) * 0.07, (cy + 3 - y) * 0.07, (cz - z) * 0.07).size(0.14f, 0.03f).colors(GOLD, CRIMSON).life(14);
         }
         // щит «Демонического барьера»
         float ch = e.shieldCharge();
