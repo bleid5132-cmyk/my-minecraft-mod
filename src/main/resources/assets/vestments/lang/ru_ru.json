@@ -271,5 +271,6 @@
   "entity.vestments.serael": "Сераэль, Пепельный Нимб",
   "item.vestments.serael_spawn_egg": "Яйцо призыва: Сераэль, Пепельный Нимб",
   "effect.vestments.exhaustion": "Истощение",
-  "effect.vestments.stun": "Оглушение"
+  "effect.vestments.stun": "Оглушение",
+  "item.vestments.serael_halo": "Нимб Сераэль"
 }

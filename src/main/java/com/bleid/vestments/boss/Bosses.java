@@ -26,6 +26,15 @@ public final class Bosses {
     public static final Item SERAEL_SPAWN_EGG = Registry.register(Registries.ITEM, new Identifier(Vestments.MOD_ID, "serael_spawn_egg"),
             new SpawnEggItem(SERAEL, 0x1A0E12, 0xB0142A, new FabricItemSettings().rarity(Rarity.EPIC)));
 
+    /** Нимб Сераэль — единственный трофей: падает рядом со статуей, когда она рассыпается в прах. */
+    public static final Item SERAEL_HALO = Registry.register(Registries.ITEM, new Identifier(Vestments.MOD_ID, "serael_halo"),
+            new Item(new FabricItemSettings().maxCount(1).rarity(Rarity.EPIC).fireproof()) {
+                @Override
+                public boolean hasGlint(net.minecraft.item.ItemStack stack) {
+                    return true;
+                }
+            });
+
     public static void init() {
         BossEffects.init();
         // вместо смерти Сераэль каменеет: статуя рассыпается только от удара игрока

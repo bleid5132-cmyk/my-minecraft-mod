@@ -271,5 +271,6 @@
   "entity.vestments.serael": "Serael, the Ashen Halo",
   "item.vestments.serael_spawn_egg": "Serael, the Ashen Halo Spawn Egg",
   "effect.vestments.exhaustion": "Exhaustion",
-  "effect.vestments.stun": "Stun"
+  "effect.vestments.stun": "Stun",
+  "item.vestments.serael_halo": "Serael's Halo"
 }

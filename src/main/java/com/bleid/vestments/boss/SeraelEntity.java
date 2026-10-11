@@ -102,7 +102,7 @@ public class SeraelEntity extends HostileEntity {
 
     public SeraelEntity(EntityType<? extends HostileEntity> type, World world) {
         super(type, world);
-        experiencePoints = 500;
+        experiencePoints = 0;
         setStepHeight(1.2f);
         setPersistent();
     }
@@ -198,13 +198,16 @@ public class SeraelEntity extends HostileEntity {
         w.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.FALLING_DUST, Blocks.GRAVEL.getDefaultState()),
                 getX(), getY() + 3, getZ(), 160, 1.8, 2.6, 1.8, 0.02);
         w.spawnParticles(ParticleTypes.ASH, getX(), getY() + 3, getZ(), 200, 2, 3, 2, 0.05);
+        event(E_SHATTER, getPos(), 0f);
         sound(SoundEvents.BLOCK_STONE_BREAK, 4f, 0.5f);
         sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 4f, 0.7f);
         sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 1.5f, 1.5f);
-        dropStack(new ItemStack(Items.NETHER_STAR));
-        dropStack(new ItemStack(Items.NETHERITE_SCRAP, 2 + random.nextInt(3)));
-        dropStack(new ItemStack(Items.GOLD_BLOCK, 3 + random.nextInt(3)));
-        net.minecraft.entity.ExperienceOrbEntity.spawn(w, getPos().add(0, 1, 0), 500);
+        // из праха остаётся только упавший рядом нимб
+        Vec3d hp = local(0.8, 0.3, -1.1);
+        net.minecraft.entity.ItemEntity it = new net.minecraft.entity.ItemEntity(w, hp.x, hp.y, hp.z, new ItemStack(Bosses.SERAEL_HALO));
+        it.setVelocity(0, 0.15, 0);
+        it.setToDefaultPickupDelay();
+        w.spawnEntity(it);
         bossBar.clearPlayers();
         discard();
     }
@@ -259,15 +262,8 @@ public class SeraelEntity extends HostileEntity {
                 ((ServerWorld) getWorld()).spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK,
                         getWorld().getBlockState(net.minecraft.util.math.BlockPos.ofFloored(c.x, getY() - 0.5, c.z))), c.x, getY() + 0.1, c.z, 40, 0.4, 0.1, 0.4, 0.2);
             }
-            if (statueTicks >= 34 && statueTicks <= 112 && statueTicks % 7 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2f, 0.55f + statueTicks * 0.005f);
-            if (statueTicks == 114) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
-            if (crumble() > 0) {
-                int c = statueTicks - crumbleStart;
-                if (c % 5 == 0) sound(SoundEvents.BLOCK_GRAVEL_BREAK, 2f, 0.5f + random.nextFloat() * 0.3f);
-                if (c % 3 == 0) ((ServerWorld) getWorld()).spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.FALLING_DUST,
-                        Blocks.GRAVEL.getDefaultState()), getX(), getY() + 5.6 - c / 50.0 * 5.6, getZ(), 30, 1.2, 0.3, 1.2, 0.0);
-                if (c >= 52) shatter();
-            }
+            if (statueTicks >= 34 && statueTicks <= 74 && statueTicks % 6 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2f, 0.6f + statueTicks * 0.008f);
+            if (statueTicks == 76) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
             return;
         }
         bossBar.setPercent(getHealth() / getMaxHealth());
@@ -716,7 +712,7 @@ public class SeraelEntity extends HostileEntity {
         if (statue()) {
             boolean byPlayer = source.getAttacker() instanceof PlayerEntity;
             if (source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD) || source.isOf(net.minecraft.entity.damage.DamageTypes.GENERIC_KILL)) shatter();
-            else if (byPlayer && statueTicks > 114 && crumble() == 0) beginCrumble();
+            else if (byPlayer && statueTicks > 76) shatter();
             else if (byPlayer) sound(SoundEvents.BLOCK_STONE_HIT, 1.5f, 0.8f);
             return false;
         }
@@ -948,9 +944,7 @@ public class SeraelEntity extends HostileEntity {
     @Override
     protected void dropEquipment(DamageSource source, int lootingMultiplier, boolean allowDrops) {
         super.dropEquipment(source, lootingMultiplier, allowDrops);
-        dropStack(new ItemStack(Items.NETHER_STAR));
-        dropStack(new ItemStack(Items.NETHERITE_SCRAP, 2 + random.nextInt(3) + lootingMultiplier));
-        dropStack(new ItemStack(Items.GOLD_BLOCK, 3 + random.nextInt(3)));
+        dropStack(new ItemStack(Bosses.SERAEL_HALO));
     }
 
     /** Долгая смерть: замирает на коленях и рассыпается пеплом и лепестками. */
