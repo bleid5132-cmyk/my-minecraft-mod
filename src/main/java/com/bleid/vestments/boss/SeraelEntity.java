@@ -57,8 +57,8 @@ import org.joml.Vector3f;
  * </ul>
  */
 public class SeraelEntity extends HostileEntity {
-    public static final int IDLE = 0, SWING = 1, PETALS = 2, HALO = 3, DIVE = 4, BARRIER = 5, STUNNED = 6, SLASH = 7, ROAR = 8;
-    public static final int[] DURATION = { 0, 56, 72, 50, 100, 180, 60, 24, 40 };
+    public static final int IDLE = 0, SWING = 1, PETALS = 2, HALO = 3, DIVE = 4, BARRIER = 5, STUNNED = 6, SLASH = 7, ROAR = 8, DASH = 9, BACKSTEP = 10;
+    public static final int[] DURATION = { 0, 50, 72, 46, 100, 180, 60, 22, 40, 16, 16 };
     private static final TrackedData<Integer> ATTACK = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> ENRAGED = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Float> CHARGE = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
@@ -67,7 +67,10 @@ public class SeraelEntity extends HostileEntity {
     private static final TrackedData<Float> EVENT_ARG = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
     /** События для клиентских эффектов. */
     public static final int E_ARC = 1, E_SLASH = 2, E_PETAL_ZONE = 3, E_PETAL_FALL = 4, E_HALO_RING = 5, E_DIVE_MARK = 6, E_IMPACT = 7,
-            E_SHIELD_BREAK = 8, E_SHIELD_BOOM = 9, E_ROAR = 10, E_SHIELD_HIT = 11;
+            E_SHIELD_BREAK = 8, E_SHIELD_BOOM = 9, E_ROAR = 10, E_SHIELD_HIT = 11, E_DASH = 12, E_BACKSTEP = 13;
+    private int queued = -1, strafeDir = 1;
+    private Vec3d dashDir = Vec3d.ZERO;
+    private final Set<Entity> dashHit = new HashSet<>();
     private int eventSeq;
     public static final DustParticleEffect DARK = new DustParticleEffect(new Vector3f(0.32f, 0.05f, 0.45f), 1.8f);
     public static final DustParticleEffect VOIDP = new DustParticleEffect(new Vector3f(0.7f, 0.25f, 1f), 1.2f);
@@ -197,7 +200,7 @@ public class SeraelEntity extends HostileEntity {
                 if (a == BARRIER && shield) detonateShield();
                 setNoGravity(false);
                 setAttack(IDLE);
-                cooldown = enraged() ? 16 : 28;
+                cooldown = queued >= 0 ? 1 : enraged() ? 5 : 11;
             }
         } else if (t != null && --cooldown <= 0) {
             startAttack(t);
@@ -213,6 +216,24 @@ public class SeraelEntity extends HostileEntity {
 
     private void startAttack(LivingEntity t) {
         double d = Math.sqrt(squaredDistanceTo(t));
+        if (queued >= 0) {
+            int q = queued;
+            queued = -1;
+            if (q != SWING && q != SLASH || d < 6.5) { begin(q); return; }
+        }
+        // рывок к далёкой цели с ударом в конце; отскок от слишком близкой с дальней атакой
+        if (d > 8.5 && ready(DASH) && random.nextFloat() < 0.55f) {
+            cds.put(DASH, enraged() ? 40 : 70);
+            queued = random.nextBoolean() ? SLASH : SWING;
+            begin(DASH);
+            return;
+        }
+        if (d < 3.2 && ready(BACKSTEP) && random.nextFloat() < 0.4f) {
+            cds.put(BACKSTEP, enraged() ? 60 : 100);
+            queued = ready(PETALS) ? PETALS : ready(HALO) ? HALO : ready(DIVE) ? DIVE : -1;
+            begin(BACKSTEP);
+            return;
+        }
         List<Integer> opts = new ArrayList<>();
         if (d < 5.5) {
             opts.add(SWING); opts.add(SWING); opts.add(SLASH); opts.add(SLASH);
@@ -230,22 +251,34 @@ public class SeraelEntity extends HostileEntity {
         do {
             pick = opts.get(random.nextInt(opts.size()));
         } while (pick == lastAttack && opts.size() > 1 && guard++ < 4);
+        // связки: удар сверху → широкий взмах и наоборот, после пике — дождь лепестков
+        float chain = enraged() ? 0.7f : 0.45f;
+        if (pick == SLASH && random.nextFloat() < chain) queued = SWING;
+        else if (pick == SWING && random.nextFloat() < chain * 0.6f) queued = SLASH;
+        else if (pick == DIVE && ready(PETALS) && random.nextFloat() < chain) queued = PETALS;
+        else if (pick == HALO && random.nextFloat() < chain) queued = SLASH;
+        begin(pick);
+    }
+
+    private void begin(int pick) {
         lastAttack = pick;
         setAttack(pick);
         float m = enraged() ? 0.6f : 1f;
         switch (pick) {
             case SWING -> sound(SoundEvents.ENTITY_WARDEN_ATTACK_IMPACT, 2f, 0.6f);
             case SLASH -> sound(SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, 2f, 0.5f);
-            case PETALS -> { cds.put(PETALS, (int) (200 * m)); sound(SoundEvents.BLOCK_CHERRY_LEAVES_BREAK, 3f, 0.5f); }
-            case HALO -> { cds.put(HALO, (int) (220 * m)); sound(SoundEvents.BLOCK_BEACON_ACTIVATE, 3f, 1.4f); }
-            case DIVE -> { cds.put(DIVE, (int) (260 * m)); sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 3f, 0.7f); }
+            case PETALS -> { cds.put(PETALS, (int) (140 * m)); sound(SoundEvents.BLOCK_CHERRY_LEAVES_BREAK, 3f, 0.5f); }
+            case HALO -> { cds.put(HALO, (int) (150 * m)); sound(SoundEvents.BLOCK_BEACON_ACTIVATE, 3f, 1.4f); }
+            case DIVE -> { cds.put(DIVE, (int) (190 * m)); sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 3f, 0.7f); }
             case BARRIER -> {
-                cds.put(BARRIER, (int) (700 * m));
+                cds.put(BARRIER, (int) (560 * m));
                 shield = true;
                 charge = 0;
                 dataTracker.set(CHARGE, 0f);
                 sound(SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, 3f, 0.5f);
             }
+            case DASH -> sound(SoundEvents.ENTITY_PHANTOM_SWOOP, 2.5f, 0.7f);
+            case BACKSTEP -> sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2.5f, 1.1f);
             default -> { }
         }
     }
@@ -257,6 +290,7 @@ public class SeraelEntity extends HostileEntity {
         switch (a) {
             case SWING -> {
                 // дуга удара справа налево перед собой; каждая точка взрывается через 30 тиков
+                if (k == 11) lunge(0.45);
                 if (k == 14) event(E_ARC, getPos(), getYaw());
                 if (k >= 14 && k <= 19) {
                     int per = 3;
@@ -278,6 +312,7 @@ public class SeraelEntity extends HostileEntity {
                 }
             }
             case SLASH -> {
+                if (k == 8) lunge(0.55);
                 if (k == 11) {
                     sound(SoundEvents.ENTITY_IRON_GOLEM_ATTACK, 2.5f, 0.5f);
                     Vec3d c = local(0, 0.2, 3.2);
@@ -364,6 +399,35 @@ public class SeraelEntity extends HostileEntity {
             case BARRIER -> {
                 setVelocity(getVelocity().multiply(0, 1, 0));
                 if (k % 20 == 0) sound(SoundEvents.BLOCK_BEACON_AMBIENT, 2f, 0.5f);
+            }
+            case DASH -> {
+                if (k == 3 && t != null) {
+                    Vec3d d = new Vec3d(t.getX() - getX(), 0, t.getZ() - getZ());
+                    dashDir = d.lengthSquared() > 1e-4 ? d.normalize() : forward3();
+                    dashHit.clear();
+                    event(E_DASH, getPos(), getYaw());
+                }
+                if (k >= 3 && k <= 11) {
+                    boolean near = t != null && squaredDistanceTo(t) < 2.8 * 2.8;
+                    double sp = near ? 0.2 : (rage ? 1.45 : 1.25);
+                    setVelocity(dashDir.x * sp, getVelocity().y, dashDir.z * sp);
+                    for (LivingEntity e : enemies(getBoundingBox().expand(0.6))) {
+                        if (dashHit.add(e)) {
+                            e.damage(getDamageSources().mobAttack(this), rage ? 9 : 6);
+                            knock(e, 0.9, 0.35);
+                        }
+                    }
+                    if (near && k < 9) attackTick = 11;
+                }
+            }
+            case BACKSTEP -> {
+                if (k == 2) {
+                    Vec3d b = t != null ? new Vec3d(getX() - t.getX(), 0, getZ() - t.getZ()) : forward3().negate();
+                    b = b.lengthSquared() > 1e-4 ? b.normalize() : forward3().negate();
+                    setVelocity(b.x * 1.05, 0.45, b.z * 1.05);
+                    event(E_BACKSTEP, getPos(), getYaw());
+                    for (LivingEntity e : enemies(getBoundingBox().expand(2.5))) knock(e, 0.7, 0.2);
+                }
             }
             case ROAR -> {
                 if (k == 10) {
@@ -467,7 +531,9 @@ public class SeraelEntity extends HostileEntity {
 
     /** Ходьба: держит дистанцию под атаку, разворачивается к цели. */
     private void steer(LivingEntity t, int a) {
-        if (a == DIVE || a == BARRIER || a == STUNNED || a == ROAR) {
+        if (a == DIVE || a == BARRIER || a == STUNNED || a == ROAR || a == DASH || a == BACKSTEP) {
+            if (t != null && (a == DASH || a == BACKSTEP)) faceTarget(t, 14f);
+            if (a == DASH || a == BACKSTEP) return;
             if (t != null && a == DIVE) faceTarget(t, 8f);
             if (a != DIVE) setVelocity(getVelocity().multiply(0.5, 1, 0.5));
             return;
@@ -478,14 +544,21 @@ public class SeraelEntity extends HostileEntity {
             faceTarget(t, a == SWING || a == SLASH ? 4f : 10f);
             double want = a == PETALS || a == HALO ? 5.5 : 3.2;
             double dx = t.getX() - getX(), dz = t.getZ() - getZ(), d = Math.sqrt(dx * dx + dz * dz);
-            boolean busy = a == SWING || a == SLASH;
+            boolean busy = (a == SWING || a == SLASH) && attackTick > 6;
+            double sp = enraged() ? 0.28 : 0.23;
             if (d > want && !busy) {
-                double sp = enraged() ? 0.27 : 0.22;
                 vx = dx / d * sp;
                 vz = dz / d * sp;
             }
+            // в ожидании атаки и во время «Дождя лепестков» кружит вокруг цели
+            if (!busy && d < 10 && (a == IDLE || a == PETALS)) {
+                if (age % 70 == 0) strafeDir = random.nextBoolean() ? 1 : -1;
+                double s2 = sp * 0.55 * strafeDir;
+                vx += -dz / d * s2;
+                vz += dx / d * s2;
+            }
         }
-        double nx = MathHelper.lerp(0.3, v.x, vx), nz = MathHelper.lerp(0.3, v.z, vz), ny = v.y;
+        double nx = MathHelper.lerp(0.25, v.x, vx), nz = MathHelper.lerp(0.25, v.z, vz), ny = v.y;
         if (horizontalCollision && isOnGround() && (vx != 0 || vz != 0)) ny = 0.55;
         setVelocity(nx, ny, nz);
     }
@@ -523,6 +596,16 @@ public class SeraelEntity extends HostileEntity {
         Vec3d f = new Vec3d(-MathHelper.sin(y), 0, MathHelper.cos(y));
         Vec3d r = new Vec3d(-MathHelper.cos(y), 0, -MathHelper.sin(y));
         return getPos().add(f.multiply(fwd)).add(r.multiply(right)).add(0, up, 0);
+    }
+
+    private void lunge(double s) {
+        Vec3d f = forward3();
+        setVelocity(getVelocity().add(f.x * s, 0, f.z * s));
+    }
+
+    private Vec3d forward3() {
+        float y = getYaw() * MathHelper.RADIANS_PER_DEGREE;
+        return new Vec3d(-MathHelper.sin(y), 0, MathHelper.cos(y));
     }
 
     private boolean inFront(Entity e, double halfAngle) {

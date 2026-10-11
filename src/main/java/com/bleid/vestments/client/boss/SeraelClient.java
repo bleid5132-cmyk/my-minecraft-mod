@@ -68,6 +68,8 @@ public final class SeraelClient {
             case SeraelEntity.E_SHIELD_BOOM -> shieldBoom(p);
             case SeraelEntity.E_SHIELD_HIT -> shieldHit(p, arg);
             case SeraelEntity.E_ROAR -> roar(p);
+            case SeraelEntity.E_DASH -> dash(e, p);
+            case SeraelEntity.E_BACKSTEP -> backstep(p);
             default -> { }
         }
     }
@@ -247,6 +249,33 @@ public final class SeraelClient {
         spawn(CRACK, p.x, p.y, p.z).size(0.6f + charge, 1.2f + charge).color(VIOLET).alpha(0.8f).life(14).fade(0f, 0.6f).rot((float) rr(0, 6.28), 0);
         for (int j = 0; j < 8; j++) {
             spawn(GLINT, p.x, p.y, p.z).vel(rr(-0.2, 0.2), rr(-0.1, 0.25), rr(-0.2, 0.2)).gravity(0.02f).stretch(2f).size(0.1f).color(PALE).life(12);
+        }
+    }
+
+    /** Рывок: вспышка под ногами и шлейф из пепла, искр и алых лепестков за ней. */
+    private static void dash(SeraelEntity e, Vec3d c) {
+        spawn(SHOCK, c.x, c.y + 0.06, c.z).mode(Mode.FLAT).size(0.4f, 3.2f).ease().colors(WHITE, CRIMSON).life(12).fade(0f, 0.7f);
+        FxSystem.task(age -> {
+            if (e.isRemoved()) return false;
+            double x = e.getX(), y = e.getY(), z = e.getZ();
+            for (int i = 0; i < 4; i++) {
+                spawn(SMOKE, x + rr(-0.6, 0.6), y + rr(0.5, 5), z + rr(-0.6, 0.6)).size(0.7f, 1.2f).color(0.35f, 0.04f, 0.08f).alpha(0.5f).life(14).fade(0.1f, 0.7f);
+                spawn(STREAK, x + rr(-0.8, 0.8), y + rr(0.5, 5.5), z + rr(-0.8, 0.8)).vel((e.prevX - x) * 0.4, 0, (e.prevZ - z) * 0.4).stretch(5f)
+                        .size(0.1f).colors(WHITE, CRIMSON).life(8);
+            }
+            spawn(FEATHER, x, y + rr(1, 5), z).vel(rr(-0.05, 0.05), 0.02, rr(-0.05, 0.05)).rot((float) rr(0, 6.28), 0.2f).size(0.14f, 0.08f).color(CRIMSON).life(30);
+            return age < 10;
+        });
+    }
+
+    /** Отскок: порыв от взмаха крыльев. */
+    private static void backstep(Vec3d c) {
+        spawn(RING, c.x, c.y + 0.07, c.z).mode(Mode.FLAT).size(0.5f, 4.5f).ease().colors(WHITE, CRIMSON).life(14).fade(0f, 0.7f);
+        spawn(SHOCK, c.x, c.y + 0.06, c.z).mode(Mode.FLAT).size(0.4f, 3.5f).ease().color(PALE).alpha(0.6f).life(10).fade(0f, 0.7f);
+        for (int j = 0; j < 30; j++) {
+            double ang = rr(0, Math.PI * 2), sp = rr(0.2, 0.5);
+            spawn(FEATHER, c.x, c.y + rr(0.2, 2), c.z).vel(Math.cos(ang) * sp, rr(0, 0.1), Math.sin(ang) * sp).drag(0.9f)
+                    .rot((float) rr(0, 6.28), 0.25f).size(0.15f, 0.08f).color(CRIMSON).life(24 + R().nextInt(16));
         }
     }
 
