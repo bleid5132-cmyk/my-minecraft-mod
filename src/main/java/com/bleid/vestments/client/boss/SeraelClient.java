@@ -70,6 +70,21 @@ public final class SeraelClient {
             case SeraelEntity.E_ROAR -> roar(p);
             case SeraelEntity.E_DASH -> dash(e, p);
             case SeraelEntity.E_BACKSTEP -> backstep(p);
+            case SeraelEntity.E_EVADE -> {
+                spawn(RING, p.x, p.y + 0.07, p.z).mode(Mode.FLAT).size(0.4f, 3.2f).ease().colors(WHITE, CRIMSON).life(10).fade(0f, 0.7f);
+                for (int j = 0; j < 14; j++) {
+                    double ang = rr(0, Math.PI * 2);
+                    spawn(FEATHER, p.x, p.y + rr(0.5, 3), p.z).vel(Math.cos(ang) * 0.3, rr(0, 0.1), Math.sin(ang) * 0.3).drag(0.9f)
+                            .rot((float) rr(0, 6.28), 0.25f).size(0.14f, 0.07f).color(CRIMSON).life(20 + R().nextInt(10));
+                }
+            }
+            case SeraelEntity.E_BLADE_HIT -> {
+                spawn(FLARE, p.x, p.y, p.z).size(0.6f, 2.2f).ease().colors(WHITE, VIOLET).life(6).fade(0f, 0.7f);
+                spawn(SLASH, p.x, p.y, p.z).size(0.8f, 2.6f).ease().colors(WHITE, VIOLET).life(7).fade(0f, 0.6f).rot((float) rr(0, 6.28), 0f);
+                for (int j = 0; j < 12; j++) {
+                    spawn(GLINT, p.x, p.y, p.z).vel(rr(-0.3, 0.3), rr(-0.1, 0.35), rr(-0.3, 0.3)).gravity(0.02f).stretch(3f).size(0.1f).colors(WHITE, VIOLET).life(10);
+                }
+            }
             case SeraelEntity.E_SHATTER -> shatter(p);
             default -> { }
         }

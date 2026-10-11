@@ -57,8 +57,8 @@ import org.joml.Vector3f;
  * </ul>
  */
 public class SeraelEntity extends HostileEntity {
-    public static final int IDLE = 0, SWING = 1, PETALS = 2, HALO = 3, DIVE = 4, BARRIER = 5, STUNNED = 6, SLASH = 7, ROAR = 8, DASH = 9, BACKSTEP = 10;
-    public static final int[] DURATION = { 0, 50, 72, 46, 100, 180, 60, 22, 40, 16, 16 };
+    public static final int IDLE = 0, SWING = 1, PETALS = 2, HALO = 3, DIVE = 4, BARRIER = 5, STUNNED = 6, SLASH = 7, ROAR = 8, DASH = 9, BACKSTEP = 10, EVADE = 11;
+    public static final int[] DURATION = { 0, 50, 72, 46, 100, 180, 60, 22, 40, 16, 16, 12 };
     private static final TrackedData<Integer> ATTACK = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> ENRAGED = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Float> CHARGE = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
@@ -71,7 +71,10 @@ public class SeraelEntity extends HostileEntity {
     private static final TrackedData<Float> EVENT_ARG = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.FLOAT);
     /** События для клиентских эффектов. */
     public static final int E_ARC = 1, E_SLASH = 2, E_PETAL_ZONE = 3, E_PETAL_FALL = 4, E_HALO_RING = 5, E_DIVE_MARK = 6, E_IMPACT = 7,
-            E_SHIELD_BREAK = 8, E_SHIELD_BOOM = 9, E_ROAR = 10, E_SHIELD_HIT = 11, E_DASH = 12, E_BACKSTEP = 13, E_SHATTER = 14;
+            E_SHIELD_BREAK = 8, E_SHIELD_BOOM = 9, E_ROAR = 10, E_SHIELD_HIT = 11, E_DASH = 12, E_BACKSTEP = 13, E_SHATTER = 14, E_EVADE = 15, E_BLADE_HIT = 16;
+    private final Set<Entity> swingHit = new HashSet<>(), arcHit = new HashSet<>();
+    private Vec3d evadeDir = Vec3d.ZERO, wander;
+    private int wanderWait;
     private int queued = -1, strafeDir = 1;
     private Vec3d dashDir = Vec3d.ZERO;
     private final Set<Entity> dashHit = new HashSet<>();
@@ -230,8 +233,15 @@ public class SeraelEntity extends HostileEntity {
             statueTicks++;
             setTarget(null);
             setVelocity(getVelocity().multiply(0, 1, 0));
-            if (statueTicks >= 18 && statueTicks <= 58 && statueTicks % 6 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2f, 0.6f + statueTicks * 0.01f);
-            if (statueTicks == 60) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
+            if (statueTicks == 20) {
+                // клинок вонзается в землю перед ней
+                sound(SoundEvents.BLOCK_ANVIL_LAND, 2f, 0.5f);
+                Vec3d c = local(0.3, 0, 2.2);
+                ((ServerWorld) getWorld()).spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK,
+                        getWorld().getBlockState(net.minecraft.util.math.BlockPos.ofFloored(c.x, getY() - 0.5, c.z))), c.x, getY() + 0.1, c.z, 40, 0.4, 0.1, 0.4, 0.2);
+            }
+            if (statueTicks >= 34 && statueTicks <= 74 && statueTicks % 6 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2f, 0.6f + statueTicks * 0.008f);
+            if (statueTicks == 76) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
             return;
         }
         bossBar.setPercent(getHealth() / getMaxHealth());
@@ -240,7 +250,17 @@ public class SeraelEntity extends HostileEntity {
             setTarget(null);
             t = null;
         }
+        // агрится на ближайшего игрока (для совместного боя): переключается, если другой заметно ближе
+        if (age % 10 == 0) {
+            PlayerEntity near = getWorld().getClosestPlayer(getX(), getY(), getZ(), 48, e -> e instanceof PlayerEntity pl && pl.isAlive()
+                    && !pl.isCreative() && !pl.isSpectator());
+            if (near != null && (t == null || near != t && distanceTo(near) + 2.5 < distanceTo(t))) {
+                setTarget(near);
+                t = near;
+            }
+        }
         cds.replaceAll((k, v) -> Math.max(0, v - 1));
+        if (attack() == IDLE && ready(EVADE)) dodgeProjectiles();
         int a = attack();
         if (!enraged() && getHealth() < getMaxHealth() * 0.5f && a != BARRIER && a != DIVE) {
             dataTracker.set(ENRAGED, true);
@@ -348,8 +368,9 @@ public class SeraelEntity extends HostileEntity {
         switch (a) {
             case SWING -> {
                 // дуга удара справа налево перед собой; каждая точка взрывается через 30 тиков
-                if (k == 11) lunge(0.45);
-                if (k == 14) event(E_ARC, getPos(), getYaw());
+                if (k == 11) { lunge(0.45); swingHit.clear(); }
+                if (k == 14) { event(E_ARC, getPos(), getYaw()); arcHit.clear(); }
+                if (k >= 14 && k <= 19) bladeSweep(w, (k - 14) / 5f, rage);
                 if (k >= 14 && k <= 19) {
                     int per = 3;
                     for (int j = 0; j < per; j++) {
@@ -360,14 +381,7 @@ public class SeraelEntity extends HostileEntity {
                         arcBoom.add(age + 30 + (int) (f * 8));
                     }
                 }
-                if (k == 17) {
-                    sound(SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 3f, 0.45f);
-                    for (LivingEntity e : enemies(getBoundingBox().expand(5.5, 1, 5.5))) {
-                        if (!inFront(e, 80)) continue;
-                        e.damage(getDamageSources().mobAttack(this), rage ? 24 : 18);
-                        knock(e, 1.4, 0.4);
-                    }
-                }
+                if (k == 16) sound(SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 3f, 0.45f);
             }
             case SLASH -> {
                 if (k == 8) lunge(0.55);
@@ -493,6 +507,16 @@ public class SeraelEntity extends HostileEntity {
                     for (LivingEntity e : enemies(getBoundingBox().expand(2.5))) knock(e, 0.7, 0.2);
                 }
             }
+            case EVADE -> {
+                // уворот рывком на крыльях вбок: короткий полёт над землёй
+                if (k <= 7) {
+                    setNoGravity(true);
+                    double sp = k <= 4 ? 1.15 : 0.6;
+                    double vy = MathHelper.clamp((ground(getPos()) + 0.6 - getY()) * 0.3, -0.25, 0.25);
+                    setVelocity(evadeDir.x * sp, vy, evadeDir.z * sp);
+                }
+                if (k == 8) setNoGravity(false);
+            }
             case ROAR -> {
                 if (k == 10) {
                     event(E_ROAR, getPos(), 0f);
@@ -559,10 +583,10 @@ public class SeraelEntity extends HostileEntity {
             } else {
                 any = true;
                 w.spawnParticles(ParticleTypes.LARGE_SMOKE, p.x, p.y, p.z, 3, 0.4, 0.4, 0.4, 0.02);
-                for (LivingEntity e : enemies(new Box(p, p).expand(2.0, 2.6, 2.0))) {
-                    if (waveHit.contains(e)) continue;
-                    waveHit.add(e);
-                    e.damage(getDamageSources().indirectMagic(this, this), enraged() ? 14 : 10);
+                for (LivingEntity e : enemies(new Box(p, p).expand(2.9, 3.0, 2.9))) {
+                    if (!arcHit.add(e)) continue;
+                    e.timeUntilRegen = 0;
+                    e.damage(getDamageSources().indirectMagic(this, this), enraged() ? 16 : 12);
                     e.addStatusEffect(new StatusEffectInstance(BossEffects.EXHAUSTION, 240, 0));
                 }
                 arc.remove(i);
@@ -570,7 +594,6 @@ public class SeraelEntity extends HostileEntity {
             }
         }
         if (any && age % 2 == 0) sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 1.4f, 1.2f);
-        if (arc.isEmpty()) waveHit.clear();
     }
 
     private void tickBurns() {
@@ -595,15 +618,38 @@ public class SeraelEntity extends HostileEntity {
 
     /** Ходьба: держит дистанцию под атаку, разворачивается к цели. */
     private void steer(LivingEntity t, int a) {
-        if (a == DIVE || a == BARRIER || a == STUNNED || a == ROAR || a == DASH || a == BACKSTEP) {
-            if (t != null && (a == DASH || a == BACKSTEP)) faceTarget(t, 14f);
-            if (a == DASH || a == BACKSTEP) return;
+        if (a == DIVE || a == BARRIER || a == STUNNED || a == ROAR || a == DASH || a == BACKSTEP || a == EVADE) {
+            if (t != null && (a == DASH || a == BACKSTEP || a == EVADE)) faceTarget(t, 14f);
+            if (a == DASH || a == BACKSTEP || a == EVADE) return;
             if (t != null && a == DIVE) faceTarget(t, 8f);
             if (a != DIVE) setVelocity(getVelocity().multiply(0.5, 1, 0.5));
             return;
         }
         Vec3d v = getVelocity();
         double vx = 0, vz = 0;
+        if (t == null && a == IDLE) {
+            // без цели — неспешно прохаживается из стороны в сторону и осматривается
+            if (wander == null || --wanderWait <= 0 && wander.squaredDistanceTo(getX(), wander.y, getZ()) < 1.0) {
+                if (wanderWait <= 0) {
+                    double ang = random.nextDouble() * Math.PI * 2, r = 2.5 + random.nextDouble() * 4.5;
+                    wander = new Vec3d(getX() + Math.cos(ang) * r, getY(), getZ() + Math.sin(ang) * r);
+                    wanderWait = 60 + random.nextInt(80);
+                }
+            }
+            if (wander != null) {
+                double dx = wander.x - getX(), dz = wander.z - getZ(), d = Math.sqrt(dx * dx + dz * dz);
+                if (d > 0.8) {
+                    vx = dx / d * 0.11;
+                    vz = dz / d * 0.11;
+                    float yaw = (float) (MathHelper.atan2(dz, dx) * 180 / Math.PI) - 90f;
+                    setYaw(MathHelper.stepUnwrappedAngleTowards(getYaw(), yaw, 5f));
+                    bodyYaw = getYaw();
+                    headYaw = MathHelper.stepUnwrappedAngleTowards(headYaw, yaw, 6f);
+                } else if (age % 40 == 0) {
+                    headYaw = getYaw() + (random.nextFloat() - 0.5f) * 70f;
+                }
+            }
+        }
         if (t != null) {
             faceTarget(t, a == SWING || a == SLASH ? 4f : 10f);
             double want = a == PETALS || a == HALO ? 5.5 : 3.2;
@@ -643,7 +689,7 @@ public class SeraelEntity extends HostileEntity {
         if (source.getAttacker() == this) return false;
         if (statue()) {
             boolean byPlayer = source.getAttacker() instanceof PlayerEntity;
-            if (byPlayer && statueTicks > 55 || source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD)
+            if (byPlayer && statueTicks > 76 || source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD)
                     || source.isOf(net.minecraft.entity.damage.DamageTypes.GENERIC_KILL)) shatter();
             else if (byPlayer) sound(SoundEvents.BLOCK_STONE_HIT, 1.5f, 0.8f);
             return false;
@@ -656,7 +702,20 @@ public class SeraelEntity extends HostileEntity {
             if (charge >= SHIELD_HP) breakShield();
             return false;
         }
-        if (attack() == STUNNED) amount *= 1.5f;
+        int at = attack();
+        if (at == EVADE && attackTick <= 6) return false;            // увернулась
+        Entity src = source.getAttacker();
+        boolean canDodge = ready(EVADE) && (at == IDLE || at != STUNNED && at != BARRIER && at != DIVE && at != ROAR
+                && attackTick > DURATION[at] * 0.7f) && src != null && !source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD);
+        if (canDodge) {
+            boolean ranged = source.getSource() != null && source.getSource() != src;
+            if (random.nextFloat() < (ranged ? 0.4f : enraged() ? 0.38f : 0.28f)) {
+                Vec3d from = (ranged ? source.getSource() : src).getPos();
+                evade(new Vec3d(getX() - from.x, 0, getZ() - from.z), ranged ? source.getSource().getVelocity() : null);
+                return false;
+            }
+        }
+        if (at == STUNNED) amount *= 1.5f;
         return super.damage(source, amount);
     }
 
@@ -667,6 +726,67 @@ public class SeraelEntity extends HostileEntity {
         Vec3d f = new Vec3d(-MathHelper.sin(y), 0, MathHelper.cos(y));
         Vec3d r = new Vec3d(-MathHelper.cos(y), 0, -MathHelper.sin(y));
         return getPos().add(f.multiply(fwd)).add(r.multiply(right)).add(0, up, 0);
+    }
+
+    /** Широкий взмах: клинок как отрезок от плеча до острия, проходящий справа налево; задевает всех на пути. */
+    private void bladeSweep(ServerWorld w, float f, boolean rage) {
+        double ang = Math.toRadians(-80 + 160 * f);
+        Vec3d sh = local(-0.7, 4.4, 0.2);
+        Vec3d tip = local(Math.sin(ang) * -6.2, 1.6, Math.cos(ang) * 6.2);
+        for (LivingEntity e : enemies(new Box(sh, tip).expand(1.4))) {
+            if (swingHit.contains(e)) continue;
+            Box b = e.getBoundingBox().expand(0.6);
+            boolean hit = false;
+            for (int i = 2; i <= 10 && !hit; i++) {
+                Vec3d q = sh.lerp(tip, i / 10.0);
+                hit = b.contains(q);
+            }
+            if (!hit) continue;
+            swingHit.add(e);
+            e.damage(getDamageSources().mobAttack(this), rage ? 24 : 18);
+            knock(e, 0.55, 0.25);
+            Vec3d c = e.getPos().add(0, e.getHeight() * 0.6, 0);
+            w.spawnParticles(ParticleTypes.CRIT, c.x, c.y, c.z, 14, 0.3, 0.3, 0.3, 0.4);
+            event(E_BLADE_HIT, c, 0f);
+            sound(SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, 2f, 0.6f);
+        }
+    }
+
+    /** Уворот рывком на крыльях вбок от угрозы (from — направление от угрозы к боссу). */
+    private void evade(Vec3d away, Vec3d threatVel) {
+        Vec3d side;
+        if (threatVel != null && threatVel.horizontalLengthSquared() > 1e-4) {
+            Vec3d tv = new Vec3d(threatVel.x, 0, threatVel.z).normalize();
+            side = new Vec3d(-tv.z, 0, tv.x);
+        } else {
+            Vec3d a = away.horizontalLengthSquared() > 1e-4 ? away.normalize() : forward3().negate();
+            side = new Vec3d(-a.z, 0, a.x);
+        }
+        if (random.nextBoolean()) side = side.negate();
+        Vec3d back = away.horizontalLengthSquared() > 1e-4 ? away.normalize() : Vec3d.ZERO;
+        evadeDir = side.multiply(0.85).add(back.multiply(0.45)).normalize();
+        cds.put(EVADE, enraged() ? 34 : 50);
+        queued = -1;
+        setAttack(EVADE);
+        event(E_EVADE, getPos(), 0f);
+        sound(SoundEvents.ENTITY_ENDER_DRAGON_FLAP, 2.2f, 1.35f);
+        sound(SoundEvents.ENTITY_PHANTOM_SWOOP, 1.6f, 1.3f);
+    }
+
+    /** Видит летящий в неё снаряд — уходит рывком в сторону. */
+    private void dodgeProjectiles() {
+        for (net.minecraft.entity.projectile.ProjectileEntity pr : getWorld().getEntitiesByClass(net.minecraft.entity.projectile.ProjectileEntity.class,
+                getBoundingBox().expand(12), pr -> pr.getOwner() != this && !pr.isOnGround())) {
+            Vec3d v = pr.getVelocity();
+            if (v.lengthSquared() < 0.25) continue;
+            Vec3d to = getPos().add(0, 3, 0).subtract(pr.getPos());
+            double d = to.length();
+            if (d > 10 || d < 1.5) continue;
+            if (v.normalize().dotProduct(to.normalize()) < 0.93) continue;
+            if (random.nextFloat() < (enraged() ? 0.75f : 0.55f)) evade(new Vec3d(-v.x, 0, -v.z), v);
+            else cds.put(EVADE, 12);
+            return;
+        }
     }
 
     private void lunge(double s) {

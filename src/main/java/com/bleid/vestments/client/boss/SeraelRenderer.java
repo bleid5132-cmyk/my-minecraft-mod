@@ -14,6 +14,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
+import net.minecraft.client.render.VertexConsumer;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -30,6 +31,9 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
     private static int TORSO, THIGH_R, SHIN_R, THIGH_L, SHIN_L, HEAD, HALO, ARM_R, FORE_R, HAND_R, ARM_L, FORE_L, HAND_L, WING_R, WING_L;
     private static final Map<Integer, Hair> HAIR = new HashMap<>();
     private static final Map<Integer, Smooth> SMOOTH = new HashMap<>();
+
+    /** Жёсткость пружин по суставам: предплечья и кисти мягче (запаздывают — удар «хлещет»), крылья ещё мягче. */
+    private static final float[] OMEGA = { 19, 19, 19, 14, 14, 19, 19, 19, 19, 19, 19, 18, 18, 13, 12, 18, 18, 13, 12, 11, 11, 11, 19, 19, 17, 18 };
 
     static final class Smooth {
         float[] x, v;
@@ -59,6 +63,8 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
 
     static void forget(int id) {
         HAIR.remove(id);
+        HALOS.remove(id);
+        TRAILS.remove(id);
         SMOOTH.remove(id);
     }
 
@@ -138,8 +144,8 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         p.lift = -0.9f + 0.3f * br;
         p.torsoX = 3f + 1.5f * br; p.torsoY = 6f;
         p.thR = -14f; p.shR = 22f; p.thL = 6f; p.shL = 18f; p.thRZ = -3f; p.thLZ = 4f;
-        p.armRX = -12f; p.armRZ = -4f; p.foreR = -26f; p.handR = 8f - 2f * br;
-        p.armLX = 4f; p.armLZ = 9f + 2f * br; p.foreL = -22f; p.handL = -6f;
+        p.armRX = -14f; p.armRZ = -5f; p.foreR = -40f - 4f * br; p.handR = 18f - 2f * br;
+        p.armLX = 2f; p.armLZ = 10f + 2f * br; p.foreL = -36f - 4f * br; p.handL = -10f;
         p.wingZ = 7f + 6f * MathHelper.sin(t * 0.07f); p.wingY = 12f + 3f * MathHelper.sin(t * 0.05f + 1f); p.wingX = 0f;
         p.headY = -MathHelper.clamp(MathHelper.wrapDegrees(MathHelper.lerpAngleDegrees(td, e.prevHeadYaw, e.headYaw)
                 - MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw)), -35f, 35f);
@@ -155,8 +161,8 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             wk.thRZ = -2f; wk.thLZ = 2f;
             wk.lift = -1.2f + 1.1f * Math.abs(MathHelper.cos(ph));
             wk.torsoX = 7f; wk.torsoY = 6f - 6f * sR; wk.torsoZ = 2f * sR;
-            wk.armLX = 20f * sR; wk.foreL = -24f - 14f * Math.max(0f, sR);
-            wk.armRX = -16f - 6f * sL; wk.foreR = -30f;
+            wk.armLX = 22f * sR; wk.foreL = -34f - 26f * Math.max(0f, -sR);
+            wk.armRX = -16f - 8f * sL; wk.foreR = -42f - 10f * Math.max(0f, sL);
             wk.wingY = 22f; wk.wingZ = 4f + 4f * MathHelper.sin(ph * 0.5f);
             p.blend(wk, mv);
         }
@@ -172,11 +178,11 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                     // одноручный широкий взмах: рука вытянута горизонтально, клинок продолжает её линию и смотрит
                     // на противника; замах вправо-назад, удар справа налево, левая рука уходит назад для равновесия
                     Pose wind = key(base, q -> { q.lift = -3f; q.torsoY = -34f; q.torsoX = -2f; q.thR = 8f; q.shR = 34f; q.thL = -28f; q.shL = 36f;
-                        q.armRX = -62f; q.armRY = -80f; q.armRZ = 0f; q.foreR = -6f; q.handR = 52f;
-                        q.armLX = -55f; q.armLZ = 28f; q.foreL = -40f; q.handL = 0f; q.wingZ = 24f; q.wingY = -6f; });
+                        q.armRX = -62f; q.armRY = -84f; q.armRZ = 0f; q.foreR = -62f; q.handR = 64f;
+                        q.armLX = -55f; q.armLZ = 28f; q.foreL = -74f; q.handL = 0f; q.wingZ = 24f; q.wingY = -6f; });
                     Pose hit = key(base, q -> { q.lift = -3.5f; q.torsoY = 44f; q.torsoX = 10f; q.thR = -32f; q.shR = 30f; q.thL = 10f; q.shL = 26f;
-                        q.armRX = -62f; q.armRY = 72f; q.armRZ = 0f; q.foreR = 0f; q.handR = 52f;
-                        q.armLX = 35f; q.armLZ = 46f; q.foreL = -25f; q.wingZ = 10f; q.wingY = 30f; });
+                        q.armRX = -62f; q.armRY = 72f; q.armRZ = 0f; q.foreR = -2f; q.handR = 50f;
+                        q.armLX = 35f; q.armLZ = 46f; q.foreL = -58f; q.wingZ = 10f; q.wingY = 30f; });
                     p = base.copy();
                     p.blend(wind, sm(tk / 14f));
                     p.blend(hit, sm((tk - 14f) / 5f));
@@ -185,27 +191,27 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                 case SeraelEntity.SLASH -> {
                     // одноручный удар сверху: клинок продолжает руку — над головой назад, затем вниз-вперёд на противника;
                     // левая рука выставлена вперёд-в сторону и на ударе уходит назад для равновесия
-                    Pose up = key(base, q -> { q.torsoX = -10f; q.torsoY = -10f; q.armRX = -168f; q.armRZ = -4f; q.foreR = -10f; q.handR = 52f;
-                        q.armLX = -40f; q.armLZ = 34f; q.foreL = -30f; q.handL = 0f; q.thR = -10f; q.shR = 20f; q.wingZ = 22f; });
-                    Pose down = key(base, q -> { q.lift = -4f; q.torsoX = 26f; q.torsoY = 6f; q.armRX = -50f; q.armRZ = 0f; q.foreR = -2f; q.handR = 52f;
-                        q.armLX = 30f; q.armLZ = 26f; q.foreL = -16f; q.thR = -42f; q.shR = 46f; q.thL = 22f; q.shL = 24f; q.wingZ = -4f; q.wingY = 26f; });
+                    Pose up = key(base, q -> { q.torsoX = -10f; q.torsoY = -10f; q.armRX = -160f; q.armRZ = -6f; q.foreR = -82f; q.handR = 46f;
+                        q.armLX = -40f; q.armLZ = 34f; q.foreL = -62f; q.handL = 0f; q.thR = -10f; q.shR = 20f; q.wingZ = 22f; });
+                    Pose down = key(base, q -> { q.lift = -4f; q.torsoX = 26f; q.torsoY = 6f; q.armRX = -50f; q.armRZ = 0f; q.foreR = -4f; q.handR = 52f;
+                        q.armLX = 30f; q.armLZ = 26f; q.foreL = -56f; q.thR = -42f; q.shR = 46f; q.thL = 22f; q.shL = 24f; q.wingZ = -4f; q.wingY = 26f; });
                     p = base.copy();
                     p.blend(up, sm(tk / 9f));
                     p.blend(down, sm((tk - 9f) / 3f));
                     p.blend(base, sm((tk - 13f) / 11f));
                 }
                 case SeraelEntity.PETALS -> {
-                    Pose sky = key(base, q -> { q.torsoX = -12f; q.headX = -30f; q.armRX = -176f; q.armRZ = -4f; q.foreR = -14f; q.handR = -12f;
+                    Pose sky = key(base, q -> { q.torsoX = -12f; q.headX = -30f; q.armRX = -172f; q.armRZ = -4f; q.foreR = -28f; q.handR = -12f;
                         q.armLX = -170f; q.armLZ = 6f; q.foreL = -24f; q.wingZ = 30f; q.wingY = -8f; q.lift = 0.5f; q.shR = 8f; q.shL = 8f; });
-                    Pose plunge = key(base, q -> { q.lift = -9f; q.torsoX = 30f; q.headX = 10f; q.armRX = -42f; q.foreR = -10f; q.handR = 44f;
-                        q.armLX = -46f; q.armLZ = -10f; q.foreL = -26f; q.thR = -62f; q.shR = 92f; q.thL = 14f; q.shL = 70f; q.wingZ = 26f; q.wingY = 10f; });
+                    Pose plunge = key(base, q -> { q.lift = -9f; q.torsoX = 30f; q.headX = 10f; q.armRX = -40f; q.foreR = -38f; q.handR = 62f;
+                        q.armLX = -46f; q.armLZ = -10f; q.foreL = -54f; q.thR = -62f; q.shR = 92f; q.thL = 14f; q.shL = 70f; q.wingZ = 26f; q.wingY = 10f; });
                     p = base.copy();
                     p.blend(sky, sm(tk / 12f));
                     p.blend(plunge, sm((tk - 45f) / 4f));
                     p.blend(base, sm((tk - 62f) / 10f));
                 }
                 case SeraelEntity.HALO -> {
-                    Pose open = key(base, q -> { q.armRZ = -74f; q.armLZ = 74f; q.armRX = -10f; q.armLX = -10f; q.foreR = -16f; q.foreL = -16f;
+                    Pose open = key(base, q -> { q.armRZ = -74f; q.armLZ = 74f; q.armRX = -10f; q.armLX = -10f; q.foreR = -38f; q.foreL = -38f;
                         q.headX = -34f; q.torsoX = -14f; q.wingZ = 36f; q.wingY = -10f; q.lift = 0.5f; q.shR = 10f; q.shL = 10f; });
                     p = base.copy();
                     p.blend(open, env(k, 0.25f, 0.2f));
@@ -246,7 +252,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                 case SeraelEntity.STUNNED -> {
                     float sway = MathHelper.sin(t * 0.25f) * 3f;
                     Pose slump = key(base, q -> { q.lift = -9f; q.thR = -62f; q.shR = 96f; q.thL = -22f; q.shL = 72f; q.torsoX = 34f; q.torsoZ = sway;
-                        q.headX = 36f + sway; q.armRX = 18f; q.foreR = -6f; q.handR = 30f; q.armLX = 24f; q.foreL = -10f; q.wingZ = -28f + sway; q.wingY = 20f; });
+                        q.headX = 36f + sway; q.armRX = 18f; q.foreR = -28f; q.handR = 30f; q.armLX = 24f; q.foreL = -30f; q.wingZ = -28f + sway; q.wingY = 20f; });
                     p = base.copy();
                     p.blend(slump, env(k, 0.1f, 0.2f));
                 }
@@ -254,10 +260,10 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                     // рывок на крыльях: замах крыльями, мощный взмах вниз — и она низко летит к цели,
                     // ноги вместе вытянуты назад, корпус лёг вперёд, клинок отведён для удара
                     Pose prep = key(base, q -> { q.lift = -3f; q.torsoX = 16f; q.thR = -18f; q.shR = 46f; q.thL = 10f; q.shL = 40f;
-                        q.armRX = 22f; q.armRZ = -10f; q.foreR = -18f; q.handR = -28f; q.armLX = -16f; q.foreL = -36f;
+                        q.armRX = 22f; q.armRZ = -10f; q.foreR = -52f; q.handR = -16f; q.armLX = -16f; q.foreL = -70f;
                         q.wingZ = 48f; q.wingY = -12f; q.wingX = -6f; });
                     Pose glide = key(base, q -> { q.lift = 7f; q.torsoX = 50f; q.headX = -32f; q.thR = 24f; q.shR = 12f; q.thL = 28f; q.shL = 16f;
-                        q.thRZ = 2f; q.thLZ = -2f; q.armRX = 40f; q.armRZ = -14f; q.foreR = -10f; q.handR = -30f; q.armLX = 26f; q.armLZ = 16f; q.foreL = -20f;
+                        q.thRZ = 2f; q.thLZ = -2f; q.armRX = 40f; q.armRZ = -14f; q.foreR = -30f; q.handR = -24f; q.armLX = 26f; q.armLZ = 16f; q.foreL = -48f;
                         q.wingZ = -14f; q.wingY = 58f; q.wingX = 8f; });
                     Pose land = key(base, q -> { q.lift = -3f; q.torsoX = 20f; q.thR = -24f; q.shR = 50f; q.thL = 10f; q.shL = 40f;
                         q.armRX = 18f; q.foreR = -20f; q.handR = -20f; q.armLX = -10f; q.foreL = -34f; q.wingZ = 22f; q.wingY = 18f; });
@@ -269,7 +275,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                 case SeraelEntity.BACKSTEP -> {
                     // отскок назад взмахом крыльев: ноги поджаты, клинок в защите
                     Pose jump = key(base, q -> { q.lift = 1f; q.torsoX = -14f; q.headX = 8f; q.thR = -46f; q.shR = 84f; q.thL = -30f; q.shL = 92f;
-                        q.armRX = -54f; q.foreR = -40f; q.handR = -10f; q.armLX = -30f; q.armLZ = 26f; q.foreL = -50f;
+                        q.armRX = -54f; q.foreR = -72f; q.handR = 0f; q.armLX = -30f; q.armLZ = 26f; q.foreL = -78f;
                         q.wingZ = 44f; q.wingY = -26f; q.wingX = -10f; });
                     Pose land = key(base, q -> { q.lift = -4f; q.torsoX = 12f; q.thR = -30f; q.shR = 60f; q.thL = 8f; q.shL = 46f;
                         q.armRX = -30f; q.foreR = -34f; q.armLX = 0f; q.armLZ = 20f; q.wingZ = 14f; q.wingY = 6f; });
@@ -277,10 +283,23 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                     p.blend(jump, sm(tk / 3f));
                     p.blend(land, sm((tk - 9f) / 4f));
                 }
+                case SeraelEntity.EVADE -> {
+                    // уворот вбок на крыльях: корпус кренится в сторону рывка, ноги поджаты, клинок в защите
+                    float yr = e.bodyYaw * MathHelper.RADIANS_PER_DEGREE;
+                    double lv = Math.cos(yr) * dx + Math.sin(yr) * dz;
+                    float side = lv >= 0 ? 1f : -1f;
+                    Pose dodge = key(base, q -> { q.lift = 5f; q.torsoZ = -22f * side; q.torsoX = 10f; q.headX = -6f; q.headY = 10f * side;
+                        q.thR = -34f; q.shR = 74f; q.thL = -24f; q.shL = 80f; q.thRZ = -6f * side; q.thLZ = -6f * side;
+                        q.armRX = -44f; q.armRZ = -10f; q.foreR = -70f; q.handR = 22f; q.armLX = -18f; q.armLZ = 34f; q.foreL = -66f;
+                        q.wingZ = -10f + 46f * (1f - sm(tk / 4f)); q.wingY = 34f; q.wingX = 6f; });
+                    p = base.copy();
+                    p.blend(dodge, sm(tk / 2f));
+                    p.blend(base, sm((tk - 8f) / 4f));
+                }
                 case SeraelEntity.ROAR -> {
                     float tr = 3f * MathHelper.sin(t * 2.4f);
                     Pose roar = key(base, q -> { q.torsoX = -18f; q.headX = -40f; q.armRZ = -60f; q.armLZ = 60f; q.armRX = -20f; q.armLX = -20f;
-                        q.foreR = -34f; q.foreL = -34f; q.wingZ = 42f + tr; q.wingY = -12f; q.thRZ = -9f; q.thLZ = 9f; q.haloScale = 1.3f; });
+                        q.foreR = -62f; q.foreL = -62f; q.wingZ = 42f + tr; q.wingY = -12f; q.thRZ = -9f; q.thLZ = 9f; q.haloScale = 1.3f; });
                     p = base.copy();
                     p.blend(roar, env(k, 0.22f, 0.25f));
                 }
@@ -288,16 +307,23 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             }
         }
 
-        // ---- поражение: опускается на колени, вонзает клинок перед собой и каменеет от ног к нимбу
+        // ---- поражение: берёт клинок двумя руками, поднимает над головой, опускается на колени, вонзает клинок
+        // в землю перед собой и только потом каменеет снизу вверх; нимб срывается и падает рядом
         float st = e.statue() ? e.age - e.clientStatueStart + td : -1f;
         float stoneY = -1e9f;
         if (st >= 0) {
-            Pose kneel = new Pose();
-            kneel.lift = -23f; kneel.thR = -6f; kneel.shR = 92f; kneel.thL = -2f; kneel.shL = 92f; kneel.thRZ = -2f; kneel.thLZ = 2f;
-            kneel.torsoX = 12f; kneel.headX = 32f; kneel.armRX = -44f; kneel.foreR = -18f; kneel.handR = 70f;
-            kneel.armLX = -46f; kneel.armLZ = -16f; kneel.foreL = -30f; kneel.wingZ = -18f; kneel.wingY = 26f; kneel.wingX = 4f;
-            p.blend(kneel, sm(st / 18f));
-            stoneY = (st - 16f) / 40f * 130f - 6f;
+            Pose raise = p.copy();
+            raise.lift = 0f; raise.torsoX = -8f; raise.torsoY = 0f; raise.torsoZ = 0f; raise.headX = -18f; raise.headY = 0f; raise.pitch = 0f;
+            raise.thR = -8f; raise.shR = 14f; raise.thL = 4f; raise.shL = 12f; raise.thRZ = -2f; raise.thLZ = 2f;
+            raise.armRX = -166f; raise.armRY = 0f; raise.armRZ = 16f; raise.foreR = -26f; raise.handR = 52f;
+            raise.armLX = -166f; raise.armLZ = -16f; raise.foreL = -26f; raise.handL = 0f; raise.wingZ = 30f; raise.wingY = -6f; raise.wingX = 0f;
+            Pose kneel = raise.copy();
+            kneel.lift = -23f; kneel.thR = -6f; kneel.shR = 92f; kneel.thL = -2f; kneel.shL = 92f;
+            kneel.torsoX = 18f; kneel.headX = 30f; kneel.armRX = -50f; kneel.armRZ = 20f; kneel.foreR = -30f; kneel.handR = 76f;
+            kneel.armLX = -50f; kneel.armLZ = -20f; kneel.foreL = -30f; kneel.handL = 0f; kneel.wingZ = -18f; kneel.wingY = 26f; kneel.wingX = 4f;
+            p.blend(raise, sm(st / 10f));
+            p.blend(kneel, sm((st - 12f) / 7f));
+            stoneY = Math.min(99f, (st - 32f) / 40f * 110f - 6f);
         }
 
         // ---- сглаживание: каждый сустав догоняет целевую позу пружиной (без рывков между позами и атаками)
@@ -308,12 +334,13 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         float dts = sp.nanos == 0 ? 0f : Math.min(0.1f, (now - sp.nanos) / 1e9f);
         sp.nanos = now;
         if (net.minecraft.client.MinecraftClient.getInstance().isPaused()) dts = 0f;
-        float om = 19f, zeta = 0.78f;
+        float zeta = 0.78f;
         int steps = Math.max(1, (int) Math.ceil(dts / 0.005f));
         float h = dts / steps;
         for (int si = 0; si < steps; si++) {
             for (int i = 0; i < target.length; i++) {
-                float acc = om * om * (target[i] - sp.x[i]) - 2f * zeta * om * sp.v[i];
+                float w = OMEGA[i];
+                float acc = w * w * (target[i] - sp.x[i]) - 2f * zeta * w * sp.v[i];
                 sp.v[i] += acc * h;
                 sp.x[i] += sp.v[i] * h;
             }
@@ -342,8 +369,9 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         rot[WING_L].set(p.wingX, p.wingY, p.wingZ);
         rot[WING_R].set(p.wingX, -p.wingY, -p.wingZ);
         float bodyYaw0 = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
-        if (HAIR1 >= 0) hair(e, HAIR.computeIfAbsent(e.getId(), id -> new Hair()), p, t, bodyYaw0, rot, st > 45f);
+        if (HAIR1 >= 0) hair(e, HAIR.computeIfAbsent(e.getId(), id -> new Hair()), p, t, bodyYaw0, rot, st > 60f);
         Matrix4f[] mats = m.pose(rot, sc);
+        if (st >= 30f) fallingHalo(e, mats, -p.lift);
 
         float bodyYaw = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
         final float lift = p.lift;
@@ -362,6 +390,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         if (stoneY > -100f) m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(STONE)), true, light, overlay, mats, 1f, 1f, 1f, stoneY);
 
         ms.pop();
+        trail(e, td, ms, vcp);
         super.render(e, yaw, td, ms, vcp, light);
     }
 
@@ -373,6 +402,122 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         final float[] ax = new float[5], az = new float[5], vx = new float[5], vz = new float[5];
         long nanos;
         float prevYaw = Float.NaN;
+    }
+
+    private static void clampHair(Hair h, int i, float minX, float maxX, float minZ, float maxZ) {
+        if (h.ax[i] < minX) { h.ax[i] = minX; if (h.vx[i] < 0) h.vx[i] = 0; }
+        if (h.ax[i] > maxX) { h.ax[i] = maxX; if (h.vx[i] > 0) h.vx[i] = 0; }
+        if (h.az[i] < minZ) { h.az[i] = minZ; if (h.vz[i] < 0) h.vz[i] = 0; }
+        if (h.az[i] > maxZ) { h.az[i] = maxZ; if (h.vz[i] > 0) h.vz[i] = 0; }
+    }
+
+    // ---------------------------------------------------------------- нимб падает при окаменении
+
+    static final class HaloFall {
+        Vector3f pos, vel;
+        float ax, az, wx, wz, spin;
+        long nanos;
+    }
+
+    private static final Map<Integer, HaloFall> HALOS = new HashMap<>();
+
+    private static void fallingHalo(SeraelEntity e, Matrix4f[] mats, float ground) {
+        int hi = HALO;
+        if (hi < 0) return;
+        HaloFall f = HALOS.computeIfAbsent(e.getId(), id -> new HaloFall());
+        VoxelModel.Part hp = model.parts.get(hi);
+        long now = System.nanoTime();
+        if (f.pos == null) {
+            f.pos = mats[hi].transformPosition(new Vector3f(hp.pivot));
+            f.vel = new Vector3f(-26f, 52f, -34f);
+            f.wx = 210f; f.wz = 150f;
+            f.nanos = now;
+        }
+        float dt = Math.min(0.05f, (now - f.nanos) / 1e9f);
+        f.nanos = now;
+        if (net.minecraft.client.MinecraftClient.getInstance().isPaused()) dt = 0f;
+        int steps = Math.max(1, (int) Math.ceil(dt / 0.005f));
+        float h = dt / steps;
+        for (int i = 0; i < steps; i++) {
+            f.vel.y -= 256f * h;
+            f.pos.add(f.vel.x * h, f.vel.y * h, f.vel.z * h);
+            f.ax += f.wx * h; f.az += f.wz * h; f.spin += f.wx * 0.3f * h;
+            if (f.pos.y < ground + 1f) {
+                f.pos.y = ground + 1f;
+                f.vel.y = Math.abs(f.vel.y) > 14f ? -f.vel.y * 0.35f : 0f;
+                f.vel.x *= 0.55f; f.vel.z *= 0.55f;
+                f.wx *= 0.45f; f.wz *= 0.45f;
+            }
+            if (f.vel.y == 0f && f.pos.y <= ground + 1.01f) {
+                // ложится плашмя
+                f.ax += (Math.round(f.ax / 180f) * 180f - f.ax) * Math.min(1f, 10f * h);
+                f.az += (Math.round(f.az / 180f) * 180f - f.az) * Math.min(1f, 10f * h);
+                f.wx *= 0.9f; f.wz *= 0.9f; f.vel.x *= 0.9f; f.vel.z *= 0.9f;
+            }
+        }
+        Matrix4f mt = new Matrix4f().translate(f.pos).rotateX((float) Math.toRadians(f.ax)).rotateZ((float) Math.toRadians(f.az))
+                .rotateY((float) Math.toRadians(f.spin)).translate(-hp.pivot.x, -hp.pivot.y, -hp.pivot.z);
+        for (int i = 0; i < model.parts.size(); i++) {
+            VoxelModel.Part q = model.parts.get(i);
+            if (i == hi || q.parent == hi) mats[i] = mt;
+        }
+    }
+
+    // ---------------------------------------------------------------- световой след рывка и уворота
+
+    private static final Identifier TRAIL_TEX = new Identifier("vestments", "textures/entity/serael_trail.png");
+
+    static final class Trail {
+        final java.util.ArrayDeque<double[]> pts = new java.util.ArrayDeque<>();   // x, y, z, время (с)
+    }
+
+    private static final Map<Integer, Trail> TRAILS = new HashMap<>();
+    private static final float TRAIL_LIFE = 0.55f;
+
+    private static void trail(SeraelEntity e, float td, MatrixStack ms, VertexConsumerProvider vcp) {
+        Trail tr = TRAILS.computeIfAbsent(e.getId(), id -> new Trail());
+        double now = System.nanoTime() / 1e9;
+        double ex = MathHelper.lerp(td, e.prevX, e.getX()), ey = MathHelper.lerp(td, e.prevY, e.getY()), ez = MathHelper.lerp(td, e.prevZ, e.getZ());
+        int a = e.attack();
+        float tk = e.age - e.clientAttackStart + td;
+        boolean on = a == SeraelEntity.DASH && tk > 2.5f && tk < 13f || a == SeraelEntity.EVADE && tk < 10f || a == SeraelEntity.BACKSTEP && tk > 1.5f && tk < 11f
+                || a == SeraelEntity.DIVE && tk > 39f && tk < 60f;
+        if (on) {
+            double[] last = tr.pts.peekLast();
+            if (last == null || Math.abs(last[0] - ex) + Math.abs(last[1] - ey) + Math.abs(last[2] - ez) > 0.12) tr.pts.addLast(new double[] { ex, ey, ez, now });
+        }
+        while (!tr.pts.isEmpty() && now - tr.pts.peekFirst()[3] > TRAIL_LIFE) tr.pts.pollFirst();
+        if (tr.pts.size() < 2) return;
+        // хвост к текущему положению — без разрыва между следом и телом
+        java.util.List<double[]> list = new java.util.ArrayList<>(tr.pts);
+        if (on) list.add(new double[] { ex, ey, ez, now });
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TRAIL_TEX));
+        Matrix4f pm = ms.peek().getPositionMatrix();
+        for (int i = 0; i + 1 < list.size(); i++) {
+            double[] p0 = list.get(i), p1 = list.get(i + 1);
+            float a0 = (float) Math.max(0, 1 - (now - p0[3]) / TRAIL_LIFE), a1 = (float) Math.max(0, 1 - (now - p1[3]) / TRAIL_LIFE);
+            a0 *= a0; a1 *= a1;
+            float x0 = (float) (p0[0] - ex), y0 = (float) (p0[1] - ey), z0 = (float) (p0[2] - ez);
+            float x1 = (float) (p1[0] - ex), y1 = (float) (p1[1] - ey), z1 = (float) (p1[2] - ez);
+            // вертикальная «стена» света по силуэту и горизонтальная лента на уровне крыльев — видно с любой стороны
+            band(vc, pm, x0, y0 + 0.3f, z0, x0, y0 + 5.6f, z0, x1, y1 + 5.6f, z1, x1, y1 + 0.3f, z1, a0, a1);
+            float dx = x1 - x0, dz = z1 - z0, l = (float) Math.sqrt(dx * dx + dz * dz);
+            if (l > 1e-4f) {
+                float nx = -dz / l * 2.6f, nz = dx / l * 2.6f;
+                band(vc, pm, x0 - nx, y0 + 4.3f, z0 - nz, x0 + nx, y0 + 4.3f, z0 + nz, x1 + nx, y1 + 4.3f, z1 + nz, x1 - nx, y1 + 4.3f, z1 - nz, a0, a1);
+            }
+        }
+    }
+
+    private static void band(VertexConsumer vc, Matrix4f pm, float ax, float ay, float az, float bx, float by, float bz,
+                             float cx, float cy, float cz, float dx, float dy, float dz, float a0, float a1) {
+        // от алого у хвоста к белому золоту у тела
+        float r0 = 1f * a0, g0 = (0.22f + 0.5f * a0) * a0, b0 = (0.18f + 0.3f * a0) * a0;
+        float r1 = 1f * a1, g1 = (0.22f + 0.5f * a1) * a1, b1 = (0.18f + 0.3f * a1) * a1;
+        vc.vertex(pm, ax, ay, az).color(r0, g0, b0, a0).texture(0f, 0f).overlay(net.minecraft.client.render.OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0, 1, 0).next();
+        vc.vertex(pm, bx, by, bz).color(r0, g0, b0, a0).texture(0f, 1f).overlay(net.minecraft.client.render.OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0, 1, 0).next();
+        vc.vertex(pm, cx, cy, cz).color(r1, g1, b1, a1).texture(1f, 1f).overlay(net.minecraft.client.render.OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0, 1, 0).next();
+        vc.vertex(pm, dx, dy, dz).color(r1, g1, b1, a1).texture(1f, 0f).overlay(net.minecraft.client.render.OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0, 1, 0).next();
     }
 
     private static void hair(SeraelEntity e, Hair h, Pose p, float t, float bodyYaw, Vector3f[] rot, boolean frozen) {
@@ -403,6 +548,13 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                 h.az[i] += h.vz[i] * sd;
             }
         }
+        // волосы не проходят сквозь тело: коса не заходит вперёд за спину, пряди — внутрь к груди
+        float hx = p.headX;
+        clampHair(h, 0, 4f - hx, 80f, -18f, 18f);
+        clampHair(h, 1, 6f - hx - h.ax[0], 70f, -18f, 18f);
+        clampHair(h, 2, 8f - hx - h.ax[0] - h.ax[1], 70f, -18f, 18f);
+        clampHair(h, 3, -35f - hx, 6f - hx, -30f, 0f);
+        clampHair(h, 4, -35f - hx, 6f - hx, 0f, 30f);
         rot[HAIR1].set(h.ax[0], 0, h.az[0]);
         rot[HAIR2].set(h.ax[1], 0, h.az[1]);
         rot[HAIR3].set(h.ax[2], 0, h.az[2]);
