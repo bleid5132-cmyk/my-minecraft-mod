@@ -38,14 +38,16 @@ import org.joml.Vector3f;
  */
 public class BellRingerEntity extends BossBase {
     public static final int IDLE = 0, SMASH = 1, TOLL = 2, CHAINS = 3, SWING = 4, LEAP = 5;
-    public static final int[] DURATION = { 0, 50, 46, 46, 116, 60 };
+    public static final int[] DURATION = { 0, 50, 46, 46, 146, 60 };
     public static final int E_STEP = 1, E_SLAM = 2, E_CRACK = 3, E_WAVE = 4, E_TOLL = 5, E_CHAIN_SHOT = 6, E_CHAIN_BREAK = 7,
             E_CHAIN_HIT = 8, E_SWING_HIT = 9, E_LAND = 10, E_JUMP = 11, E_HAMMER_DROP = 12, E_SNAP = 13, E_BELL_FALL = 14,
-            E_ASH = 15, E_RAGE = 16;
+            E_ASH = 15, E_RAGE = 16, E_RISE = 17, E_CATCH = 18, E_TOSS = 19;
     /** Погребальный размах: радиус орбиты колокола (блоки), угловая скорость (рад/такт), высота центра колокола. */
-    public static final float SWING_R = 6f, SWING_W = 0.28f, SWING_Y = 2.1f;
+    public static final float SWING_R = 6f, SWING_R0 = 2.5f, SWING_W = 0.28f, SWING_Y = 2.1f;
+    /** Размах: снимает колокол (14–28), раскручивает (36–110), сбавляет (110–118), подкидывает (118) и ловит головой (134). */
+    public static final int SW_LIFT = 20, SW_SPIN = 36, SW_SLOW = 110, SW_TOSS = 118, SW_CATCH = 134;
     /** Тики смерти: колени, молот, цепи, колокол, пепел, пробуждение Колокола, остаток рясы. */
-    public static final int D_HAMMER = 15, D_BELL = 58, D_ASH = 64, D_SPAWN = 86, D_END = 220;
+    public static final int D_HAMMER = 15, D_RISE = 48, D_COVER = 72, D_ASH = 74, D_END = 112;
 
     private static final TrackedData<Boolean> DYING = DataTracker.registerData(BellRingerEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Integer> CHAIN_STATE = DataTracker.registerData(BellRingerEntity.class, TrackedDataHandlerRegistry.INTEGER);
@@ -138,12 +140,13 @@ public class BellRingerEntity extends BossBase {
     }
 
     public static float swingRadius(float k) {
-        if (k < 100) return SWING_R * smooth((k - 10) / 12f);
-        return SWING_R * (1 - smooth((k - 100) / 12f));
+        if (k < SW_SLOW) return SWING_R0 + (SWING_R - SWING_R0) * smooth((k - SW_SPIN) / 10f);
+        return SWING_R0 + (SWING_R - SWING_R0) * (1 - smooth((k - SW_SLOW) / 8f));
     }
 
+    /** Начинает спереди (π) и крутится всё время, пока колокол на цепи. */
     public static float swingAngle(float k) {
-        return k < 20 ? 0 : (k - 20) * SWING_W;
+        return MathHelper.PI + Math.max(0, k - SW_SPIN) * SWING_W;
     }
 
     private static float smooth(float x) {
@@ -336,7 +339,7 @@ public class BellRingerEntity extends BossBase {
         int st = chainState();
         if (k <= 10 && t != null) faceTarget(t, 12f);
         if (k == 10 && t != null) {
-            chainPos = local(-0.8, 5.0, 3.0);
+            chainPos = local(0, 6.6, 2.9);                      // с кончика колокола-головы
             Vec3d aim = t.getPos().add(0, t.getHeight() * 0.55, 0);
             chainVel = aim.subtract(chainPos).normalize().multiply(1.3);
             chainDist = 0;
@@ -416,11 +419,22 @@ public class BellRingerEntity extends BossBase {
         setYaw(swingYaw);
         bodyYaw = swingYaw;
         headYaw = swingYaw;
-        if (k < 22 || k > 106) return;
+        if (k == 6) sound(SoundEvents.ITEM_ARMOR_EQUIP_CHAIN, 2f, 0.6f);            // молот за спину
+        if (k == SW_LIFT) sound(SoundEvents.BLOCK_CHAIN_BREAK, 2f, 0.7f);           // снимает колокол-голову
+        if (k == SW_TOSS) {
+            sound(SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 3f, 0.6f);
+            event(E_TOSS, local(0, 5, 2.5), 0);
+        }
+        if (k == SW_CATCH) {
+            sound(SoundEvents.BLOCK_BELL_USE, 4f, 0.55f);
+            sound(SoundEvents.BLOCK_ANVIL_LAND, 1.5f, 0.6f);
+            event(E_CATCH, local(0, 6.1, 0.94), 0);
+        }
+        if (k < SW_SPIN + 2 || k > SW_TOSS || swingRadius(k) < 3.5f) return;
         double[] o = swingOffset(k);
         Vec3d bell = local(-o[0], o[1], o[2]);
         int turn = (int) (swingAngle(k) / (Math.PI * 2));
-        if (turn != lastTurn || k == 22) {
+        if (turn != lastTurn || k == SW_SPIN + 2) {
             lastTurn = turn;
             soundAt(bell, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 3f, 0.4f);
             soundAt(bell, SoundEvents.BLOCK_BELL_RESONATE, 1.5f, 0.6f);
@@ -526,30 +540,35 @@ public class BellRingerEntity extends BossBase {
             soundAt(p, SoundEvents.BLOCK_ANVIL_LAND, 1.4f, 0.35f);
             event(E_HAMMER_DROP, p, 0);
         }
-        if (k >= 25 && k <= 55 && (k - 25) % 10 == 0) {
-            int i = (k - 25) / 10;
-            Vec3d p = local(i % 2 == 0 ? -0.9 : 0.9, 5.8 - i * 0.2, 0.4);
+        if (k >= 20 && k <= 44 && (k - 20) % 8 == 0) {
+            int i = (k - 20) / 8;
+            Vec3d p = local(i % 2 == 0 ? -0.9 : 0.9, 4.2 - i * 0.15, 0.6);
             soundAt(p, SoundEvents.BLOCK_CHAIN_BREAK, 2.5f, 0.45f + i * 0.08f);
             event(E_SNAP, p, i);
         }
-        if (k == D_BELL + 4) {
-            Vec3d p = local(0, 0, -2.2);
-            soundAt(p, SoundEvents.BLOCK_ANVIL_LAND, 1.2f, 0.3f);
-            event(E_BELL_FALL, p, 0);
+        // колокол отделяется, растёт над телом и накрывает его
+        if (k == D_RISE) {
+            sound(SoundEvents.BLOCK_BELL_RESONATE, 3f, 0.4f);
+            event(E_RISE, getPos(), 0);
         }
-        if (k == D_ASH) event(E_ASH, getPos(), 0);
-        if (k >= D_ASH && k < D_ASH + 20 && k % 5 == 0) sound(SoundEvents.BLOCK_SAND_BREAK, 0.8f, 0.5f);
-        if (k == D_SPAWN && getWorld() instanceof net.minecraft.server.world.ServerWorld sw) {
-            SilentBellEntity bell = Bosses.SILENT_BELL.create(sw);
-            if (bell != null) {
-                Vec3d p = local(0, 0, -2.2);
-                bell.refreshPositionAndAngles(p.x, ground(p), p.z, getYaw(), 0);
-                bell.setYaw(getYaw());
-                bell.bodyYaw = getYaw();
-                bell.headYaw = getYaw();
-                sw.spawnEntity(bell);
+        if (k == D_COVER) {
+            sound(SoundEvents.BLOCK_ANVIL_LAND, 3f, 0.3f);
+            sound(SoundEvents.BLOCK_BELL_USE, 2f, 0.35f);
+            event(E_BELL_FALL, getPos(), 0);
+            if (getWorld() instanceof net.minecraft.server.world.ServerWorld sw) {
+                SilentBellEntity bell = Bosses.SILENT_BELL.create(sw);
+                if (bell != null) {
+                    bell.refreshPositionAndAngles(getX(), ground(getPos()), getZ(), getYaw(), 0);
+                    bell.setYaw(getYaw());
+                    bell.bodyYaw = getYaw();
+                    bell.headYaw = getYaw();
+                    sw.spawnEntity(bell);
+                }
             }
         }
+        // тело рассыпается пеплом уже под колоколом
+        if (k == D_ASH) event(E_ASH, getPos(), 0);
+        if (k >= D_ASH && k < D_ASH + 30 && k % 6 == 0) sound(SoundEvents.BLOCK_SAND_BREAK, 0.7f, 0.5f);
         if (k >= D_END) discard();
     }
 

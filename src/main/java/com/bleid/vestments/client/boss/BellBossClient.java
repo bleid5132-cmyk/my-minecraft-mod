@@ -212,28 +212,45 @@ public final class BellBossClient {
                             .rot((float) rr(0, 6), 0.3f).size(0.08f).color(ASH).life(30);
                 }
             }
-            case BellRingerEntity.E_BELL_FALL -> {
-                shake(p, 0.45f, 14);
-                dust(p, 20, 1.8, 0.9f);
+            case BellRingerEntity.E_BELL_FALL -> {                // выросший колокол накрыл тело
+                shake(p, 1.0f, 24);
+                double gy = groundY(p.add(0, 1, 0)) + 0.06;
+                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 4.4f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.8f);
+                for (int i = 0; i < 40; i++) {
+                    double ang = rr(0, Math.PI * 2);
+                    spawn(SMOKE, p.x + Math.cos(ang) * 1.9, gy + 0.2, p.z + Math.sin(ang) * 1.9).vel(Math.cos(ang) * rr(0.1, 0.3), rr(0.02, 0.1), Math.sin(ang) * rr(0.1, 0.3))
+                            .drag(0.9f).size(0.5f, 1.4f).color(ASH_D).alpha(0.55f).life(30 + R().nextInt(16));
+                }
+            }
+            case BellRingerEntity.E_RISE -> {
+                Vec3d h = e.local(0, 6.1, 0.94);
+                spawn(FLARE, h.x, h.y, h.z).size(2.6f, 0.4f).color(GREEN).life(12);
+                for (int i = 0; i < 20; i++) spawn(RUNES, h.x + rr(-1, 1), h.y + rr(-1, 1), h.z + rr(-1, 1)).vel(0, rr(0.05, 0.15), 0).size(0.2f, 0.05f).color(GREEN).life(24);
+            }
+            case BellRingerEntity.E_TOSS -> sparks(p, 12, BRONZE, 0.3);
+            case BellRingerEntity.E_CATCH -> {
+                shake(p, 0.5f, 14);
+                spawn(RING, p.x, p.y, p.z).size(0.5f, 3f).ease().color(WHITE).life(10).fade(0f, 0.8f);
+                sparks(p, 16, BRONZE, 0.35);
             }
             case BellRingerEntity.E_ASH -> {
                 task(age -> {
                     if (!e.isAlive()) return false;
-                    double top = 6.8 - age * 0.26;
-                    for (int i = 0; i < 6; i++) {
-                        double ang = rr(0, Math.PI * 2), r = rr(0, 1.4);
-                        spawn(SMOKE, e.getX() + Math.cos(ang) * r, e.getY() + rr(0.3, Math.max(0.6, top)), e.getZ() + Math.sin(ang) * r)
-                                .vel(rr(-0.02, 0.02), rr(-0.03, 0.04), rr(-0.02, 0.02)).gravity(-0.002f).drag(0.95f)
+                    // пепел просачивается из-под края колокола
+                    for (int i = 0; i < 5; i++) {
+                        double ang = rr(0, Math.PI * 2), r = 1.95;
+                        spawn(SMOKE, e.getX() + Math.cos(ang) * r, e.getY() + rr(0.05, 0.3), e.getZ() + Math.sin(ang) * r)
+                                .vel(Math.cos(ang) * rr(0.03, 0.09), rr(0, 0.03), Math.sin(ang) * rr(0.03, 0.09)).drag(0.94f)
                                 .size(0.25f, 0.8f).color(ASH).alpha(0.5f).life(40 + R().nextInt(20));
-                        spawn(ORB, e.getX() + Math.cos(ang) * r, e.getY() + rr(0.3, Math.max(0.6, top)), e.getZ() + Math.sin(ang) * r)
-                                .vel(rr(-0.04, 0.04), rr(-0.02, 0.05), rr(-0.04, 0.04)).gravity(0.004f).size(0.04f).color(EMBER).life(30);
+                        if (i < 2) spawn(ORB, e.getX() + Math.cos(ang) * r, e.getY() + 0.1, e.getZ() + Math.sin(ang) * r)
+                                .vel(Math.cos(ang) * 0.06, rr(0, 0.04), Math.sin(ang) * 0.06).size(0.04f).color(EMBER).life(26);
                     }
-                    return age < 24;
+                    return age < 30;
                 });
             }
             case BellRingerEntity.E_RAGE -> {
-                Vec3d h = e.local(0, 5.94, 1.36);
-                spawn(FLARE, h.x, h.y, h.z).size(2.4f, 0.4f).color(CANDLE).life(10);
+                Vec3d h = e.local(0, 5.95, 1.6);
+                spawn(FLARE, h.x, h.y, h.z).size(2.4f, 0.4f).color(GREEN).life(10);
                 for (int i = 0; i < 24; i++) {
                     spawn(FLAME, h.x, h.y, h.z).vel(rr(-0.2, 0.2), rr(0, 0.25), rr(-0.2, 0.2)).drag(0.9f).size(0.2f, 0.05f).colors(CANDLE, EMBER).life(16);
                 }
@@ -245,13 +262,17 @@ public final class BellBossClient {
     private static void tickRinger(BellRingerEntity e) {
         Random r = R();
         if (!e.dying() || e.age - e.clientDyingStart < BellRingerEntity.D_ASH) {
-            // свечные глаза в пустоте капюшона
-            if (e.age % 2 == 0) {
-                for (int s = -1; s <= 1; s += 2) {
-                    Vec3d h = e.local(s * 0.2, 5.98, 1.36);
-                    spawn(FLAME, h.x + rr(-0.02, 0.02), h.y, h.z + rr(-0.02, 0.02)).vel(0, 0.012, 0).size(0.07f, 0.02f)
-                            .colors(CANDLE, EMBER).life(6 + r.nextInt(4)).fade(0.1f, 0.5f);
-                }
+            // глаз под колоколом: зелёный свет сочится из трещины (пока колокол на плечах)
+            float sk = e.age - e.clientAttackStart;
+            boolean onHead = !e.dying() && !(e.attack() == BellRingerEntity.SWING && sk > 18 && sk < 138);
+            if (onHead && e.age % 2 == 0) {
+                Vec3d h = e.local(rr(-0.15, 0.15), 5.95 + rr(-0.6, 0.6), 1.62);
+                Vec3d f = e.local(0, 0, 1).subtract(e.getPos());
+                spawn(ORB, h.x, h.y, h.z).vel(f.x * 0.02, rr(0.005, 0.02), f.z * 0.02).size(0.05f, 0.01f).color(GREEN).life(14 + r.nextInt(8));
+            }
+            if (onHead && e.age % 9 == 0) {
+                Vec3d h = e.local(0, 5.95, 1.65);
+                spawn(GLINT, h.x, h.y, h.z).size(0.35f, 0.1f).color(PALE).alpha(0.7f).life(5);
             }
             if (e.rage() && e.age % 3 == 0) {
                 Vec3d h = e.local(rr(-0.7, 0.7), rr(2, 5.5), rr(-0.8, 1.1));
@@ -266,7 +287,7 @@ public final class BellBossClient {
         // след колокола при размахе
         if (!e.dying() && e.attack() == BellRingerEntity.SWING) {
             float k = e.age - e.clientAttackStart;
-            if (k > 22 && k < 104) {
+            if (k > BellRingerEntity.SW_SPIN + 2 && k < BellRingerEntity.SW_TOSS) {
                 Vec3d b = BellRingerRenderer.swingBell(e, k, 0f);
                 spawn(SMOKE, b.x, b.y, b.z).size(0.6f, 1.2f).color(ASH_D).alpha(0.4f).life(14);
                 spawn(GLINT, b.x + rr(-0.6, 0.6), b.y + rr(-0.6, 0.6), b.z + rr(-0.6, 0.6)).size(0.12f, 0.02f).color(CANDLE).life(8);

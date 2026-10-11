@@ -45,7 +45,7 @@ public class SilentBellEntity extends BossBase {
     public static final int IDLE = 0, RING = 1, DROP = 2, CHOIR = 3;
     public static final int S_AWAKEN = 0, S_FIGHT = 1, S_DYING = 2;
     /** Пробуждение: тишина, удар колокола, открытие глаза, подъём. */
-    public static final int A_TOLL = 60, A_EYE = 70, A_RISEN = 110;
+    public static final int A_TOLL = 50, A_EYE = 60, A_RISEN = 100;
     public static final int E_AWAKE = 1, E_CLANG = 2, E_CONE_CHARGE = 3, E_CONE = 4, E_SHADOW = 5, E_DROP_LAND = 6, E_TRAP = 7,
             E_TRAP_HIT = 8, E_RELEASE = 9, E_CHOIR = 10, E_HEAL = 11, E_GROUND_RING = 12, E_EYE_OPEN = 13, E_WIDEN = 14,
             E_SPLIT = 15, E_DARK = 16, E_RING_HIT = 17;

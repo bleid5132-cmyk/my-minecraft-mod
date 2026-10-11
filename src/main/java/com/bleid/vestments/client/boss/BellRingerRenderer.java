@@ -19,6 +19,7 @@ import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
@@ -32,7 +33,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
     static final Identifier CHAIN_TEX = new Identifier("vestments", "textures/entity/bell_chain.png");
     private static final Identifier MODEL = new Identifier("vestments", "models/entity/bell_ringer.vxm");
     private static VoxelModel model;
-    private static int TORSO, THIGH_R, SHIN_R, THIGH_L, SHIN_L, HEAD, ARM_R, FORE_R, HAND_R, HAMMER, ARM_L, FORE_L, HAND_L, BELL, BELL_G;
+    private static int TORSO, THIGH_R, SHIN_R, THIGH_L, SHIN_L, HEAD, HEAD_G, ARM_R, FORE_R, HAND_R, HAMMER, ARM_L, FORE_L, HAND_L, BELL, BELL_G;
     static final Springs SPRINGS = new Springs();
 
     // индексы позы
@@ -58,7 +59,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
             THIGH_L = model.index("thigh_l"); SHIN_L = model.index("shin_l"); HEAD = model.index("head");
             ARM_R = model.index("arm_r"); FORE_R = model.index("fore_r"); HAND_R = model.index("hand_r"); HAMMER = model.index("hammer");
             ARM_L = model.index("arm_l"); FORE_L = model.index("fore_l"); HAND_L = model.index("hand_l");
-            BELL = model.index("bell"); BELL_G = model.index("bell#g");
+            BELL = model.index("bell"); BELL_G = model.index("bell#g"); HEAD_G = model.index("head#g");
         }
         return model;
     }
@@ -77,6 +78,101 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         for (int i = 0; i + 1 < kv.length; i += 2) {
             int idx = (int) kv[i];
             p[idx] = p[idx] + (kv[i + 1] - p[idx]) * w;
+        }
+    }
+
+    /** Сглаженное смешивание двух матриц (сдвиг — линейно, поворот — по сфере, масштаб — линейно). */
+    static Matrix4f blend(Matrix4f a, Matrix4f b, float t) {
+        if (t <= 0) return new Matrix4f(a);
+        if (t >= 1) return new Matrix4f(b);
+        Vector3f ta = a.getTranslation(new Vector3f()), tb = b.getTranslation(new Vector3f());
+        Vector3f sa = a.getScale(new Vector3f()), sb = b.getScale(new Vector3f());
+        Quaternionf qa = a.getNormalizedRotation(new Quaternionf()), qb = b.getNormalizedRotation(new Quaternionf());
+        return new Matrix4f().translationRotateScale(ta.lerp(tb, t), qa.slerp(qb, t), sa.lerp(sb, t));
+    }
+
+    /** Молот за спиной (в системе торса). */
+    private static Matrix4f backHammer(Matrix4f torso, Vector3f piv) {
+        return new Matrix4f(torso).translate(-12, 54, -17).rotateZ((float) Math.toRadians(160)).translate(-piv.x, -piv.y, -piv.z);
+    }
+
+    /** Профиль колокола-головы (радиус в покое на высоте y, единицы модели) — для столкновений висячей цепи. */
+    static float bellRadius(float y) {
+        float tb = MathHelper.clamp((y - 80) / 34f, 0, 1);
+        float prof = 0.66f + 0.34f * (float) Math.pow(1 - MathHelper.clamp(tb / 0.4f, 0, 1), 2) - 0.05f * MathHelper.clamp((tb - 0.4f) / 0.4f, 0, 1);
+        float q = MathHelper.clamp(tb - 0.8f, 0, 1) / 0.2f;
+        float dome = (float) Math.sqrt(MathHelper.clamp(1 - q * q, 0, 1));
+        return 17 * prof * (0.78f + 0.22f * dome) + 1.6f * MathHelper.clamp((83 - y) / 3f, 0, 1);
+    }
+
+    /** Цепь на кончике колокола: точки в мировых координатах, верле с ограничениями длины и обтеканием колокола. */
+    static final class Dangle {
+        static final int N = 7;
+        static final float SEG = 0.2f;
+        final double[] x = new double[N * 3], px = new double[N * 3];
+        boolean init;
+        long nanos;
+    }
+    static final java.util.Map<Integer, Dangle> DANGLE = new java.util.HashMap<>();
+
+    private static void dangle(BellRingerEntity e, Dangle dg, Vec3d origin, Matrix4f bellWorld, MatrixStack ms, VertexConsumerProvider vcp, int light) {
+        Vector3f crown = new Matrix4f(bellWorld).transformPosition(new Vector3f(0, 123, 15));
+        double ax = origin.x + crown.x, ay = origin.y + crown.y, az = origin.z + crown.z;
+        if (!dg.init) {
+            for (int i = 0; i < Dangle.N; i++) {
+                dg.x[i * 3] = dg.px[i * 3] = ax + i * 0.05;
+                dg.x[i * 3 + 1] = dg.px[i * 3 + 1] = ay - i * Dangle.SEG * 0.3;
+                dg.x[i * 3 + 2] = dg.px[i * 3 + 2] = az - i * 0.12;
+            }
+            dg.init = true;
+            dg.nanos = 0;
+        }
+        long now = System.nanoTime();
+        float dts = dg.nanos == 0 ? 0f : Math.min(0.1f, (now - dg.nanos) / 1e9f);
+        dg.nanos = now;
+        if (net.minecraft.client.MinecraftClient.getInstance().isPaused()) dts = 0;
+        Matrix4f inv = new Matrix4f(bellWorld).invert();
+        int steps = (int) Math.ceil(dts / (1 / 120f));
+        float h = steps > 0 ? dts / steps : 0;
+        for (int s = 0; s < steps; s++) {
+            for (int i = 1; i < Dangle.N; i++) {
+                for (int c = 0; c < 3; c++) {
+                    double cur = dg.x[i * 3 + c], v = (cur - dg.px[i * 3 + c]) * 0.985;
+                    dg.px[i * 3 + c] = cur;
+                    dg.x[i * 3 + c] = cur + v + (c == 1 ? -16.0 * h * h : 0);
+                }
+            }
+            dg.x[0] = ax; dg.x[1] = ay; dg.x[2] = az;
+            for (int it = 0; it < 4; it++) {
+                for (int i = 0; i + 1 < Dangle.N; i++) {
+                    int a = i * 3, b = a + 3;
+                    double dx = dg.x[b] - dg.x[a], dy = dg.x[b + 1] - dg.x[a + 1], dz = dg.x[b + 2] - dg.x[a + 2];
+                    double len = Math.sqrt(dx * dx + dy * dy + dz * dz) + 1e-9, diff = (len - Dangle.SEG) / len;
+                    double wa = i == 0 ? 0 : 0.5, wb = i == 0 ? 1 : 0.5;
+                    dg.x[a] += dx * diff * wa; dg.x[a + 1] += dy * diff * wa; dg.x[a + 2] += dz * diff * wa;
+                    dg.x[b] -= dx * diff * wb; dg.x[b + 1] -= dy * diff * wb; dg.x[b + 2] -= dz * diff * wb;
+                }
+                // обтекание колокола: точку внутри профиля выталкиваем наружу (в системе колокола)
+                for (int i = 1; i < Dangle.N; i++) {
+                    Vector3f l = inv.transformPosition(new Vector3f((float) (dg.x[i * 3] - origin.x), (float) (dg.x[i * 3 + 1] - origin.y),
+                            (float) (dg.x[i * 3 + 2] - origin.z)));
+                    if (l.y < 78 || l.y > 120) continue;
+                    float rx = l.x, rz = l.z - 15, rr = (float) Math.sqrt(rx * rx + rz * rz);
+                    float lim = l.y > 114.5f ? 3.2f : bellRadius(l.y) + 1.2f;
+                    if (l.y > 113 && l.y < 116.5f && rr < bellRadius(114) + 1f && rr > 3.2f) l.y = 116.5f;
+                    else if (rr < lim) {
+                        if (rr < 1e-3f) { rx = 1; rr = 1; }
+                        l.x = rx / rr * lim; l.z = 15 + rz / rr * lim;
+                    } else continue;
+                    Vector3f w = new Matrix4f(bellWorld).transformPosition(l);
+                    dg.x[i * 3] = origin.x + w.x; dg.x[i * 3 + 1] = origin.y + w.y; dg.x[i * 3 + 2] = origin.z + w.z;
+                }
+            }
+        }
+        for (int i = 0; i + 1 < Dangle.N; i++) {
+            Vector3f a = new Vector3f((float) (dg.x[i * 3] - origin.x), (float) (dg.x[i * 3 + 1] - origin.y), (float) (dg.x[i * 3 + 2] - origin.z));
+            Vector3f b = new Vector3f((float) (dg.x[i * 3 + 3] - origin.x), (float) (dg.x[i * 3 + 4] - origin.y), (float) (dg.x[i * 3 + 5] - origin.z));
+            drawChain(ms, vcp, a, b, light, 0.07f);
         }
     }
 
@@ -135,7 +231,6 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         rot[SHIN_R].set(p[SHR], 0, 0);
         rot[THIGH_L].set(p[THL], 0, 0);
         rot[SHIN_L].set(p[SHL], 0, 0);
-        rot[HEAD].set(p[HX] * 0.35f, p[HY], 0);
         rot[ARM_R].set(p[ARX], p[ARY], p[ARZ]);
         rot[FORE_R].set(p[FR], 0, 0);
         rot[HAND_R].set(p[HR], 0, 0);
@@ -143,61 +238,65 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         rot[ARM_L].set(p[ALX], p[ALY], p[ALZ]);
         rot[FORE_L].set(p[FL], 0, 0);
         rot[HAND_L].set(p[HL], 0, 0);
-        rot[BELL].set(p[BX] + p[HX] * 0.35f, p[HY], p[BZ]);
+        rot[BELL].set(p[BX] + p[HX] * 0.35f, p[HY], p[BZ]);         // колокол — это голова: следует за взглядом
         Matrix4f[] mats = m.pose(rot, sc);
         float lift = p[LIFT];
+        Vector3f hpiv = m.parts.get(HAMMER).pivot;
 
-        // погребальный размах: колокол уходит на орбиту
         Matrix4f bellM = null;
-        if (a == SWING && k >= 6 && k <= 116) {
-            float u = k < 100 ? sm((k - 6) / 10f) : 1f - sm((k - 104) / 12f);
-            float r = swingRadius(k) * 16f, phi = swingAngle(k);
-            Vector3f orbit = new Vector3f(r * MathHelper.sin(phi), SWING_Y * 16f - lift, -r * MathHelper.cos(phi));
-            Vector3f c = new Vector3f(BELL_REST).lerp(orbit, u);
-            bellM = new Matrix4f().translate(c).rotateY(-phi * u).rotateX((float) Math.toRadians(38 * u * sm(r / 60f)))
-                    .translate(-BELL_REST.x, -BELL_REST.y, -BELL_REST.z);
+        boolean held = false;                                         // колокол в руках на цепи
+        if (a == SWING) {
+            // молот за спину и обратно
+            Matrix4f back = backHammer(mats[TORSO], hpiv);
+            if (k >= 6 && k < SW_CATCH + 4) mats[HAMMER] = blend(mats[HAMMER], back, sm((k - 6) / 4f));
+            else if (k >= SW_CATCH + 4) mats[HAMMER] = blend(back, mats[HAMMER], sm((k - SW_CATCH - 4) / 4f));
+            Matrix4f lifted = new Matrix4f().translate(0, 32 * sm((k - SW_LIFT) / 8f), 0).mul(mats[BELL]);
+            if (k >= SW_LIFT && k < 28) bellM = lifted;
+            else if (k >= 28 && k <= SW_TOSS + 16 + 3) {
+                Matrix4f orbit = orbitMatrix(Math.min(k, SW_TOSS), lift);
+                if (k < 38) bellM = blend(new Matrix4f().translate(0, 32, 0).mul(mats[BELL]), orbitMatrix(38, lift), sm((k - 28) / 10f));
+                else if (k <= SW_TOSS) bellM = orbit;
+                else {
+                    // подброс: по дуге вверх, полный переворот, и обратно на плечи
+                    float u = MathHelper.clamp((k - SW_TOSS) / 16f, 0, 1);
+                    Vector3f p0 = orbit.getTranslation(new Vector3f()), p2 = new Vector3f(0, 97, 15), p1 = new Vector3f(0, 250 - lift, 15);
+                    Vector3f pos = new Vector3f(p0).mul((1 - u) * (1 - u)).add(new Vector3f(p1).mul(2 * u * (1 - u))).add(new Vector3f(p2).mul(u * u));
+                    Matrix4f fly = new Matrix4f().translate(pos).rotateX((float) Math.toRadians(360 * sm(u)))
+                            .translate(-BELL_REST.x, -BELL_REST.y, -BELL_REST.z);
+                    bellM = k < SW_TOSS + 16 ? fly : blend(fly, mats[BELL], sm((k - SW_TOSS - 16) / 3f));
+                }
+                held = k >= 30 && k <= SW_TOSS;
+            }
         }
-        // смерть: молот выпадает, колокол падает за спину
+        // смерть: молот выпадает, колокол отделяется, растёт и накрывает тело
         if (dying) {
             if (d >= 11) {
                 float s = sm((d - 11) / 6f);
                 s = s * s;
-                Vector3f piv = m.parts.get(HAMMER).pivot;
-                Vector3f hand = mats[HAMMER].transformPosition(new Vector3f(piv));
+                Vector3f hand = mats[HAMMER].transformPosition(new Vector3f(hpiv));
                 Vector3f g = new Vector3f(-22, 7 - lift, 21);
                 float bounce = d > 17 ? MathHelper.sin((d - 17) * 0.9f) * 6f * Math.max(0, 1 - (d - 17) / 10f) : 0;
                 mats[HAMMER] = new Matrix4f().translate(new Vector3f(hand).lerp(g, s)).rotateX((float) Math.toRadians(-88 * s + bounce))
-                        .translate(-piv.x, -piv.y, -piv.z);
+                        .translate(-hpiv.x, -hpiv.y, -hpiv.z);
             }
-            if (d >= D_BELL) {
-                float s = MathHelper.clamp((d - D_BELL) / 6f, 0f, 1f);
-                float arc = MathHelper.sin(s * MathHelper.PI);
-                float wob = d > D_BELL + 6 ? MathHelper.sin((d - D_BELL - 6) * 0.7f) * 7f * Math.max(0, 1 - (d - D_BELL - 6) / 18f) : 0;
-                float dy = -(80 + lift) * s * s + 14 * arc, dz = -50 * s;
-                bellM = new Matrix4f().translate(0, dy, dz).translate(0, 80, 15).rotateX((float) Math.toRadians(-75 * arc + wob))
-                        .translate(0, -80, -15);
+            if (d >= D_RISE) {
+                bellM = coverMatrix(d, lift);
+                if (d < D_RISE + 4) bellM = blend(mats[BELL], bellM, sm((d - D_RISE) / 4f));
             }
         }
         if (bellM != null) {
             mats[BELL] = bellM;
-            if (BELL_G >= 0) mats[BELL_G] = bellM;
+            for (int i : new int[] { BELL_G, HEAD, HEAD_G }) if (i >= 0) mats[i] = bellM;
         }
 
-        // ---- пепел: тело сереет снизу вверх и осыпается сверху, остаются ряса, молот и колокол
+        // ---- пепел: тело сереет и осыпается уже под колоколом
         float stoneY = -1e9f, crumbleY = 1e9f;
         boolean[] exempt = new boolean[n], hide = new boolean[n];
         if (dying) {
-            exempt[BELL] = true;
-            if (BELL_G >= 0) exempt[BELL_G] = true;
-            exempt[HAMMER] = true;
-            if (d >= D_ASH) stoneY = -6 + 126 * sm((d - D_ASH) / 9f);
-            if (d >= D_ASH + 6) crumbleY = 112 - 100 * sm((d - D_ASH - 6) / 16f);
-            if (d >= 150) crumbleY = 12 - 14 * sm((d - 150) / 50f);
-            if (d >= D_SPAWN + 1) {
-                hide[BELL] = true;
-                if (BELL_G >= 0) hide[BELL_G] = true;
-            }
-            if (d >= 190) hide[HAMMER] = true;
+            for (int i : new int[] { BELL, BELL_G, HEAD, HEAD_G }) if (i >= 0) exempt[i] = true;
+            if (d >= D_ASH) stoneY = -6 + 126 * sm((d - D_ASH) / 8f);
+            if (d >= D_ASH + 6) crumbleY = 112 - 118 * sm((d - D_ASH - 6) / 24f);
+            if (d >= D_COVER + 1) for (int i : new int[] { BELL, BELL_G, HEAD, HEAD_G }) if (i >= 0) hide[i] = true;
         }
 
         ms.push();
@@ -209,18 +308,48 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         if (stoneY > -100f) m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(ASH)), true, light, overlay, mats, 1f, 1f, 1f, stoneY, crumbleY, hide, exempt);
         ms.pop();
 
-        // ---- цепи
+        // ---- цепи: гарпун и висячая цепь с кончика колокола, на размахе — колокол на цепи в руках
         Matrix4f ent = new Matrix4f().rotateY((float) Math.toRadians(-bodyYaw)).scale(1 / 16f).translate(0, lift, 0);
-        Vector3f hand = new Matrix4f(ent).mul(mats[HAND_L]).transformPosition(new Vector3f(19.6f, 28, 17.5f));
-        if (!dying && a == CHAINS && e.chainState() != 0) {
+        Matrix4f bellWorld = new Matrix4f(ent).mul(mats[BELL]);
+        Vector3f crown = new Matrix4f(bellWorld).transformPosition(new Vector3f(0, 123, 15));
+        Dangle dg = DANGLE.computeIfAbsent(e.getId(), id -> new Dangle());
+        boolean shooting = !dying && a == CHAINS && e.chainState() != 0;
+        if (shooting) {
             Vec3d c = e.chainPos().subtract(e.getLerpedPos(td));
-            drawChain(ms, vcp, hand, new Vector3f((float) c.x, (float) c.y, (float) c.z), light, 0.11f);
-        }
-        if (bellM != null && a == SWING) {
-            Vector3f top = new Matrix4f(ent).mul(bellM).transformPosition(new Vector3f(0, 122, 15));
-            drawChain(ms, vcp, hand, top, light, 0.12f);
+            drawChain(ms, vcp, crown, new Vector3f((float) c.x, (float) c.y, (float) c.z), light, 0.11f);
+            dg.init = false;
+        } else if (held) {
+            Vector3f hl = new Matrix4f(ent).mul(mats[HAND_L]).transformPosition(new Vector3f(19.6f, 30, 17.5f));
+            Vector3f hr = new Matrix4f(ent).mul(mats[HAND_R]).transformPosition(new Vector3f(-19.6f, 30, 17.5f));
+            drawChain(ms, vcp, hl.add(hr).mul(0.5f), crown, light, 0.11f);
+            dg.init = false;
+        } else if (!(dying && d >= D_COVER + 1)) {
+            dangle(e, dg, e.getLerpedPos(td), bellWorld, ms, vcp, light);
         }
         super.render(e, yaw, td, ms, vcp, light);
+    }
+
+    /** Колокол на орбите погребального размаха (в системе модели). */
+    private static Matrix4f orbitMatrix(float k, float lift) {
+        float r = swingRadius(k) * 16f, phi = swingAngle(k);
+        float tilt = 40 * sm((r / 16f - SWING_R0) / (SWING_R - SWING_R0));
+        return new Matrix4f().translate(r * MathHelper.sin(phi), SWING_Y * 16f - lift + 10, -r * MathHelper.cos(phi))
+                .rotateY(-phi).rotateX((float) Math.toRadians(tilt)).translate(-BELL_REST.x, -BELL_REST.y, -BELL_REST.z);
+    }
+
+    /** Смерть: колокол поднимается над телом, растёт до размеров Безмолвного Колокола и накрывает его. */
+    private static Matrix4f coverMatrix(float d, float lift) {
+        float rise = sm((d - D_RISE) / 14f), grow = sm((d - D_RISE - 2) / 16f);
+        float slam = MathHelper.clamp((d - 68) / 4f, 0, 1);
+        slam = slam * slam;
+        float hover = d > 60 && d < 68 ? MathHelper.sin((d - 60) * 0.8f) * 2f : 0;
+        float by = MathHelper.lerp(rise, 80, 175 - lift) + hover;
+        by = MathHelper.lerp(slam, by, -lift);
+        float bz = MathHelper.lerp(rise, 15, 0);
+        float sx = MathHelper.lerp(grow, 1f, 1.62f), sy = MathHelper.lerp(grow, 1f, 2.33f);
+        float wob = d > 72 ? 0 : MathHelper.sin(d * 0.35f) * 6 * rise * (1 - slam);
+        return new Matrix4f().translate(0, by, bz).rotateY((float) Math.toRadians(360 * rise)).rotateX((float) Math.toRadians(wob))
+                .scale(sx, sy, sx).translate(0, -80, -15);
     }
 
     private void attackPose(BellRingerEntity e, int a, float k, float[] p, Springs.State sp) {
@@ -245,24 +374,37 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
                 }
             }
             case CHAINS -> {
+                // склоняет колокол-голову, целясь кончиком, — цепь вылетает с кончика; при подтягивании — рывок головой назад
                 int st = e.chainState();
-                float w1 = sm(k / 8f) * (1 - sm((k - 9) / 3f));
-                mix(p, w1, ALX, 48, ALZ, 16, FL, -32, TY, 26, TX, 2);
-                float w2 = sm((k - 9) / 3f);
+                float aim = sm((k - 2) / 7f);
                 if (st == 2) {
                     float pull = MathHelper.sin(k * 0.9f) * 6;
-                    mix(p, w2, ALX, -55 + pull, ALZ, -4, FL, -62, TX, -8, TY, 14, LIFT, -2, THL, -22, SHL, 20, HX, -6);
+                    mix(p, aim, BX, 18 + pull, TX, -10, TY, 0, LIFT, -3, THL, -24, SHL, 22, THR, 10, SHR, 12, ARX, -30, ARZ, -24, ALX, -30, ALZ, 24, FL, -50, FR, -40);
                 } else {
-                    float back = st == 0 ? sm((k - 24) / 14f) : 0;
-                    mix(p, w2 * (1 - back), ALX, -100, ALZ, -6, FL, -4, TY, -20, TX, 14, HX, -14);
+                    float back = st == 0 && k > 14 ? sm((k - 26) / 14f) : 0;
+                    mix(p, aim * (1 - back), BX, 58, HX, 0, TX, 16, LIFT, -2, ARX, -20, ARZ, -18, ALX, -20, ALZ, 18, FL, -30, THR, -16, SHR, 20);
                 }
             }
             case SWING -> {
-                float u = sm(k / 12f) * (1 - sm((k - 102) / 12f));
-                float phi = swingAngle(k);
-                float dz = -MathHelper.cos(phi), dx = MathHelper.sin(phi);
-                mix(p, u, ALX, -180 + 28 * dz, ALZ, 28 * dx, ALY, 0, FL, -6, TX, -6, TY, 10 * dx, HX, -24,
-                        ARX, -8, ARZ, -12, FR, -14, LIFT, -2, THL, -12, SHL, 14, THR, -6, SHR, 8);
+                // молот за спину → двумя руками снимает колокол → раскручивает на цепи → подкидывает и ловит головой → молот в руку
+                float stow = sm(k / 5f) * (1 - sm((k - 10) / 4f));
+                mix(p, stow, ARX, -175.9f, ARY, -17, ARZ, -8.5f, FR, -111.7f, TX, 4);
+                float grab = sm((k - 10) / 6f) * (1 - sm((k - SW_LIFT) / 5f));
+                mix(p, grab, ALX, -22.2f, ALY, -11.7f, ALZ, 42.1f, FL, -150, ARX, -18.2f, ARY, 8.8f, ARZ, -61.7f, FR, -150, TX, 0, HX, 0);
+                float lift = sm((k - SW_LIFT) / 5f) * (1 - sm((k - 28) / 6f));
+                mix(p, lift, ALX, -112.1f, ALY, 12.5f, ALZ, -16.1f, FL, -99.5f, ARX, -112.1f, ARY, -12.5f, ARZ, 16.1f, FR, -99.5f, TX, -4, HX, 0);
+                float phi = swingAngle(k), dx = MathHelper.sin(phi), dz = -MathHelper.cos(phi);
+                float spin = sm((k - 28) / 6f) * (1 - sm((k - SW_TOSS) / 3f));
+                float lean = k >= 38 ? 22 * sm((k - 38) / 8f) : 0;
+                mix(p, spin, ALX, -154.7f + lean * dz, ALY, 15.2f, ALZ, -21.8f + lean * dx, FL, 0, ARX, -154.7f + lean * dz, ARY, -15.2f,
+                        ARZ, 21.8f + lean * dx, FR, 0, TX, -4, TY, 8 * dx, HX, 0, LIFT, -2, THL, -12, SHL, 14, THR, -6, SHR, 8);
+                float toss = sm((k - SW_TOSS) / 3f) * (1 - sm((k - SW_TOSS - 6) / 5f));
+                mix(p, toss, ALX, -168, ALY, 10, ALZ, -12, FL, -10, ARX, -168, ARY, -10, ARZ, 12, FR, -10, TX, -10, LIFT, 2, THR, 0, SHR, 0, THL, 0, SHL, 0);
+                float catchW = sm((k - SW_TOSS - 6) / 5f) * (1 - sm((k - SW_CATCH) / 4f));
+                mix(p, catchW, ALX, -112.1f, ALY, 12.5f, ALZ, -16.1f, FL, -99.5f, ARX, -112.1f, ARY, -12.5f, ARZ, 16.1f, FR, -99.5f, TX, 2);
+                if (k >= SW_CATCH && k < SW_CATCH + 8) p[LIFT] -= 4 * MathHelper.sin((k - SW_CATCH) / 8f * MathHelper.PI);   // тяжесть пойманного колокола
+                float retrieve = sm((k - SW_CATCH) / 4f) * (1 - sm((k - SW_CATCH - 6) / 4f));
+                if (k >= SW_CATCH && k < SW_CATCH + 10) mix(p, retrieve, ARX, -175.9f, ARY, -17, ARZ, -8.5f, FR, -111.7f);
             }
             case LEAP -> {
                 if (e.attack() == LEAP && sp.markAttack != e.clientAttackStart) {
@@ -287,18 +429,19 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         float kneel = sm(d / 12f);
         mix(p, kneel, LIFT, -16, THR, -84, SHR, 92, THL, -84, SHL, 92, TX, 26, HX, 22, ARX, -22, ALX, -20, ARZ, -4, ALZ, 4,
                 FR, -8, FL, -8, TY, 0, TZ, 0, BX, 0, BZ, 0);
-        if (d >= 25 && d <= 62) {
-            float q = (d - 25) % 10;
+        if (d >= 20 && d <= 48) {
+            float q = (d - 20) % 8;
             float jolt = q < 4 ? MathHelper.sin(q / 4f * MathHelper.PI) : 0;
             p[TX] += 5 * jolt;
             p[BX] += 6 * jolt * MathHelper.sin(d * 2.3f);
             p[BZ] += 4 * jolt;
         }
-        float up = sm((d - 40) / 14f);
-        mix(p, up, TX, 2, HX, -28, ARZ, -34, ALZ, 34, ARX, -12, ALX, -12, FR, -18, FL, -18);
-        if (d > D_ASH) {
-            float sag = sm((d - D_ASH) / 18f);
-            mix(p, sag, TX, 18, HX, 30, ARZ, -8, ALZ, 8);
+        // колокол уходит вверх — тело смотрит ему вслед и опускается, раскинув руки
+        float up = sm((d - 44) / 12f);
+        mix(p, up, TX, -6, HX, -30, ARZ, -40, ALZ, 40, ARX, -30, ALX, -30, FR, -24, FL, -24);
+        if (d > D_COVER - 4) {
+            float sag = sm((d - D_COVER + 4) / 14f);
+            mix(p, sag, TX, 22, ARZ, -8, ALZ, 8, ARX, -10, ALX, -10);
         }
     }
 
@@ -342,7 +485,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         // локально: x — лево, z — вперёд; мир: поворот на -yaw вокруг Y
         double wx = lx * Math.cos(y) - lz * Math.sin(y);
         double wz = lx * Math.sin(y) + lz * Math.cos(y);
-        return e.getLerpedPos(td).add(wx, o[1], wz);
+        return e.getLerpedPos(td).add(wx, o[1] + 10 / 16.0, wz);
     }
 
     @Override

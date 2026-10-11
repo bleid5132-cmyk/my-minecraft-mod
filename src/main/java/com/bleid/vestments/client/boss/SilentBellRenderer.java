@@ -77,7 +77,7 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         float scale = 1f, robeVis = 1f;
         if (st == S_AWAKEN) {
             float u = sm((sk - A_EYE) / (A_RISEN - A_EYE));
-            scale = 0.5f + 0.5f * u;
+            scale = 1f;                                   // колокол уже вырос, накрыв Звонаря
             robeVis = u;
         }
 
