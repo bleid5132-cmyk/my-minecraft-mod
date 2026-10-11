@@ -172,10 +172,10 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                     // одноручный широкий взмах: рука вытянута горизонтально, клинок продолжает её линию и смотрит
                     // на противника; замах вправо-назад, удар справа налево, левая рука уходит назад для равновесия
                     Pose wind = key(base, q -> { q.lift = -3f; q.torsoY = -34f; q.torsoX = -2f; q.thR = 8f; q.shR = 34f; q.thL = -28f; q.shL = 36f;
-                        q.armRX = -88f; q.armRY = -80f; q.armRZ = 0f; q.foreR = -6f; q.handR = 52f;
+                        q.armRX = -62f; q.armRY = -80f; q.armRZ = 0f; q.foreR = -6f; q.handR = 52f;
                         q.armLX = -55f; q.armLZ = 28f; q.foreL = -40f; q.handL = 0f; q.wingZ = 24f; q.wingY = -6f; });
                     Pose hit = key(base, q -> { q.lift = -3.5f; q.torsoY = 44f; q.torsoX = 10f; q.thR = -32f; q.shR = 30f; q.thL = 10f; q.shL = 26f;
-                        q.armRX = -90f; q.armRY = 72f; q.armRZ = 0f; q.foreR = 0f; q.handR = 52f;
+                        q.armRX = -62f; q.armRY = 72f; q.armRZ = 0f; q.foreR = 0f; q.handR = 52f;
                         q.armLX = 35f; q.armLZ = 46f; q.foreL = -25f; q.wingZ = 10f; q.wingY = 30f; });
                     p = base.copy();
                     p.blend(wind, sm(tk / 14f));
@@ -183,10 +183,12 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
                     p.blend(base, sm((tk - 30f) / 14f));
                 }
                 case SeraelEntity.SLASH -> {
-                    Pose up = key(base, q -> { q.torsoX = -10f; q.armRX = -168f; q.foreR = -42f; q.handR = -24f; q.armLX = -152f; q.foreL = -52f;
-                        q.thR = -10f; q.shR = 20f; q.wingZ = 22f; });
-                    Pose down = key(base, q -> { q.lift = -4f; q.torsoX = 26f; q.armRX = -58f; q.foreR = -6f; q.handR = 14f; q.armLX = -52f; q.foreL = -20f;
-                        q.thR = -42f; q.shR = 46f; q.thL = 22f; q.shL = 24f; q.wingZ = -4f; q.wingY = 26f; });
+                    // одноручный удар сверху: клинок продолжает руку — над головой назад, затем вниз-вперёд на противника;
+                    // левая рука выставлена вперёд-в сторону и на ударе уходит назад для равновесия
+                    Pose up = key(base, q -> { q.torsoX = -10f; q.torsoY = -10f; q.armRX = -168f; q.armRZ = -4f; q.foreR = -10f; q.handR = 52f;
+                        q.armLX = -40f; q.armLZ = 34f; q.foreL = -30f; q.handL = 0f; q.thR = -10f; q.shR = 20f; q.wingZ = 22f; });
+                    Pose down = key(base, q -> { q.lift = -4f; q.torsoX = 26f; q.torsoY = 6f; q.armRX = -50f; q.armRZ = 0f; q.foreR = -2f; q.handR = 52f;
+                        q.armLX = 30f; q.armLZ = 26f; q.foreL = -16f; q.thR = -42f; q.shR = 46f; q.thL = 22f; q.shL = 24f; q.wingZ = -4f; q.wingY = 26f; });
                     p = base.copy();
                     p.blend(up, sm(tk / 9f));
                     p.blend(down, sm((tk - 9f) / 3f));
@@ -306,7 +308,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         float om = 19f, zeta = 0.78f;
         int steps = Math.max(1, (int) Math.ceil(dts / 0.005f));
         float h = dts / steps;
-        for (int st = 0; st < steps; st++) {
+        for (int si = 0; si < steps; si++) {
             for (int i = 0; i < target.length; i++) {
                 float acc = om * om * (target[i] - sp.x[i]) - 2f * zeta * om * sp.v[i];
                 sp.v[i] += acc * h;
