@@ -36,7 +36,7 @@ import net.minecraft.world.World;
 
 /**
  * Безмолвный Колокол — вторая стадия. Парящий бронзовый колокол с глазом в трещине.
- * Неуязвим, пока глаз закрыт: глаз открывается на 2–3 с после каждой атаки.
+ * Урон проходит только при попадании в разлом с глазом; после атаки глаз открыт — урон по нему ×1,5.
  * Атаки: конус звуковой волны, падение-ловушка (тень под ним; пойманный выбирается тремя ударами по глазу),
  * хор призрачных певчих (лечат колокол, пока живы). На трети здоровья трещина расширяется:
  * гул, ползущие по арене звуковые кольца, атаки чаще, окна глаза короче.
@@ -530,7 +530,8 @@ public class SilentBellEntity extends BossBase {
             sound(SoundEvents.BLOCK_BELL_USE, 3f, 0.9f + trapHits * 0.2f);
             return super.damage(source, amount);
         }
-        if (!eyeOpen()) {
+        // урон проходит только при попадании в разлом с глазом — в любой фазе, при любой ширине трещины
+        if (!hitsEye(source)) {
             Vec3d p = source.getPosition() != null ? source.getPosition() : eyePos();
             if (src != null) p = src.getEyePos().add(eyePos().subtract(src.getEyePos()).multiply(0.75));
             event(E_CLANG, p, 0);
@@ -538,7 +539,48 @@ public class SilentBellEntity extends BossBase {
             sound(SoundEvents.BLOCK_BELL_USE, 1f, 1.9f);
             return false;
         }
-        return super.damage(source, amount);
+        event(E_TRAP_HIT, eyePos(), 1);
+        sound(SoundEvents.BLOCK_AMETHYST_BLOCK_HIT, 2f, 0.6f);
+        // открытый глаз (после атаки) — уязвимее
+        return super.damage(source, eyeOpen() ? amount * 1.5f : amount);
+    }
+
+    /** Зона разлома с глазом: эллипсоид спереди на высоте глаза (в системе колокола). */
+    private static final double EYE_FWD = 1.0, EYE_H = 4.1, RX = 0.95, RY = 1.15, RZ = 1.0;
+
+    private boolean hitsEye(DamageSource source) {
+        Entity atk = source.getAttacker(), direct = source.getSource();
+        Vec3d f = forward(), r = new Vec3d(-f.z, 0, f.x);
+        Vec3d c = getPos().add(f.multiply(EYE_FWD)).add(0, EYE_H, 0);
+        if (direct != null && direct != atk) {                          // снаряд
+            Vec3d pos = direct.getPos(), v = direct.getVelocity();
+            if (v.lengthSquared() > 1e-6 && v.dotProduct(f) > 0.05) return false;   // прилетел не спереди
+            if (ellip(pos.subtract(c), r, f) < 1.35) return true;
+            return v.lengthSquared() > 1e-6 && rayHits(pos.subtract(v.multiply(2)), v.normalize(), v.length() * 3 + 2, c, r, f);
+        }
+        if (atk instanceof net.minecraft.entity.LivingEntity le) {
+            Vec3d o = le.getEyePos();
+            if (o.subtract(c).dotProduct(f) < -0.2) return false;          // бьёт сбоку или со спины
+            return rayHits(o, le.getRotationVec(1f), 7, c, r, f);
+        }
+        return false;
+    }
+
+    private static double ellip(Vec3d d, Vec3d r, Vec3d f) {
+        double x = d.dotProduct(r) / RX, y = d.y / RY, z = d.dotProduct(f) / RZ;
+        return Math.sqrt(x * x + y * y + z * z);
+    }
+
+    private static boolean rayHits(Vec3d o, Vec3d dir, double max, Vec3d c, Vec3d r, Vec3d f) {
+        Vec3d d = o.subtract(c);
+        double ox = d.dotProduct(r) / RX, oy = d.y / RY, oz = d.dotProduct(f) / RZ;
+        double dx = dir.dotProduct(r) / RX, dy = dir.y / RY, dz = dir.dotProduct(f) / RZ;
+        double A = dx * dx + dy * dy + dz * dz, B = 2 * (ox * dx + oy * dy + oz * dz), C = ox * ox + oy * oy + oz * oz - 1;
+        if (C <= 0) return true;
+        double disc = B * B - 4 * A * C;
+        if (disc < 0) return false;
+        double t = (-B - Math.sqrt(disc)) / (2 * A);
+        return t >= 0 && t <= max;
     }
 
     public void startDying() {
