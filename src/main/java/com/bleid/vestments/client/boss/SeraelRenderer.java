@@ -318,19 +318,19 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
             // уходит вперёд, от себя (сначала остриём вверх перед грудью, затем вперёд и вниз над головой)
             Pose present = p.copy();
             present.lift = -1f; present.torsoX = 0f; present.torsoY = 0f; present.torsoZ = 0f; present.headX = 4f; present.headY = 0f; present.pitch = 0f;
-            present.armRX = -24.3f; present.armRY = 43.6f; present.armRZ = 0.3f; present.foreR = -87.5f; present.handR = -16.8f;
-            present.armLX = -17.5f; present.armLY = -20.7f; present.armLZ = -29.9f; present.foreL = -84.2f; present.handL = 0f;
+            present.armRX = -76.9f; present.armRY = 28.1f; present.armRZ = 0f; present.foreR = -27.6f; present.handR = -23.8f;
+            present.armLX = -66.3f; present.armLY = -37.5f; present.armLZ = 10f; present.foreL = -36.2f; present.handL = 0f;
             Pose raise = present.copy();
             raise.lift = 0f; raise.torsoX = -8f; raise.headX = -18f;
             raise.thR = -8f; raise.shR = 14f; raise.thL = 4f; raise.shL = 12f; raise.thRZ = -2f; raise.thLZ = 2f;
-            raise.armRX = -135.1f; raise.armRY = 50.6f; raise.armRZ = -7.1f; raise.foreR = 0f; raise.handR = 192.4f;
-            raise.armLX = -126.8f; raise.armLY = 1.4f; raise.armLZ = -33.9f; raise.foreL = -24.4f;
+            raise.armRX = -133.9f; raise.armRY = 51.1f; raise.armRZ = -8.2f; raise.foreR = 0f; raise.handR = 191f;
+            raise.armLX = -123.1f; raise.armLY = 2f; raise.armLZ = -34.9f; raise.foreL = -28.1f;
             raise.wingZ = 30f; raise.wingY = -6f; raise.wingX = 0f;
             Pose kneel = raise.copy();
             kneel.lift = -23f; kneel.thR = -6f; kneel.shR = 92f; kneel.thL = -2f; kneel.shL = 92f;
             kneel.torsoX = 14f; kneel.headX = 30f;
-            kneel.armRX = -14.2f; kneel.armRY = 60f; kneel.armRZ = -8.1f; kneel.foreR = -86.7f; kneel.handR = 145.3f;
-            kneel.armLX = -7.9f; kneel.armLY = -33.7f; kneel.armLZ = -37.8f; kneel.foreL = -94.7f;
+            kneel.armRX = -55.3f; kneel.armRY = 32.4f; kneel.armRZ = -10f; kneel.foreR = -21f; kneel.handR = 115.7f;
+            kneel.armLX = -46.9f; kneel.armLY = -55.6f; kneel.armLZ = 14.3f; kneel.foreL = -36.7f;
             kneel.wingZ = -18f; kneel.wingY = 26f; kneel.wingX = 4f;
             p.blend(present, sm(st / 6f));
             p.blend(raise, sm((st - 6f) / 7f));
