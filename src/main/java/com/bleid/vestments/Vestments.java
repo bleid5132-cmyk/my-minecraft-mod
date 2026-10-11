@@ -86,6 +86,8 @@ public class Vestments implements ModInitializer {
                             com.bleid.vestments.paladin.PaladinGear.allItems().forEach(entries::add);
                             entries.add(com.bleid.vestments.boss.Bosses.SERAEL_SPAWN_EGG);
                             entries.add(com.bleid.vestments.boss.Bosses.SERAEL_HALO);
+                            entries.add(com.bleid.vestments.boss.Bosses.BELL_RINGER_SPAWN_EGG);
+                            entries.add(com.bleid.vestments.boss.Bosses.BELL_TONGUE);
                         })
                         .build());
         SetBonus.register();

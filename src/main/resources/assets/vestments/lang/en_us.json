@@ -272,5 +272,11 @@
   "item.vestments.serael_spawn_egg": "Serael, the Ashen Halo Spawn Egg",
   "effect.vestments.exhaustion": "Exhaustion",
   "effect.vestments.stun": "Stun",
-  "item.vestments.serael_halo": "Serael's Halo"
+  "item.vestments.serael_halo": "Serael's Halo",
+  "entity.vestments.bell_ringer": "Ringer of the Silent Cathedral",
+  "entity.vestments.silent_bell": "The Silent Bell",
+  "entity.vestments.choir_singer": "Ghostly Chorister",
+  "item.vestments.bell_ringer_spawn_egg": "Ringer of the Silent Cathedral Spawn Egg",
+  "item.vestments.bell_tongue": "Bell Tongue",
+  "tooltip.vestments.bell_tongue": "Every blow tolls: stuns and slows the target"
 }

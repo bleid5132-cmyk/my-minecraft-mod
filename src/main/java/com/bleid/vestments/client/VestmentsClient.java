@@ -42,6 +42,11 @@ public class VestmentsClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.boss.Bosses.SERAEL,
                 com.bleid.vestments.client.boss.SeraelRenderer::new);
         com.bleid.vestments.client.boss.SeraelClient.register();
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.boss.Bosses.BELL_RINGER,
+                com.bleid.vestments.client.boss.BellRingerRenderer::new);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.boss.Bosses.SILENT_BELL,
+                com.bleid.vestments.client.boss.SilentBellRenderer::new);
+        com.bleid.vestments.client.boss.BellBossClient.register();
         PaladinKeys.register();
         PaladinHud.register();
         DodgeClient.register();

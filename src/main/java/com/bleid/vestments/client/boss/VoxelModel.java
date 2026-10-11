@@ -115,9 +115,19 @@ public final class VoxelModel {
      */
     public void render(MatrixStack ms, VertexConsumer vc, boolean stonePass, int light, int overlay, Matrix4f[] mats,
                        float r, float g, float b, float stoneY, float crumbleY) {
+        render(ms, vc, stonePass, light, overlay, mats, r, g, b, stoneY, crumbleY, null, null);
+    }
+
+    /**
+     * Общий вариант: hide — части, которые не рисуются; exempt — части, которые не каменеют и не рассыпаются
+     * (как нимб). Массивы по индексам частей, могут быть null.
+     */
+    public void render(MatrixStack ms, VertexConsumer vc, boolean stonePass, int light, int overlay, Matrix4f[] mats,
+                       float r, float g, float b, float stoneY, float crumbleY, boolean[] hide, boolean[] exempt) {
         for (int i = 0; i < parts.size(); i++) {
             Part p = parts.get(i);
-            boolean halo = p.name.startsWith("halo");      // нимб не каменеет — он падает
+            if (hide != null && hide[i]) continue;
+            boolean halo = p.name.startsWith("halo") || exempt != null && exempt[i];      // нимб не каменеет — он падает
             if (halo && stonePass) continue;
             ms.push();
             MatrixStack.Entry e = ms.peek();
