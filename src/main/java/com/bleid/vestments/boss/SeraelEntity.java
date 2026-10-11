@@ -125,6 +125,7 @@ public class SeraelEntity extends HostileEntity {
         dataTracker.startTracking(ENRAGED, false);
         dataTracker.startTracking(CHARGE, -1f);
         dataTracker.startTracking(STATUE, false);
+        dataTracker.startTracking(CRUMBLE, 0);
         dataTracker.startTracking(EVENT, 0);
         dataTracker.startTracking(EVENT_POS, new Vector3f());
         dataTracker.startTracking(EVENT_ARG, 0f);
@@ -172,6 +173,24 @@ public class SeraelEntity extends HostileEntity {
         sound(SoundEvents.ENTITY_VEX_DEATH, 2.5f, 0.8f);
     }
 
+    private static final TrackedData<Integer> CRUMBLE = DataTracker.registerData(SeraelEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private int crumbleStart;
+    /** Клиент: тик начала рассыпания. */
+    public int clientCrumbleStart;
+
+    /** 0 — статуя цела; иначе идёт рассыпание. */
+    public int crumble() {
+        return dataTracker.get(CRUMBLE);
+    }
+
+    private void beginCrumble() {
+        crumbleStart = statueTicks;
+        dataTracker.set(CRUMBLE, 1);
+        sound(SoundEvents.BLOCK_STONE_BREAK, 3f, 0.5f);
+        sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 2f, 0.6f);
+        event(E_SHATTER, getPos(), 0f);
+    }
+
     private void shatter() {
         ServerWorld w = (ServerWorld) getWorld();
         net.minecraft.particle.BlockStateParticleEffect stone = new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.STONE.getDefaultState());
@@ -179,7 +198,6 @@ public class SeraelEntity extends HostileEntity {
         w.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.FALLING_DUST, Blocks.GRAVEL.getDefaultState()),
                 getX(), getY() + 3, getZ(), 160, 1.8, 2.6, 1.8, 0.02);
         w.spawnParticles(ParticleTypes.ASH, getX(), getY() + 3, getZ(), 200, 2, 3, 2, 0.05);
-        event(E_SHATTER, getPos(), 0f);
         sound(SoundEvents.BLOCK_STONE_BREAK, 4f, 0.5f);
         sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 4f, 0.7f);
         sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 1.5f, 1.5f);
@@ -216,6 +234,7 @@ public class SeraelEntity extends HostileEntity {
         super.onTrackedDataSet(data);
         if (ATTACK.equals(data)) clientAttackStart = age;
         if (STATUE.equals(data)) clientStatueStart = age;
+        if (CRUMBLE.equals(data)) clientCrumbleStart = age;
     }
 
     private void setAttack(int a) {
@@ -240,8 +259,15 @@ public class SeraelEntity extends HostileEntity {
                 ((ServerWorld) getWorld()).spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK,
                         getWorld().getBlockState(net.minecraft.util.math.BlockPos.ofFloored(c.x, getY() - 0.5, c.z))), c.x, getY() + 0.1, c.z, 40, 0.4, 0.1, 0.4, 0.2);
             }
-            if (statueTicks >= 34 && statueTicks <= 74 && statueTicks % 6 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2f, 0.6f + statueTicks * 0.008f);
-            if (statueTicks == 76) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
+            if (statueTicks >= 34 && statueTicks <= 112 && statueTicks % 7 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2f, 0.55f + statueTicks * 0.005f);
+            if (statueTicks == 114) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
+            if (crumble() > 0) {
+                int c = statueTicks - crumbleStart;
+                if (c % 5 == 0) sound(SoundEvents.BLOCK_GRAVEL_BREAK, 2f, 0.5f + random.nextFloat() * 0.3f);
+                if (c % 3 == 0) ((ServerWorld) getWorld()).spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.FALLING_DUST,
+                        Blocks.GRAVEL.getDefaultState()), getX(), getY() + 5.6 - c / 50.0 * 5.6, getZ(), 30, 1.2, 0.3, 1.2, 0.0);
+                if (c >= 52) shatter();
+            }
             return;
         }
         bossBar.setPercent(getHealth() / getMaxHealth());
@@ -689,8 +715,8 @@ public class SeraelEntity extends HostileEntity {
         if (source.getAttacker() == this) return false;
         if (statue()) {
             boolean byPlayer = source.getAttacker() instanceof PlayerEntity;
-            if (byPlayer && statueTicks > 76 || source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD)
-                    || source.isOf(net.minecraft.entity.damage.DamageTypes.GENERIC_KILL)) shatter();
+            if (source.isOf(net.minecraft.entity.damage.DamageTypes.OUT_OF_WORLD) || source.isOf(net.minecraft.entity.damage.DamageTypes.GENERIC_KILL)) shatter();
+            else if (byPlayer && statueTicks > 114 && crumble() == 0) beginCrumble();
             else if (byPlayer) sound(SoundEvents.BLOCK_STONE_HIT, 1.5f, 0.8f);
             return false;
         }

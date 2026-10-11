@@ -144,7 +144,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         p.lift = -0.9f + 0.3f * br;
         p.torsoX = 3f + 1.5f * br; p.torsoY = 6f;
         p.thR = -14f; p.shR = 22f; p.thL = 6f; p.shL = 18f; p.thRZ = -3f; p.thLZ = 4f;
-        p.armRX = -14f; p.armRZ = -5f; p.foreR = -40f - 4f * br; p.handR = 18f - 2f * br;
+        p.armRX = -8f; p.armRZ = -10f; p.armRY = -84f; p.foreR = -26f - 3f * br; p.handR = -14f - 2f * br;
         p.armLX = 2f; p.armLZ = 10f + 2f * br; p.foreL = -36f - 4f * br; p.handL = -10f;
         p.wingZ = 7f + 6f * MathHelper.sin(t * 0.07f); p.wingY = 12f + 3f * MathHelper.sin(t * 0.05f + 1f); p.wingX = 0f;
         p.headY = -MathHelper.clamp(MathHelper.wrapDegrees(MathHelper.lerpAngleDegrees(td, e.prevHeadYaw, e.headYaw)
@@ -172,7 +172,9 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         if (a > 0 && a < SeraelEntity.DURATION.length) {
             float tk = e.age - e.clientAttackStart + td;
             float k = MathHelper.clamp(tk / SeraelEntity.DURATION[a], 0f, 1f);
-            Pose base = p;
+            Pose base = p.copy();
+            base.armRY = 0f;
+            p = base.copy();
             switch (a) {
                 case SeraelEntity.SWING -> {
                     // одноручный широкий взмах: рука вытянута горизонтально, клинок продолжает её линию и смотрит
@@ -310,20 +312,21 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         // ---- поражение: берёт клинок двумя руками, поднимает над головой, опускается на колени, вонзает клинок
         // в землю перед собой и только потом каменеет снизу вверх; нимб срывается и падает рядом
         float st = e.statue() ? e.age - e.clientStatueStart + td : -1f;
-        float stoneY = -1e9f;
+        float stoneY = -1e9f, crumbleY = 1e9f;
         if (st >= 0) {
             Pose raise = p.copy();
             raise.lift = 0f; raise.torsoX = -8f; raise.torsoY = 0f; raise.torsoZ = 0f; raise.headX = -18f; raise.headY = 0f; raise.pitch = 0f;
             raise.thR = -8f; raise.shR = 14f; raise.thL = 4f; raise.shL = 12f; raise.thRZ = -2f; raise.thLZ = 2f;
-            raise.armRX = -166f; raise.armRY = 0f; raise.armRZ = 16f; raise.foreR = -26f; raise.handR = 52f;
-            raise.armLX = -166f; raise.armLZ = -16f; raise.foreL = -26f; raise.handL = 0f; raise.wingZ = 30f; raise.wingY = -6f; raise.wingX = 0f;
+            raise.armRX = -150f; raise.armRY = 0f; raise.armRZ = 22f; raise.foreR = -20f; raise.handR = -130f;
+            raise.armLX = -150f; raise.armLZ = -22f; raise.foreL = -20f; raise.handL = 0f; raise.wingZ = 30f; raise.wingY = -6f; raise.wingX = 0f;
             Pose kneel = raise.copy();
             kneel.lift = -23f; kneel.thR = -6f; kneel.shR = 92f; kneel.thL = -2f; kneel.shL = 92f;
-            kneel.torsoX = 18f; kneel.headX = 30f; kneel.armRX = -50f; kneel.armRZ = 20f; kneel.foreR = -30f; kneel.handR = 76f;
-            kneel.armLX = -50f; kneel.armLZ = -20f; kneel.foreL = -30f; kneel.handL = 0f; kneel.wingZ = -18f; kneel.wingY = 26f; kneel.wingX = 4f;
+            kneel.torsoX = 14f; kneel.headX = 30f; kneel.armRX = -72f; kneel.armRZ = 24f; kneel.foreR = -28f; kneel.handR = -222f;
+            kneel.armLX = -72f; kneel.armLZ = -24f; kneel.foreL = -28f; kneel.handL = 0f; kneel.wingZ = -18f; kneel.wingY = 26f; kneel.wingX = 4f;
             p.blend(raise, sm(st / 10f));
             p.blend(kneel, sm((st - 12f) / 7f));
-            stoneY = Math.min(99f, (st - 32f) / 40f * 110f - 6f);
+            stoneY = (st - 32f) / 80f * 136f - 6f;
+            if (e.crumble() > 0) crumbleY = 132f - (e.age - e.clientCrumbleStart + td) / 50f * 140f;
         }
 
         // ---- сглаживание: каждый сустав догоняет целевую позу пружиной (без рывков между позами и атаками)
@@ -369,7 +372,7 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         rot[WING_L].set(p.wingX, p.wingY, p.wingZ);
         rot[WING_R].set(p.wingX, -p.wingY, -p.wingZ);
         float bodyYaw0 = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
-        if (HAIR1 >= 0) hair(e, HAIR.computeIfAbsent(e.getId(), id -> new Hair()), p, t, bodyYaw0, rot, st > 60f);
+        if (HAIR1 >= 0) hair(e, HAIR.computeIfAbsent(e.getId(), id -> new Hair()), p, t, bodyYaw0, rot, st > 70f);
         Matrix4f[] mats = m.pose(rot, sc);
         if (st >= 30f) fallingHalo(e, mats, -p.lift);
 
@@ -386,8 +389,8 @@ public class SeraelRenderer extends EntityRenderer<SeraelEntity> {
         }
         int overlay = LivingEntityRenderer.getOverlay(e, 0f);
         float dim = 1f;
-        m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), false, light, overlay, mats, dim, dim, dim, stoneY);
-        if (stoneY > -100f) m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(STONE)), true, light, overlay, mats, 1f, 1f, 1f, stoneY);
+        m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), false, light, overlay, mats, dim, dim, dim, stoneY, crumbleY);
+        if (stoneY > -100f) m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(STONE)), true, light, overlay, mats, 1f, 1f, 1f, stoneY, crumbleY);
 
         ms.pop();
         trail(e, td, ms, vcp);

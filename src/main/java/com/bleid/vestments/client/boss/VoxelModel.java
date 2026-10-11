@@ -106,7 +106,7 @@ public final class VoxelModel {
 
     /** Рисует все части по готовым матрицам; color — множитель цвета обычных частей. */
     public void render(MatrixStack ms, VertexConsumer vc, int light, int overlay, Matrix4f[] mats, float r, float g, float b) {
-        render(ms, vc, false, light, overlay, mats, r, g, b, -1e9f);
+        render(ms, vc, false, light, overlay, mats, r, g, b, -1e9f, 1e9f);
     }
 
     /**
@@ -114,9 +114,11 @@ public final class VoxelModel {
      * к нимбу. Два прохода: stonePass = false — живые грани, true — каменные (вызывающий подаёт буфер каменной текстуры).
      */
     public void render(MatrixStack ms, VertexConsumer vc, boolean stonePass, int light, int overlay, Matrix4f[] mats,
-                       float r, float g, float b, float stoneY) {
+                       float r, float g, float b, float stoneY, float crumbleY) {
         for (int i = 0; i < parts.size(); i++) {
             Part p = parts.get(i);
+            boolean halo = p.name.startsWith("halo");      // нимб не каменеет — он падает
+            if (halo && stonePass) continue;
             ms.push();
             MatrixStack.Entry e = ms.peek();
             e.getPositionMatrix().mul(mats[i]);
@@ -127,7 +129,9 @@ public final class VoxelModel {
             byte[] n = p.n;
             for (int q = 0, o = 0; q < n.length / 3; q++, o += 20) {
                 float nx = n[q * 3], ny = n[q * 3 + 1], nz = n[q * 3 + 2];
-                boolean st = (v[o + 1] + v[o + 6] + v[o + 11] + v[o + 16]) * 0.25f < stoneY;
+                float fy = (v[o + 1] + v[o + 6] + v[o + 11] + v[o + 16]) * 0.25f;
+                if (fy > crumbleY && !halo) continue;          // статуя рассыпается сверху вниз
+                boolean st = !halo && fy < stoneY;
                 if (st != stonePass) continue;
                 VertexConsumer out = vc;
                 boolean gl = p.glow && !st;
