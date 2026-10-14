@@ -398,6 +398,12 @@ public final class BellBossClient {
                 }
             }
             case SilentBellEntity.E_GROUND_RING -> {
+                if (arg > 0) {                                     // быстрая волна от приземления скачка
+                    int life = (int) ((10f - 4.2f) / arg);
+                    spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(8.4f, 21f).color(GREEN).alpha(0.85f).life(life).fade(0f, 0.3f);
+                    spawn(RING, p.x, p.y + 0.4, p.z).mode(Mode.FLAT).size(8.4f, 21f).color(PALE).alpha(0.35f).life(life).fade(0f, 0.3f);
+                    break;
+                }
                 int life = (int) (SilentBellEntity.GROUND_RING_MAX / SilentBellEntity.GROUND_RING_SPEED);
                 spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(0.1f, SilentBellEntity.GROUND_RING_MAX * 1.05f).color(GREEN)
                         .alpha(0.75f).life(life).fade(0.02f, 0.2f).pulse(0.15f, 0.4f);
@@ -430,6 +436,157 @@ public final class BellBossClient {
                 }
                 dust(p, 40, 3.4, 1.2f);
             }
+            case SilentBellEntity.E_RAM_CHARGE -> {
+                int dur = (int) arg;
+                spawn(FLARE, p.x, p.y, p.z).size(0.5f, 2.6f).ease().color(GREEN).alpha(0.6f).life(dur).fade(0.6f, 0.1f);
+                for (int i = 0; i < 18; i++) {
+                    double ang = rr(0, Math.PI * 2), r = rr(2.5, 4.5);
+                    spawn(STREAK, p.x + Math.cos(ang) * r, p.y + rr(-2, 2), p.z + Math.sin(ang) * r).delay(R().nextInt(Math.max(1, dur - 3)))
+                            .vel(-Math.cos(ang) * r / 6, 0, -Math.sin(ang) * r / 6).stretch(3f).size(0.06f).color(GREEN).life(6);
+                }
+                dust(p.add(0, -2.4, 0), 10, 1.5, 0.8f);
+            }
+            case SilentBellEntity.E_RAM_HIT -> {
+                shake(p, 0.5f, 10);
+                spawn(FLARE, p.x, p.y, p.z).size(1.6f, 0.2f).color(PALE).life(5);
+                spawn(SHOCK, p.x, p.y, p.z).size(0.4f, 2.4f).ease().color(GREEN).life(7);
+                sparks(p, 16, BRONZE, 0.5);
+            }
+            case SilentBellEntity.E_RAM_WALL -> {
+                shake(p, 0.9f, 18);
+                spawn(FLARE, p.x, p.y, p.z).size(3.2f, 0.3f).color(PALE).life(8);
+                spawn(SHOCK, p.x, p.y, p.z).size(0.6f, 5f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.7f);
+                sparks(p, 40, BRONZE, 0.7);
+                dust(p, 20, 2.5, 1.1f);
+            }
+            case SilentBellEntity.E_SPIN -> {
+                if (arg > 0) {                                     // отброс в конце вихря
+                    shake(p, 0.8f, 16);
+                    double gy = groundY(p.add(0, 1, 0)) + 0.06;
+                    spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 15f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.7f);
+                    spawn(RING, p.x, p.y + 2.5, p.z).mode(Mode.FLAT).size(2f, 16f).ease().color(PATINA).alpha(0.7f).life(10).fade(0f, 0.6f);
+                    for (int i = 0; i < 40; i++) {
+                        double ang = rr(0, Math.PI * 2), sp = rr(0.5, 0.9);
+                        spawn(STREAK, p.x, p.y + rr(1, 3.5), p.z).vel(Math.cos(ang) * sp, rr(0, 0.15), Math.sin(ang) * sp).drag(0.88f)
+                                .stretch(4f).size(0.07f).colors(PALE, GREEN).life(10);
+                    }
+                    dust(p, 30, 3.5, 1.1f);
+                    break;
+                }
+                // пока вихрь крутится — свистящие дуги цепей и пыль по кругу
+                task(age -> {
+                    if (!e.isAlive() || e.attack() != SilentBellEntity.SPIN) return false;
+                    float rad = e.widened() ? SilentBellEntity.SPIN_R + 1 : SilentBellEntity.SPIN_R;
+                    double gy = groundY(e.getPos().add(0, 1, 0)) + 0.05;
+                    boolean on = age > SilentBellEntity.SPIN_UP;
+                    if (age % 2 == 0 && on) {
+                        for (int j = 0; j < 3; j++) {
+                            double ang = age * 0.77 + j * Math.PI * 2 / 3;
+                            double cx = e.getX() + Math.cos(ang) * rad * 0.85, cz = e.getZ() + Math.sin(ang) * rad * 0.85;
+                            spawn(SLASH, cx, e.getY() + 1.8 + j * 0.5, cz).vel(-Math.sin(ang) * 0.5, 0, Math.cos(ang) * 0.5)
+                                    .size(1.6f, 0.8f).colors(PALE, PATINA).alpha(0.8f).rot((float) -ang, 0f).life(5);
+                            spawn(STREAK, cx, e.getY() + 2 + rr(-0.5, 0.5), cz).vel(-Math.sin(ang) * 0.6, 0, Math.cos(ang) * 0.6)
+                                    .stretch(4f).size(0.05f).color(BRONZE).life(5);
+                        }
+                    }
+                    if (age % 4 == 0 && on) {
+                        spawn(RING, e.getX(), gy, e.getZ()).mode(Mode.FLAT).size(rad * 2f, rad * 2.05f).color(GREEN).alpha(0.4f).life(4);
+                        double ang = rr(0, Math.PI * 2);
+                        spawn(SMOKE, e.getX() + Math.cos(ang) * rad, gy + 0.2, e.getZ() + Math.sin(ang) * rad)
+                                .vel(-Math.sin(ang) * 0.3, 0.05, Math.cos(ang) * 0.3).drag(0.9f).size(0.5f, 1.4f).color(ASH_D).alpha(0.5f).life(20);
+                    }
+                    return age < 100;
+                });
+            }
+            case SilentBellEntity.E_CHAIN_HIT -> {
+                spawn(FLARE, p.x, p.y, p.z).size(0.9f, 0.1f).color(BRONZE).life(4);
+                sparks(p, 10, BRONZE, 0.4);
+            }
+            case SilentBellEntity.E_ORB_FIRE -> {
+                Vec3d d = SilentBellEntity.unpackDir(arg).multiply(SilentBellEntity.ORB_SPEED);
+                spawn(FLARE, p.x, p.y, p.z).size(1.6f, 0.2f).color(GREEN).life(5);
+                spawn(RING, p.x, p.y, p.z).size(0.3f, 2.2f).ease().color(PALE).life(6);
+                Vec3d[] pos = { p };
+                task(age -> {
+                    Vec3d np = pos[0].add(d);
+                    ClientWorld w = MinecraftClient.getInstance().world;
+                    BlockPos bp = BlockPos.ofFloored(np);
+                    if (w == null || !w.getBlockState(bp).getCollisionShape(w, bp).isEmpty()) return false;
+                    for (Entity o : w.getOtherEntities(e, new net.minecraft.util.math.Box(pos[0], np).expand(0.7))) {
+                        if (o instanceof net.minecraft.entity.LivingEntity && o.isAlive() && !o.isSpectator()) return false;
+                    }
+                    pos[0] = np;
+                    spawn(ORB, np.x, np.y, np.z).size(0.55f, 0.35f).colors(PALE, GREEN).life(3);
+                    spawn(GLINT, np.x, np.y, np.z).size(0.25f, 0.05f).color(GREEN).alpha(0.7f).life(8).vel(rr(-0.03, 0.03), rr(-0.03, 0.03), rr(-0.03, 0.03));
+                    if (age % 3 == 0) spawn(RING, np.x, np.y, np.z).size(0.3f, 1.3f).color(GREEN).alpha(0.5f).life(6).fade(0f, 0.6f);
+                    return age < SilentBellEntity.ORB_LIFE;
+                });
+            }
+            case SilentBellEntity.E_ORB_BURST -> {
+                shake(p, 0.4f, 10);
+                spawn(FLARE, p.x, p.y, p.z).size(2.4f, 0.3f).color(GREEN).life(6);
+                spawn(SHOCK, p.x, p.y, p.z).size(0.4f, 5.6f).ease().colors(PALE, GREEN).life(9).fade(0f, 0.7f);
+                for (int i = 0; i < 24; i++) {
+                    spawn(i % 2 == 0 ? GLINT : ORB, p.x, p.y, p.z).vel(rr(-0.35, 0.35), rr(-0.2, 0.35), rr(-0.35, 0.35)).drag(0.9f)
+                            .size(0.15f, 0.05f).colors(PALE, GREEN).life(10 + R().nextInt(6));
+                }
+            }
+            case SilentBellEntity.E_HOP_LAND -> {
+                shake(p, 0.9f, 20);
+                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(1f, 8.4f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.8f);
+                spawn(FLARE, p.x, p.y + 0.5, p.z).size(3f, 0.3f).color(GREEN).life(6);
+                dust(p, 30, 3, 1.1f);
+                for (int i = 0; i < 14; i++) {
+                    double ang = rr(0, Math.PI * 2);
+                    spawn(STAR, p.x + Math.cos(ang) * 2, p.y + 0.2, p.z + Math.sin(ang) * 2).vel(Math.cos(ang) * 0.2, rr(0.2, 0.45), Math.sin(ang) * 0.2)
+                            .gravity(0.05f).rot((float) rr(0, 6), 0.3f).size(0.12f).color(ASH).life(24);
+                }
+            }
+            case SilentBellEntity.E_PHANTOM_MARK -> {
+                int dur = Math.max(4, (int) arg);
+                float rad = SilentBellEntity.PHANTOM_R;
+                spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(rad * 2.2f, rad * 2f).color(GREEN).alpha(0.8f).life(dur).fade(0.1f, 0f).pulse(0.2f, 0.6f);
+                spawn(RING, p.x, p.y + 0.07, p.z).mode(Mode.FLAT).size(0.2f, rad * 2f).color(PALE).alpha(0.5f).life(dur).fade(0f, 0f);
+                spawn(RUNES, p.x, p.y + 0.08, p.z).mode(Mode.FLAT).size(rad * 1.4f, rad * 1.6f).color(PATINA).alpha(0.6f).life(dur).rot(0f, 0.05f);
+                spawn(BEAM, p.x, p.y, p.z).mode(Mode.BEAM).height(12f).size(0.05f, 0.25f).color(GREEN).alpha(0.35f).life(dur).fade(0.3f, 0f);
+                // призрачный колокол проявляется над кругом и падает
+                task(age -> {
+                    if (age >= dur) return false;
+                    float u = age / (float) dur;
+                    double y = p.y + 9 - 7.5 * u * u;
+                    if (age % 2 == 0) {
+                        for (int i = 0; i < 8; i++) {
+                            double ang = i * Math.PI / 4 + age * 0.1, r = 1.1 + 0.5 * u;
+                            spawn(SMOKE, p.x + Math.cos(ang) * r, y + rr(-0.3, 0.5), p.z + Math.sin(ang) * r).size(0.4f, 0.2f)
+                                    .color(PALE).alpha(0.25f + 0.35f * u).life(4);
+                        }
+                        spawn(ORB, p.x, y + 1.6, p.z).size(0.4f, 0.2f).color(GREEN).alpha(0.4f + 0.5f * u).life(3);
+                    }
+                    return true;
+                });
+            }
+            case SilentBellEntity.E_PHANTOM_FALL -> {
+                shake(p, 0.6f, 14);
+                float rad = SilentBellEntity.PHANTOM_R;
+                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(0.5f, rad * 2.6f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.7f);
+                spawn(BEAM, p.x, p.y, p.z).mode(Mode.BEAM).height(8f).size(1.6f, 0.1f).colors(PALE, GREEN).life(10).fade(0f, 0.8f);
+                spawn(FLARE, p.x, p.y + 1, p.z).size(3f, 0.3f).color(PALE).life(6);
+                for (int i = 0; i < 16; i++) {
+                    double ang = i * Math.PI / 8;
+                    spawn(SMOKE, p.x + Math.cos(ang) * rad * 0.8, p.y + 0.3, p.z + Math.sin(ang) * rad * 0.8)
+                            .vel(Math.cos(ang) * 0.15, rr(0.02, 0.1), Math.sin(ang) * 0.15).drag(0.9f).size(0.5f, 1.2f).color(PALE).alpha(0.4f).life(22);
+                }
+                sparks(p.add(0, 0.5, 0), 14, GREEN, 0.4);
+            }
+            case SilentBellEntity.E_DASH -> {
+                Vec3d d = new Vec3d(Math.cos(Math.toRadians(arg)), 0, Math.sin(Math.toRadians(arg)));
+                spawn(RING, p.x, p.y, p.z).size(0.5f, 3.6f).ease().color(PATINA).alpha(0.5f).life(7).fade(0f, 0.6f);
+                for (int i = 0; i < 16; i++) {
+                    spawn(STREAK, p.x + rr(-1.5, 1.5), p.y + rr(-2, 2), p.z + rr(-1.5, 1.5)).vel(-d.x * 0.7, 0, -d.z * 0.7).drag(0.85f)
+                            .stretch(5f).size(0.05f).color(PALE).alpha(0.6f).life(6);
+                }
+                dust(p.add(0, -2.4, 0), 8, 1.2, 0.7f);
+            }
             default -> { }
         }
     }
@@ -453,6 +610,19 @@ public final class BellBossClient {
         if (e.widened() && st == SilentBellEntity.S_FIGHT && e.age % 24 == 0) {
             Vec3d c = e.eyePos();
             spawn(RING, c.x, c.y, c.z).size(0.6f, 3.5f).color(GREEN).alpha(0.4f).life(16).fade(0f, 0.7f);
+        }
+        // шлейф тарана и рывков: быстрое движение оставляет зелёный след и пыль
+        double spd = e.getVelocity().horizontalLength();
+        if (st == SilentBellEntity.S_FIGHT && spd > 0.5) {
+            Vec3d c = e.getPos();
+            spawn(RING, c.x, c.y + 2.4, c.z).size(3.4f, 3.6f).color(GREEN).alpha(0.25f).life(6).fade(0f, 0.8f);
+            for (int i = 0; i < 3; i++) {
+                spawn(GLINT, c.x + rr(-1.6, 1.6), c.y + rr(0.5, 4.5), c.z + rr(-1.6, 1.6)).size(0.18f, 0.04f)
+                        .colors(PALE, GREEN).alpha(0.7f).life(8);
+            }
+            double gy = groundY(c.add(0, 1, 0));
+            if (c.y - gy < 2) spawn(SMOKE, c.x + rr(-1, 1), gy + 0.2, c.z + rr(-1, 1)).vel(rr(-0.05, 0.05), 0.05, rr(-0.05, 0.05))
+                    .size(0.6f, 1.6f).color(ASH_D).alpha(0.5f).life(18);
         }
         if (e.eyeOpen() && e.age % 3 == 0) {
             Vec3d c = e.eyePos();

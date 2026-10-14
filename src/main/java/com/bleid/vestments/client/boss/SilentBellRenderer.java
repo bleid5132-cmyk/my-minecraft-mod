@@ -91,19 +91,41 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
             p[0] += 9 * MathHelper.sin(q * 0.8f) * (float) Math.exp(-q * 0.12f);   // единственный удар — колокол качнуло
         }
         if (a == RING) {
-            int fire = e.widened() ? 14 : 20;
+            int fire = coneFire(e.widened());
             p[0] += k < fire ? -12 * sm(k / fire) : 16 * (float) Math.exp(-(k - fire) * 0.18f);
         }
         if (a == DROP) {
             p[0] += k < 40 ? MathHelper.sin(k * 0.3f) * 5 : 0;
             p[1] += k < 40 ? MathHelper.cos(k * 0.27f) * 5 : 0;
         }
+        boolean wide = e.widened();
+        if (a == RAM) p[0] += k < 12 ? -16 * sm(k / 10f) : 0;          // замах тарана — колокол откидывается назад
+        if (a == VOLLEY) {                                              // отдача после каждой сферы
+            int gap = volleyGap(wide), n = volleyCount(wide);
+            float i = k - VOLLEY_FIRST;
+            if (i >= 0) {
+                int last = Math.min(n - 1, (int) (i / gap));
+                float since = i - last * gap;
+                p[0] -= 11 * (float) Math.exp(-since * 0.35f);
+            } else p[0] -= 6 * sm(k / VOLLEY_FIRST);
+        }
+        if (a == KNELL) {                                               // раскачивается, отбивая звон
+            float amp = sm(k / 8f) * 15;
+            p[1] += amp * MathHelper.sin(k * 0.45f);
+            p[0] += amp * 0.4f * MathHelper.cos(k * 0.45f);
+        }
+        if (a == SPIN) p[0] += 8 * sm(k / SPIN_UP);                        // вихрь: колокол клонится, лохмотья разлетаются
         float bodyYaw = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
         float headYaw = MathHelper.lerpAngleDegrees(td, e.prevHeadYaw, e.headYaw);
         p[2] = MathHelper.clamp(MathHelper.wrapDegrees(headYaw - bodyYaw), -35, 35);
         p[3] = MathHelper.clamp(e.getPitch(td), -30, 30);
         double vx = e.getX() - e.prevX, vz = e.getZ() - e.prevZ;
         float vf = (float) (vx * -MathHelper.sin(bodyYaw * MathHelper.RADIANS_PER_DEGREE) + vz * MathHelper.cos(bodyYaw * MathHelper.RADIANS_PER_DEGREE));
+        float vl = (float) (vx * MathHelper.cos(bodyYaw * MathHelper.RADIANS_PER_DEGREE) + vz * MathHelper.sin(bodyYaw * MathHelper.RADIANS_PER_DEGREE));
+        if (st == S_FIGHT) {                                            // крен по ходу движения — рывки видно
+            p[0] += MathHelper.clamp(vf * 24, -24, 24);
+            p[1] += MathHelper.clamp(-vl * 24, -24, 24);
+        }
         p[4] = MathHelper.sin(t * 0.08f) * 6 + vf * 60;
         p[5] = MathHelper.cos(t * 0.07f) * 5;
         Springs.step(SPRINGS.get(e.getId()), p, OMEGA, 0.7f);
@@ -123,6 +145,19 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
             sc[ROBE] = Math.max(0.01f, robeVis);
         }
         if (CHAINS >= 0) rot[CHAINS].set(MathHelper.sin(t * 0.05f) * 8, 0, MathHelper.cos(t * 0.043f) * 6);
+        // вихрь цепей: отдельное вращение вокруг оси (не через пружины)
+        float spinDeg = 0;
+        if (a == SPIN) {
+            int len = wide ? 64 : 52;
+            float kk = Math.min(k, SPIN_UP + len + 6);
+            spinDeg = kk < SPIN_UP ? 2.2f * kk * kk : 2.2f * SPIN_UP * SPIN_UP + 44f * (kk - SPIN_UP);
+            float x = Math.max(0, kk - SPIN_UP - len);
+            spinDeg -= 44f * x * x / 12f;                               // торможение за 6 тактов
+            float total = 2.2f * SPIN_UP * SPIN_UP + 44f * (len + 6) - 44f * 3f;
+            spinDeg *= Math.round(total / 360f) * 360f / total;         // встаёт ровно лицом вперёд — без рывка
+            if (ROBE >= 0) rot[ROBE].set(-28, 0, 0);
+            if (CHAINS >= 0) rot[CHAINS].set(-35 + MathHelper.sin(t * 0.9f) * 6, 0, 0);
+        }
 
         // ---- смерть: глаз гаснет, колокол раскалывается надвое
         boolean[] hide = new boolean[n];
@@ -158,7 +193,7 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         Matrix4f[] mats = m.pose(rot, sc);
 
         ms.push();
-        ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw));
+        ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw - spinDeg));
         ms.scale(scale / 16f, scale / 16f, scale / 16f);
         ms.translate(jx, 30 * robeVis, jz);
         if (st != S_DYING || sk < 40) {

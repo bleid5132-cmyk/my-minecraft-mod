@@ -40,15 +40,22 @@ import net.minecraft.world.World;
  * Атаки: конус звуковой волны, падение-ловушка (тень под ним; пойманный выбирается тремя ударами по глазу),
  * хор призрачных певчих (лечат колокол, пока живы). На трети здоровья трещина расширяется:
  * гул, ползущие по арене звуковые кольца, атаки чаще, окна глаза короче.
+ * Новые атаки: набатный таран, вихрь цепей, тройной набат (звуковые сферы), погребальные скачки,
+ * призрачный звон (колокола-призраки падают на отмеченные круги). Атаки идут сериями по 2–3 с рывками
+ * между ними; глаз открывается только в конце серии.
  */
 public class SilentBellEntity extends BossBase {
-    public static final int IDLE = 0, RING = 1, DROP = 2, CHOIR = 3;
+    public static final int IDLE = 0, RING = 1, DROP = 2, CHOIR = 3, RAM = 4, SPIN = 5, VOLLEY = 6, HOPS = 7, KNELL = 8;
     public static final int S_AWAKEN = 0, S_FIGHT = 1, S_DYING = 2;
     /** Пробуждение: тишина, удар колокола, открытие глаза, подъём. */
     public static final int A_TOLL = 50, A_EYE = 60, A_RISEN = 100;
     public static final int E_AWAKE = 1, E_CLANG = 2, E_CONE_CHARGE = 3, E_CONE = 4, E_SHADOW = 5, E_DROP_LAND = 6, E_TRAP = 7,
             E_TRAP_HIT = 8, E_RELEASE = 9, E_CHOIR = 10, E_HEAL = 11, E_GROUND_RING = 12, E_EYE_OPEN = 13, E_WIDEN = 14,
-            E_SPLIT = 15, E_DARK = 16, E_RING_HIT = 17;
+            E_SPLIT = 15, E_DARK = 16, E_RING_HIT = 17, E_RAM_CHARGE = 18, E_RAM_WALL = 19, E_SPIN = 20, E_CHAIN_HIT = 21,
+            E_ORB_FIRE = 22, E_ORB_BURST = 23, E_HOP_LAND = 24, E_PHANTOM_MARK = 25, E_PHANTOM_FALL = 26, E_DASH = 27, E_RAM_HIT = 28;
+    /** Скорость звуковых сфер, их жизнь; радиус вихря цепей; круг призрачного колокола. */
+    public static final float ORB_SPEED = 0.85f, SPIN_R = 5.5f, PHANTOM_R = 2.4f;
+    public static final int ORB_LIFE = 50, SPIN_UP = 10, KNELL_MARK = 4, KNELL_FALL = 30;
     public static final float CONE_DEG = 35f, CONE_LEN = 13f, GROUND_RING_SPEED = 0.25f, GROUND_RING_MAX = 16f;
     /** Высота глаза над ногами сущности (блоки). */
     public static final double EYE_Y = 3.9;
@@ -66,15 +73,40 @@ public class SilentBellEntity extends BossBase {
     private final List<UUID> choir = new ArrayList<>();
     private final Set<Integer> hit = new HashSet<>();
     private final List<Ring> rings = new ArrayList<>();
-    private boolean coneFired2;
+    private boolean coneFired2, done;
+    private int combo, phase, phaseTick, dashes, dashTicks, orbitDir = 1;
+    private Vec3d dashDir = Vec3d.ZERO, hopFrom = Vec3d.ZERO, hopTo = Vec3d.ZERO;
+    private final List<Orb> orbs = new ArrayList<>();
+    private final List<Vec3d> spots = new ArrayList<>();
+    private final java.util.Map<Integer, Integer> lastHit = new java.util.HashMap<>();
+
+    private static final class Orb {
+        Vec3d p;
+        final Vec3d v;
+        int life;
+
+        Orb(Vec3d p, Vec3d v) {
+            this.p = p;
+            this.v = v;
+        }
+    }
 
     private static final class Ring {
         final Vec3d c;
         float r;
+        final float speed, max, dmg;
         final Set<Integer> hit = new HashSet<>();
 
         Ring(Vec3d c) {
+            this(c, GROUND_RING_SPEED, GROUND_RING_MAX, 6f, 0f);
+        }
+
+        Ring(Vec3d c, float speed, float max, float dmg, float r0) {
             this.c = c;
+            this.speed = speed;
+            this.max = max;
+            this.dmg = dmg;
+            this.r = r0;
         }
     }
 
@@ -212,11 +244,13 @@ public class SilentBellEntity extends BossBase {
         }
         tickRings();
         tickChoir();
+        tickOrbs();
         int a = attack();
         if (eyeTicks > 0) {
             if (--eyeTicks == 0) {
                 setEye(false);
-                cooldown = wide ? 6 : 14;
+                cooldown = wide ? 3 : 8;
+                if (t != null) sidestep(t);                     // сразу рывок в сторону — без передышки
             }
         } else if (a != IDLE) {
             attackTick++;
@@ -230,18 +264,33 @@ public class SilentBellEntity extends BossBase {
 
     private int duration(int a) {
         return switch (a) {
-            case RING -> widened() ? 34 : 42;
+            case RING -> coneFire(widened()) + 16;
             case DROP -> dropPhase >= 4 ? 0 : Integer.MAX_VALUE;
-            case CHOIR -> 36;
+            case CHOIR -> 30;
+            case RAM, SPIN, VOLLEY, HOPS, KNELL -> done ? 0 : Integer.MAX_VALUE;
             default -> 0;
         };
     }
 
-    /** После каждой атаки глаз открывается — окно для ударов. */
+    /**
+     * Атаки идут сериями: 2 подряд (3 после расширения трещины) с короткими рывками между ними.
+     * Глаз открывается только в конце серии — это окно для ударов.
+     */
     private void endAttack(int a) {
         setAttack(IDLE);
-        int open = widened() ? 30 : 50;
-        if (a == DROP && trapHits >= 3) open = 80;           // выбрались — колокол оглушён
+        lastAttack = a;
+        boolean escaped = a == DROP && trapHits >= 3;
+        int max = widened() ? 3 : 2;
+        if (!escaped && ++combo < max) {
+            cooldown = widened() ? 3 : 5;
+            LivingEntity t = getTarget();
+            if (t != null && a != SPIN && a != HOPS) sidestep(t);
+            trapHits = 0;
+            return;
+        }
+        combo = 0;
+        int open = widened() ? 28 : 40;
+        if (escaped) open = 80;                              // выбрались — колокол оглушён
         eyeTicks = open;
         setEye(true);
         trapHits = 0;
@@ -249,17 +298,53 @@ public class SilentBellEntity extends BossBase {
 
     private void startAttack(LivingEntity t) {
         double d = distanceTo(t);
-        if (choir.isEmpty() && ready(CHOIR) && random.nextFloat() < 0.35f) {
-            cds.put(CHOIR, widened() ? 420 : 560);
+        boolean wide = widened();
+        if (choir.isEmpty() && ready(CHOIR) && random.nextFloat() < 0.25f) {
+            cds.put(CHOIR, wide ? 420 : 560);
             begin(CHOIR);
             return;
         }
-        if (ready(DROP) && (d < 8 || random.nextFloat() < 0.4f)) {
-            cds.put(DROP, widened() ? 120 : 180);
-            begin(DROP);
-            return;
+        // взвешенный выбор: вдали — таран, сферы, призраки, скачки; вблизи — вихрь, скачки, конус, падение
+        int[] ids = { RING, DROP, RAM, SPIN, VOLLEY, HOPS, KNELL };
+        int[] far = { 1, 1, 4, 0, 3, 3, 3 };
+        int[] near = { 3, 3, 1, 4, 1, 2, 1 };
+        int[] cd = { 0, 160, 50, 130, 60, 110, 150 };
+        int sum = 0;
+        int[] w = new int[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            if (ids[i] == lastAttack || !ready(ids[i])) continue;
+            w[i] = d > 9 ? far[i] : near[i];
+            sum += w[i];
         }
-        begin(RING);
+        int pick = RING;
+        if (sum > 0) {
+            int r = random.nextInt(sum);
+            for (int i = 0; i < ids.length; i++) {
+                r -= w[i];
+                if (r < 0) {
+                    pick = ids[i];
+                    if (cd[i] > 0) cds.put(ids[i], wide ? cd[i] * 7 / 10 : cd[i]);
+                    break;
+                }
+            }
+        }
+        begin(pick);
+    }
+
+    /** Короткий рывок вбок (меняет сторону облёта). */
+    private void sidestep(LivingEntity t) {
+        Vec3d to = new Vec3d(t.getX() - getX(), 0, t.getZ() - getZ());
+        if (to.lengthSquared() < 1e-3) to = forward();
+        to = to.normalize();
+        if (random.nextFloat() < 0.5f) orbitDir = -orbitDir;
+        Vec3d side = new Vec3d(-to.z, 0, to.x).multiply(orbitDir);
+        double d = distanceTo(t);
+        double toward = d > 9 ? 0.6 : d < 4 ? -0.5 : 0.0;
+        dashDir = side.add(to.multiply(toward)).normalize();
+        dashTicks = 6;
+        event(E_DASH, getPos().add(0, 2.5, 0), (float) (Math.atan2(dashDir.z, dashDir.x) * 180 / Math.PI));
+        sound(SoundEvents.ENTITY_PHANTOM_FLAP, 2f, 0.5f);
+        sound(SoundEvents.BLOCK_CHAIN_HIT, 1.5f, 0.6f);
     }
 
     private void begin(int a) {
@@ -269,6 +354,12 @@ public class SilentBellEntity extends BossBase {
         trapHits = 0;
         riseTicks = 0;
         coneFired2 = false;
+        done = false;
+        phase = 0;
+        phaseTick = 0;
+        dashes = 0;
+        spots.clear();
+        lastHit.clear();
         setAttack(a);
         if (a == DROP) {
             event(E_SHADOW, getPos(), 0);
@@ -281,13 +372,22 @@ public class SilentBellEntity extends BossBase {
             case RING -> cone(attackTick, t);
             case DROP -> drop(attackTick, t);
             case CHOIR -> choirAttack(attackTick, t);
+            case RAM -> ram(t);
+            case SPIN -> spin(attackTick, t);
+            case VOLLEY -> volley(attackTick, t);
+            case HOPS -> hops(t);
+            case KNELL -> knell(attackTick, t);
             default -> { }
         }
     }
 
+    public static int coneFire(boolean wide) {
+        return wide ? 12 : 16;
+    }
+
     private void cone(int k, LivingEntity t) {
-        int fire = widened() ? 14 : 20;
-        if (k < fire - 2 && t != null) faceTarget(t, 8f);
+        int fire = coneFire(widened());
+        if (k < fire - 2 && t != null) faceTarget(t, 10f);
         if (k == 2) {
             event(E_CONE_CHARGE, eyePos(), fire - 2);
             sound(SoundEvents.BLOCK_BEACON_POWER_SELECT, 2f, 0.5f);
@@ -472,8 +572,8 @@ public class SilentBellEntity extends BossBase {
     private void tickRings() {
         for (Iterator<Ring> it = rings.iterator(); it.hasNext(); ) {
             Ring g = it.next();
-            g.r += GROUND_RING_SPEED;
-            if (g.r > GROUND_RING_MAX) {
+            g.r += g.speed;
+            if (g.r > g.max) {
                 it.remove();
                 continue;
             }
@@ -481,7 +581,7 @@ public class SilentBellEntity extends BossBase {
                 if (!e.isOnGround() || Math.abs(e.getY() - g.c.y) > 1.5 || g.hit.contains(e.getId())) continue;
                 if (Math.abs(hdist(e.getPos(), g.c) - g.r) > 0.45) continue;
                 g.hit.add(e.getId());
-                e.damage(getDamageSources().mobAttack(this), 6f);
+                e.damage(getDamageSources().mobAttack(this), g.dmg);
                 e.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 40, 1), this);
                 event(E_RING_HIT, e.getPos(), 0);
             }
@@ -489,25 +589,366 @@ public class SilentBellEntity extends BossBase {
     }
 
     private void steer(LivingEntity t, int a) {
-        if (a == DROP) return;
+        if (a == DROP || a == RAM || a == SPIN || a == HOPS) return;   // эти атаки сами ведут колокол
+        if (dashTicks > 0) {                                           // рывок между атаками
+            dashTicks--;
+            double gy = ground(getPos().add(0, 1, 0)) + 0.6;
+            double sp = 0.35 + 0.17 * dashTicks;
+            setVelocity(dashDir.x * sp, MathHelper.clamp((gy - getY()) * 0.2, -0.3, 0.3), dashDir.z * sp);
+            if (t != null) faceTarget(t, 12f);
+            return;
+        }
         Vec3d want;
         double bob = Math.sin(age * 0.05) * 0.25;
         if (t != null) {
-            if (a == IDLE) faceTarget(t, 4f);
+            if (a == IDLE || a == VOLLEY || a == KNELL) faceTarget(t, 8f);
             Vec3d away = new Vec3d(getX() - t.getX(), 0, getZ() - t.getZ());
             if (away.lengthSquared() < 1e-3) away = forward().multiply(-1);
             away = away.normalize();
-            // медленно облетает цель на расстоянии ~6 блоков
-            Vec3d side = new Vec3d(-away.z, 0, away.x).multiply(0.35);
-            Vec3d p = t.getPos().add(away.add(side).normalize().multiply(6.0));
+            // быстро кружит вокруг цели на расстоянии ~5,5 блоков, иногда меняя направление
+            if (a == IDLE && random.nextInt(70) == 0) orbitDir = -orbitDir;
+            Vec3d side = new Vec3d(-away.z, 0, away.x).multiply(0.9 * orbitDir);
+            Vec3d p = t.getPos().add(away.add(side).normalize().multiply(5.5));
             want = new Vec3d(p.x, ground(new Vec3d(p.x, Math.max(getY(), t.getY()) + 1, p.z)) + 0.6 + bob, p.z);
         } else {
             want = new Vec3d(getX(), ground(getPos().add(0, 1, 0)) + 0.6 + bob, getZ());
         }
-        Vec3d v = want.subtract(getPos()).multiply(0.06);
-        double max = a == IDLE ? 0.16 : 0.05;
+        Vec3d v = want.subtract(getPos()).multiply(0.12);
+        double max = a == IDLE ? 0.34 : a == VOLLEY || a == KNELL || a == CHOIR ? 0.14 : 0.05;
         if (v.length() > max) v = v.normalize().multiply(max);
         setVelocity(v);
+    }
+
+    // ================================================================== новые атаки
+
+    /** Держать колокол на высоте парения над землёй под ним. */
+    private double hoverVy() {
+        double gy = ground(getPos().add(0, 1, 0)) + 0.6;
+        return MathHelper.clamp((gy - getY()) * 0.25, -0.4, 0.4);
+    }
+
+    private boolean tooSoon(LivingEntity e, int gap) {
+        Integer last = lastHit.get(e.getId());
+        if (last != null && age - last < gap) return true;
+        lastHit.put(e.getId(), age);
+        return false;
+    }
+
+    /**
+     * «Набатный таран»: колокол отступает, наклоняется и с гулом проносится сквозь арену по прямой,
+     * сбивая всё на пути. Удар о стену — звон и отскок. После расширения трещины — два тарана подряд.
+     */
+    private void ram(LivingEntity t) {
+        phaseTick++;
+        int windup = dashes == 0 ? (widened() ? 10 : 14) : 7;
+        switch (phase) {
+            case 0 -> {                                       // замах: отплывает назад, поворачивается к цели
+                if (t != null) faceTarget(t, 18f);
+                Vec3d f = forward();
+                setVelocity(f.x * -0.12, hoverVy(), f.z * -0.12);
+                if (phaseTick == 1) {
+                    event(E_RAM_CHARGE, getPos().add(0, 2.5, 0), windup);
+                    sound(SoundEvents.BLOCK_BELL_RESONATE, 3f, 0.6f);
+                    sound(SoundEvents.ENTITY_RAVAGER_ROAR, 1.2f, 0.5f);
+                }
+                if (phaseTick >= windup) {
+                    Vec3d dir = forward();
+                    if (t != null) {
+                        Vec3d aim = t.getPos().add(t.getVelocity().multiply(6));
+                        Vec3d d = new Vec3d(aim.x - getX(), 0, aim.z - getZ());
+                        if (d.lengthSquared() > 1e-3) dir = d.normalize();
+                    }
+                    dashDir = dir;
+                    setYaw((float) (MathHelper.atan2(dir.z, dir.x) * 180 / Math.PI) - 90f);
+                    bodyYaw = getYaw();
+                    headYaw = getYaw();
+                    phase = 1;
+                    phaseTick = 0;
+                    hit.clear();
+                    sound(SoundEvents.ENTITY_WARDEN_SONIC_CHARGE, 2f, 1.2f);
+                    sound(SoundEvents.BLOCK_BELL_USE, 4f, 0.7f);
+                }
+            }
+            case 1 -> {                                       // рывок
+                double sp = 1.35;
+                setVelocity(dashDir.x * sp, hoverVy(), dashDir.z * sp);
+                for (LivingEntity e : enemies(getBoundingBox().expand(1.0, 0.5, 1.0))) {
+                    if (hit.contains(e.getId())) continue;
+                    hit.add(e.getId());
+                    e.damage(getDamageSources().mobAttack(this), 13f);
+                    Vec3d side = new Vec3d(e.getX() - getX(), 0, e.getZ() - getZ());
+                    Vec3d push = dashDir.multiply(1.3).add(side.lengthSquared() > 1e-3 ? side.normalize().multiply(0.7) : Vec3d.ZERO);
+                    e.addVelocity(push.x, 0.55, push.z);
+                    e.velocityModified = true;
+                    event(E_RAM_HIT, e.getPos().add(0, 1, 0), 0);
+                    soundAt(e.getPos(), SoundEvents.BLOCK_ANVIL_LAND, 1.5f, 0.7f);
+                }
+                boolean wall = horizontalCollision && phaseTick > 1;
+                if (wall || phaseTick >= 17) {
+                    if (wall) {
+                        event(E_RAM_WALL, getPos().add(dashDir.multiply(1.6)).add(0, 2.5, 0), 0);
+                        sound(SoundEvents.BLOCK_BELL_USE, 5f, 0.45f);
+                        sound(SoundEvents.BLOCK_ANVIL_LAND, 3f, 0.5f);
+                        for (LivingEntity e : enemies(getBoundingBox().expand(4, 2, 4))) {
+                            if (hdist(e.getPos(), getPos()) > 4.5) continue;
+                            e.damage(getDamageSources().mobAttack(this), 6f);
+                            knock(e, 0.8, 0.4);
+                        }
+                    }
+                    phase = 2;
+                    phaseTick = 0;
+                }
+            }
+            default -> {                                      // торможение / отскок
+                double back = horizontalCollision ? -0.25 : 0.0;
+                double sp = Math.max(0, 0.6 - phaseTick * 0.1) + back;
+                setVelocity(dashDir.x * sp, hoverVy(), dashDir.z * sp);
+                if (phaseTick >= 7) {
+                    dashes++;
+                    if (widened() && dashes < 2) {
+                        phase = 0;
+                        phaseTick = 0;
+                    } else done = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * «Вихрь цепей»: колокол раскручивается, цепи и лохмотья хлещут по кругу; он дрейфует к цели,
+     * затягивая к себе. В конце — резкий отброс всех вокруг.
+     */
+    private void spin(int k, LivingEntity t) {
+        int len = widened() ? 64 : 52;
+        float r = widened() ? SPIN_R + 1 : SPIN_R;
+        Vec3d v = Vec3d.ZERO;
+        if (t != null && k > SPIN_UP) {
+            Vec3d d = new Vec3d(t.getX() - getX(), 0, t.getZ() - getZ());
+            if (d.lengthSquared() > 1) v = d.normalize().multiply(widened() ? 0.27 : 0.21);
+        }
+        setVelocity(v.x, hoverVy(), v.z);
+        if (k == 1) {
+            event(E_SPIN, getPos(), 0);
+            sound(SoundEvents.BLOCK_BELL_RESONATE, 3f, 0.9f);
+            sound(SoundEvents.ITEM_ARMOR_EQUIP_CHAIN, 3f, 0.5f);
+        }
+        if (k > SPIN_UP && k < SPIN_UP + len) {
+            if (k % 4 == 0) sound(SoundEvents.BLOCK_CHAIN_PLACE, 2f, 0.6f + random.nextFloat() * 0.3f);
+            if (k % 10 == 0) sound(SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 2.5f, 0.5f);
+            for (LivingEntity e : enemies(getBoundingBox().expand(r, 3, r))) {
+                double hd = hdist(e.getPos(), getPos());
+                if (hd > r || Math.abs(e.getY() - (getY() + 1.5)) > 4) continue;
+                // затягивание по спирали
+                Vec3d in = new Vec3d(getX() - e.getX(), 0, getZ() - e.getZ());
+                if (in.lengthSquared() > 1e-3) {
+                    Vec3d n = in.normalize(), tan = new Vec3d(-n.z, 0, n.x);
+                    Vec3d pull = n.multiply(hd > 2 ? 0.06 : 0).add(tan.multiply(0.05));
+                    e.addVelocity(pull.x, 0, pull.z);
+                    e.velocityModified = true;
+                }
+                if (tooSoon(e, 10)) continue;
+                e.damage(getDamageSources().mobAttack(this), 5f);
+                event(E_CHAIN_HIT, e.getPos().add(0, 1, 0), 0);
+            }
+        }
+        if (k == SPIN_UP + len) {
+            event(E_SPIN, getPos(), 1);
+            sound(SoundEvents.BLOCK_BELL_USE, 5f, 0.6f);
+            sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 1.5f, 1.4f);
+            for (LivingEntity e : enemies(getBoundingBox().expand(r + 1.5, 3, r + 1.5))) {
+                if (hdist(e.getPos(), getPos()) > r + 1.5) continue;
+                e.damage(getDamageSources().mobAttack(this), 7f);
+                knock(e, 1.7, 0.55);
+            }
+        }
+        if (k >= SPIN_UP + len + 6) done = true;
+    }
+
+    public static int volleyCount(boolean wide) {
+        return wide ? 5 : 3;
+    }
+
+    public static int volleyGap(boolean wide) {
+        return wide ? 5 : 7;
+    }
+
+    public static final int VOLLEY_FIRST = 8;
+
+    /** «Тройной набат»: из трещины одна за другой вылетают звуковые сферы с упреждением; взрываются при попадании. */
+    private void volley(int k, LivingEntity t) {
+        boolean wide = widened();
+        int n = volleyCount(wide), gap = volleyGap(wide);
+        if (k == 2) {
+            event(E_CONE_CHARGE, eyePos(), VOLLEY_FIRST - 2);
+            sound(SoundEvents.BLOCK_BEACON_POWER_SELECT, 2f, 0.8f);
+        }
+        int i = k - VOLLEY_FIRST;
+        if (i >= 0 && i % gap == 0 && i / gap < n && t != null) {
+            int idx = i / gap;
+            Vec3d o = eyePos().add(forward().multiply(0.8));
+            Vec3d aim = t.getPos().add(0, t.getHeight() * 0.5, 0);
+            double tt = o.distanceTo(aim) / ORB_SPEED;
+            aim = aim.add(t.getVelocity().multiply(tt * 0.8));
+            Vec3d dir = aim.subtract(o).normalize();
+            if (idx > 0) {                                    // веер: каждая следующая чуть в сторону
+                double ang = Math.toRadians((idx % 2 == 1 ? 1 : -1) * 7 * ((idx + 1) / 2));
+                double c = Math.cos(ang), s = Math.sin(ang);
+                dir = new Vec3d(dir.x * c - dir.z * s, dir.y, dir.z * c + dir.x * s).normalize();
+            }
+            orbs.add(new Orb(o, dir.multiply(ORB_SPEED)));
+            float yaw = (float) (MathHelper.atan2(dir.z, dir.x) * 180 / Math.PI);
+            float pitch = (float) (Math.asin(MathHelper.clamp(dir.y, -1, 1)) * 180 / Math.PI);
+            event(E_ORB_FIRE, o, packDir(yaw, pitch));
+            sound(SoundEvents.BLOCK_BELL_USE, 3f, 0.9f + idx * 0.12f);
+            sound(SoundEvents.ENTITY_WARDEN_SONIC_BOOM, 1.2f, 1.6f);
+        }
+        if (k >= VOLLEY_FIRST + (n - 1) * gap + 8) done = true;
+    }
+
+    /** Направление сферы в одно число (точно передаётся во float). */
+    public static float packDir(float yawDeg, float pitchDeg) {
+        int y = Math.round((MathHelper.wrapDegrees(yawDeg) + 180f) * 10f), p = Math.round((pitchDeg + 90f) * 10f);
+        return y * 2000 + p;
+    }
+
+    public static Vec3d unpackDir(float v) {
+        int i = Math.round(v);
+        double yaw = Math.toRadians(i / 2000 / 10.0 - 180), pitch = Math.toRadians(i % 2000 / 10.0 - 90);
+        double c = Math.cos(pitch);
+        return new Vec3d(Math.cos(yaw) * c, Math.sin(pitch), Math.sin(yaw) * c);
+    }
+
+    private void tickOrbs() {
+        for (Iterator<Orb> it = orbs.iterator(); it.hasNext(); ) {
+            Orb o = it.next();
+            o.life++;
+            Vec3d np = o.p.add(o.v);
+            boolean burst = o.life > ORB_LIFE;
+            net.minecraft.util.math.BlockPos bp = net.minecraft.util.math.BlockPos.ofFloored(np);
+            if (!getWorld().getBlockState(bp).getCollisionShape(getWorld(), bp).isEmpty()) burst = true;
+            if (!burst && !enemies(new Box(o.p, np).expand(0.7)).isEmpty()) burst = true;
+            o.p = np;
+            if (!burst) continue;
+            it.remove();
+            event(E_ORB_BURST, o.p, 0);
+            soundAt(o.p, SoundEvents.BLOCK_BELL_USE, 2.5f, 1.3f);
+            soundAt(o.p, SoundEvents.ENTITY_GENERIC_EXPLODE, 0.8f, 1.7f);
+            for (LivingEntity e : enemies(new Box(o.p, o.p).expand(2.6))) {
+                if (e.getPos().add(0, e.getHeight() * 0.5, 0).distanceTo(o.p) > 2.8) continue;
+                e.damage(getDamageSources().mobAttack(this), 8f);
+                Vec3d k = e.getPos().subtract(o.p);
+                k = new Vec3d(k.x, 0, k.z);
+                if (k.lengthSquared() > 1e-3) k = k.normalize().multiply(0.6);
+                e.addVelocity(k.x, 0.3, k.z);
+                e.velocityModified = true;
+            }
+        }
+    }
+
+    /**
+     * «Погребальные скачки»: колокол серией прыгает на цель; каждое приземление — удар по площади
+     * и быстрая звуковая волна по земле (перепрыгнуть).
+     */
+    private void hops(LivingEntity t) {
+        boolean wide = widened();
+        int n = wide ? 4 : 3, crouch = wide ? 3 : 5, air = wide ? 12 : 14;
+        phaseTick++;
+        if (phase == 0) {                                     // присел
+            setVelocity(0, -0.08, 0);
+            if (t != null) faceTarget(t, 20f);
+            if (phaseTick >= crouch) {
+                hopFrom = getPos();
+                Vec3d to = t != null ? t.getPos().add(t.getVelocity().multiply(air * 0.6)) : getPos().add(forward().multiply(4));
+                Vec3d d = new Vec3d(to.x - getX(), 0, to.z - getZ());
+                if (d.length() > 10) d = d.normalize().multiply(10);
+                Vec3d tgt = getPos().add(d);
+                hopTo = new Vec3d(tgt.x, ground(new Vec3d(tgt.x, Math.max(getY(), tgt.y) + 2, tgt.z)) + 0.6, tgt.z);
+                phase = 1;
+                phaseTick = 0;
+                sound(SoundEvents.ENTITY_RAVAGER_STEP, 2f, 0.5f);
+                sound(SoundEvents.BLOCK_BELL_RESONATE, 1.5f, 1.1f);
+            }
+        } else if (phase == 1) {                              // полёт по дуге
+            double s = Math.min(1.0, phaseTick / (double) air);
+            Vec3d p = hopFrom.lerp(hopTo, s).add(0, 5.5 * 4 * s * (1 - s), 0);
+            setVelocity(p.subtract(getPos()));
+            if (phaseTick >= air) {
+                setVelocity(Vec3d.ZERO);
+                setPosition(hopTo.x, hopTo.y, hopTo.z);
+                Vec3d c = new Vec3d(getX(), hopTo.y - 0.6, getZ());
+                event(E_HOP_LAND, c, 0);
+                sound(SoundEvents.BLOCK_ANVIL_LAND, 3f, 0.4f);
+                sound(SoundEvents.BLOCK_BELL_USE, 4f, 0.55f);
+                for (LivingEntity e : enemies(new Box(c, c).expand(4.5, 3, 4.5))) {
+                    if (hdist(e.getPos(), c) > 4.2 || Math.abs(e.getY() - c.y) > 2.5) continue;
+                    e.damage(getDamageSources().mobAttack(this), 10f);
+                    knock(e, 0.9, 0.6);
+                    hit.add(e.getId());
+                }
+                Ring g = new Ring(c, 0.6f, 10f, 5f, 4.2f);
+                g.hit.addAll(hit);
+                hit.clear();
+                rings.add(g);
+                event(E_GROUND_RING, c, 0.6f);
+                dashes++;
+                phase = 2;
+                phaseTick = 0;
+            }
+        } else {
+            setVelocity(0, hoverVy() * 0.3, 0);
+            if (phaseTick >= (dashes >= n ? 8 : 2)) {
+                if (dashes >= n) done = true;
+                else {
+                    phase = 0;
+                    phaseTick = 0;
+                }
+            }
+        }
+    }
+
+    public static int knellCount(boolean wide) {
+        return wide ? 7 : 5;
+    }
+
+    /**
+     * «Призрачный звон»: колокол раскачивается и звонит; вокруг цели вспыхивают круги-метки,
+     * на которые один за другим обрушиваются призрачные колокола.
+     */
+    private void knell(int k, LivingEntity t) {
+        int n = knellCount(widened());
+        if (k == 1) {
+            sound(SoundEvents.BLOCK_BELL_RESONATE, 4f, 0.45f);
+            sound(SoundEvents.ENTITY_ELDER_GUARDIAN_AMBIENT, 2f, 0.5f);
+        }
+        int mi = k - KNELL_MARK;
+        if (mi >= 0 && mi % 2 == 0 && mi / 2 < n) {
+            int i = mi / 2;
+            Vec3d base = t != null ? t.getPos() : getPos();
+            Vec3d spot;
+            if (i == 0 && t != null) spot = base.add(t.getVelocity().multiply(10));
+            else {
+                double ang = random.nextDouble() * Math.PI * 2, r = 2.5 + random.nextDouble() * 3.5;
+                spot = base.add(Math.cos(ang) * r, 0, Math.sin(ang) * r);
+            }
+            spot = new Vec3d(spot.x, ground(new Vec3d(spot.x, base.y + 2, spot.z)), spot.z);
+            spots.add(spot);
+            event(E_PHANTOM_MARK, spot, KNELL_FALL + i * 3 - k);
+            soundAt(spot, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.5f);
+        }
+        int fi = k - KNELL_FALL;
+        if (fi >= 0 && fi % 3 == 0 && fi / 3 < spots.size()) {
+            Vec3d c = spots.get(fi / 3);
+            event(E_PHANTOM_FALL, c, 0);
+            soundAt(c, SoundEvents.BLOCK_BELL_USE, 3f, 0.4f + random.nextFloat() * 0.2f);
+            soundAt(c, SoundEvents.BLOCK_ANVIL_LAND, 1.5f, 0.6f);
+            for (LivingEntity e : enemies(new Box(c, c).expand(PHANTOM_R + 0.5, 3, PHANTOM_R + 0.5))) {
+                if (hdist(e.getPos(), c) > PHANTOM_R || Math.abs(e.getY() - c.y) > 2.5) continue;
+                e.damage(getDamageSources().mobAttack(this), 11f);
+                e.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 30, 2), this);
+                knock(e, 0.3, 0.4);
+            }
+        }
+        if (k >= KNELL_FALL + n * 3 + 8) done = true;
     }
 
     // ================================================================== урон и смерть
@@ -591,6 +1032,7 @@ public class SilentBellEntity extends BossBase {
         setEye(false);
         setState(S_DYING);
         rings.clear();
+        orbs.clear();
         bossBar.setPercent(0f);
         for (UUID id : choir) {
             if (getWorld() instanceof ServerWorld sw && sw.getEntity(id) instanceof LivingEntity le) le.discard();
