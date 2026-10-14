@@ -214,7 +214,7 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
      * (поворот по телу, масштаб 1/16, начало у ног). hover — подъём над землёй в единицах модели.
      */
     static void renderGuard(MatrixStack ms, VertexConsumerProvider vcp, int light, float t, float hover, float robe, boolean eyeOpen,
-                            float eyeSince, float tremble) {
+                            float eyeSince, float tremble, boolean dead) {
         VoxelModel m = model();
         if (m.parts.isEmpty()) return;
         int n = m.parts.size();
@@ -238,7 +238,8 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         for (int i = 0; i < n; i++) eyeOnly[i] = true;
         if (EYE >= 0) { noEye[EYE] = true; eyeOnly[EYE] = false; }
         if (EYE_G >= 0) { noEye[EYE_G] = true; eyeOnly[EYE_G] = hide[EYE_G]; }
-        float ed = eyeOpen ? 1f : 0.35f;
+        float ed = eyeOpen ? 1f : dead ? 0.12f : 0.35f;               // спящий — глаз тёмный, без признаков жизни
+        if (dead) for (int i = 0; i < n; i++) if (m.parts.get(i).glow) { noEye[i] = true; eyeOnly[i] = true; }
         m.render(ms, vc, false, light, OverlayTexture.DEFAULT_UV, mats, 1f, 1f, 1f, -1e9f, 1e9f, noEye, null);
         m.render(ms, vc, false, light, OverlayTexture.DEFAULT_UV, mats, ed, ed * 1.05f, ed, -1e9f, 1e9f, eyeOnly, null);
         ms.pop();

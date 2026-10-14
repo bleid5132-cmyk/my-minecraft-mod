@@ -42,9 +42,8 @@ public class BellRingerEntity extends BossBase {
     public static final int E_STEP = 1, E_SLAM = 2, E_CRACK = 3, E_WAVE = 4, E_TOLL = 5, E_CHAIN_SHOT = 6, E_CHAIN_BREAK = 7,
             E_CHAIN_HIT = 8, E_SWING_HIT = 9, E_LAND = 10, E_JUMP = 11, E_HAMMER_DROP = 12, E_SNAP = 13, E_BELL_FALL = 14,
             E_ASH = 15, E_RAGE = 16, E_RISE = 17, E_CATCH = 18, E_TOSS = 19, E_WAKE = 20, E_FORM = 21, E_AWOKEN = 22;
-    /** Пробуждение: колокол-страж стоит на арене, пока игрок не подойдёт на WAKE_RANGE блоков. */
+    /** Пробуждение: колокол-страж мёртво стоит на земле арены, пока игрок его не ударит. */
     public static final int W_DORMANT = 0, W_WAKING = 1, W_AWAKE = 2;
-    public static final double WAKE_RANGE = 25;
     /** Такты пробуждения: колокол взлетает (0–14), тело собирается из звука (14–46), колокол сжимается и садится на плечи (46–66), рёв (70), бой (82). */
     public static final int WK_RISE = 14, WK_FORM = 46, WK_HEAD = 66, WK_ROAR = 70, WK_END = 82;
     /** Погребальный размах: радиус орбиты колокола (блоки), угловая скорость (рад/такт), высота центра колокола. */
@@ -545,19 +544,7 @@ public class BellRingerEntity extends BossBase {
         setVelocity(0, getVelocity().y, 0);
         bossBar.setVisible(false);
         if (age % 10 == 0) forgetMe();
-        if (wake() == W_DORMANT) {
-            if (age % 5 != 0) return;
-            net.minecraft.entity.player.PlayerEntity pl = getWorld().getClosestPlayer(getX(), getY(), getZ(), WAKE_RANGE,
-                    e -> e instanceof net.minecraft.entity.player.PlayerEntity p && !p.isCreative() && !p.isSpectator() && p.isAlive());
-            if (pl == null) return;
-            wakeTicks = 0;
-            dataTracker.set(WAKE, W_WAKING);
-            faceTarget(pl, 360f);
-            event(E_WAKE, getPos(), 0);
-            sound(SoundEvents.BLOCK_BELL_RESONATE, 5f, 0.35f);
-            sound(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 4f, 0.5f);
-            return;
-        }
+        if (wake() == W_DORMANT) return;
         int w = ++wakeTicks;
         net.minecraft.entity.player.PlayerEntity pl = getWorld().getClosestPlayer(this, 48);
         if (pl != null && w < WK_ROAR) faceTarget(pl, 3f);
@@ -589,6 +576,17 @@ public class BellRingerEntity extends BossBase {
             bossBar.setVisible(true);
             cooldown = 20;
         }
+    }
+
+    /** Удар по спящему колоколу будит Звонаря. */
+    private void startWake(net.minecraft.entity.player.PlayerEntity by) {
+        wakeTicks = 0;
+        dataTracker.set(WAKE, W_WAKING);
+        faceTarget(by, 360f);
+        event(E_WAKE, getPos(), 0);
+        sound(SoundEvents.BLOCK_BELL_USE, 6f, 0.4f);
+        sound(SoundEvents.BLOCK_BELL_RESONATE, 5f, 0.35f);
+        sound(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 4f, 0.5f);
     }
 
     // ================================================================== смерть и переход
@@ -659,13 +657,18 @@ public class BellRingerEntity extends BossBase {
             }
             return super.damage(source, amount);
         }
+        if (dyingTicks == -1 && wake() == W_DORMANT && source.getAttacker() instanceof net.minecraft.entity.player.PlayerEntity pl
+                && !pl.isSpectator()) {
+            startWake(pl);                                   // разбудили ударом (рукой, оружием или стрелой)
+            return false;
+        }
         if (dyingTicks >= 0 || asleep() || source.getAttacker() == this) return false;
         return super.damage(source, amount);
     }
 
     @Override
     public boolean isAttackable() {
-        return !dying() && !asleep();
+        return !dying() && wake() != W_WAKING;
     }
 
     @Override

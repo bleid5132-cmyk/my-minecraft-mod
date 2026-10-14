@@ -193,10 +193,10 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
                 ms.push();
                 ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-by));
                 ms.scale(1 / 16f, 1 / 16f, 1 / 16f);
-                float hover = 30 + 24 * sm(w / WK_RISE);
-                float robe = waking ? 1 - sm((w - 4) / 14f) : 1f;
+                float hover = 54 * sm(w / WK_RISE);                    // спит — стоит краем на земле
+                float robe = 0f;
                 float tremble = !waking ? 0 : w < WK_RISE ? 0.5f : 0.3f + 0.9f * sm((w - WK_RISE) / (float) (WK_FORM - WK_RISE));
-                SilentBellRenderer.renderGuard(ms, vcp, light, t, hover, robe, waking && w >= 6, w - 6, tremble);
+                SilentBellRenderer.renderGuard(ms, vcp, light, t, hover, robe, waking && w >= 6, w - 6, tremble, !waking);
                 ms.pop();
             }
             if (ws == W_DORMANT || w < WK_RISE) {

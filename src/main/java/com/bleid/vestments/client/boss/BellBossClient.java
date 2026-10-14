@@ -317,18 +317,13 @@ public final class BellBossClient {
     private static void tickRinger(BellRingerEntity e) {
         Random r = R();
         if (!e.dying() && e.asleep()) {
-            // спящий страж: из трещины сочится тусклый зелёный свет, под колоколом лениво кружат руны
-            boolean dormant = e.wake() == BellRingerEntity.W_DORMANT;
-            float w = dormant ? 0 : e.age - e.clientWakeStart;
-            double up = dormant ? 0 : 1.5 * Math.min(1, w / BellRingerEntity.WK_RISE);
-            if (e.age % 3 == 0 && (dormant || w < BellRingerEntity.WK_FORM)) {
+            // спящий страж мертвенно неподвижен; при пробуждении из трещины начинает сочиться свет
+            if (e.wake() == BellRingerEntity.W_DORMANT) return;
+            float w = e.age - e.clientWakeStart;
+            double up = 54 / 16.0 * Math.min(1, w / BellRingerEntity.WK_RISE) - 1.9;
+            if (e.age % 3 == 0 && w >= 6 && w < BellRingerEntity.WK_FORM) {
                 Vec3d c = e.local(rr(-0.5, 0.5), 4.4 + up + rr(-1.2, 1.2), 1.1);
-                spawn(ORB, c.x, c.y, c.z).vel(0, rr(0.005, 0.02), 0).size(0.05f, 0.01f).color(GREEN).alpha(dormant ? 0.6f : 1f).life(24 + r.nextInt(10));
-            }
-            if (dormant && e.age % 12 == 0) {
-                double ang = rr(0, Math.PI * 2);
-                spawn(RUNES, e.getX() + Math.cos(ang) * 2.2, e.getY() + 0.15, e.getZ() + Math.sin(ang) * 2.2).vel(0, 0.01, 0)
-                        .size(0.2f, 0.05f).color(PATINA).alpha(0.5f).life(40);
+                spawn(ORB, c.x, c.y, c.z).vel(0, rr(0.005, 0.02), 0).size(0.05f, 0.01f).color(GREEN).life(24 + r.nextInt(10));
             }
             return;
         }
