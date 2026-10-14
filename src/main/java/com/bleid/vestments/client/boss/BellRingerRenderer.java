@@ -183,6 +183,29 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         float t = e.age + td;
         float[] p = new float[N];
         boolean dying = e.dying();
+        // ---- спящий страж и пробуждение: Безмолвный Колокол стоит на арене; тело собирается под ним из звука
+        int ws = dying ? W_AWAKE : e.wake();
+        boolean waking = ws == W_WAKING;
+        float w = waking ? e.age - e.clientWakeStart + td : 0f;
+        if (ws != W_AWAKE) {
+            if (ws == W_DORMANT || w < WK_FORM) {
+                float by = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
+                ms.push();
+                ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-by));
+                ms.scale(1 / 16f, 1 / 16f, 1 / 16f);
+                float hover = 30 + 24 * sm(w / WK_RISE);
+                float robe = waking ? 1 - sm((w - 4) / 14f) : 1f;
+                float tremble = !waking ? 0 : w < WK_RISE ? 0.5f : 0.3f + 0.9f * sm((w - WK_RISE) / (float) (WK_FORM - WK_RISE));
+                SilentBellRenderer.renderGuard(ms, vcp, light, t, hover, robe, waking && w >= 6, w - 6, tremble);
+                ms.pop();
+            }
+            if (ws == W_DORMANT || w < WK_RISE) {
+                Dangle dg0 = DANGLE.get(e.getId());
+                if (dg0 != null) dg0.init = false;
+                super.render(e, yaw, td, ms, vcp, light);
+                return;
+            }
+        }
         float d = dying ? e.age - e.clientDyingStart + td : -1f;
         int a = dying ? IDLE : e.attack();
         float k = e.age - e.clientAttackStart + td;
@@ -201,7 +224,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         p[HX] += MathHelper.clamp(e.getPitch(td), -30, 30) * 0.5f;
 
         // ---- тяжёлый шаг
-        float lp = e.limbAnimator.getPos(td), mv = dying ? 0 : MathHelper.clamp(e.limbAnimator.getSpeed(td) * 2f, 0f, 1f);
+        float lp = e.limbAnimator.getPos(td), mv = dying || waking ? 0 : MathHelper.clamp(e.limbAnimator.getSpeed(td) * 2f, 0f, 1f);
         float ph = lp * 0.55f;
         p[THR] = MathHelper.sin(ph) * 24 * mv;
         p[THL] = -p[THR];
@@ -215,7 +238,8 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         p[BZ] = MathHelper.sin(ph) * 4 * mv;
         p[HAMX] = -MathHelper.sin(ph) * 6 * mv;
 
-        if (!dying) attackPose(e, a, k, p, sp);
+        if (waking) wakePose(w, p);
+        else if (!dying) attackPose(e, a, k, p, sp);
         else dyingPose(d, p);
 
         p[LIFT] *= BODY;
@@ -284,6 +308,11 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
                 if (d < D_RISE + 4) bellM = blend(mats[BELL], bellM, sm((d - D_RISE) / 4f));
             }
         }
+        // пробуждение: огромный колокол сжимается и опускается на плечи
+        if (waking && w >= WK_FORM) {
+            Matrix4f big = new Matrix4f().translate(0, 54 - lift, 0).scale(1.62f, 2.33f, 1.62f).translate(0, -80, -15);
+            bellM = blend(big, mats[BELL], sm((w - WK_FORM) / (float) (WK_HEAD - WK_FORM)));
+        }
         if (bellM != null) {
             mats[BELL] = bellM;
             for (int i : new int[] { BELL_G, HEAD, HEAD_G }) if (i >= 0) mats[i] = bellM;
@@ -298,12 +327,19 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
             if (d >= D_ASH + 6) crumbleY = 112 - 118 * sm((d - D_ASH - 6) / 24f);
             if (d >= D_COVER + 1) for (int i : new int[] { BELL, BELL_G, HEAD, HEAD_G }) if (i >= 0) hide[i] = true;
         }
+        if (waking) {
+            // тело проступает снизу вверх серым пеплом, затем окрашивается сверху вниз
+            for (int i : new int[] { BELL, BELL_G, HEAD, HEAD_G }) if (i >= 0) exempt[i] = true;
+            crumbleY = -6 + 124 * sm((w - WK_RISE) / (float) (WK_FORM - WK_RISE));
+            stoneY = w < WK_FORM ? 1e9f : 120 - 126 * sm((w - WK_FORM) / 16f);
+            if (w < WK_FORM) for (int i : new int[] { BELL, BELL_G, HEAD, HEAD_G }) if (i >= 0) hide[i] = true;
+        }
 
         ms.push();
         ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw));
         ms.scale(1 / 16f, 1 / 16f, 1 / 16f);
         ms.translate(0, lift, 0);
-        int overlay = dying ? OverlayTexture.DEFAULT_UV : LivingEntityRenderer.getOverlay(e, 0f);
+        int overlay = dying || waking ? OverlayTexture.DEFAULT_UV : LivingEntityRenderer.getOverlay(e, 0f);
         m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), false, light, overlay, mats, 1f, 1f, 1f, stoneY, crumbleY, hide, exempt);
         if (stoneY > -100f) m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(ASH)), true, light, overlay, mats, 1f, 1f, 1f, stoneY, crumbleY, hide, exempt);
         ms.pop();
@@ -322,6 +358,8 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
             Vector3f hl = new Matrix4f(ent).mul(mats[HAND_L]).transformPosition(new Vector3f(19.6f, 30, 17.5f));
             Vector3f hr = new Matrix4f(ent).mul(mats[HAND_R]).transformPosition(new Vector3f(-19.6f, 30, 17.5f));
             drawChain(ms, vcp, hl.add(hr).mul(0.5f), crown, light, 0.11f);
+            dg.init = false;
+        } else if (waking && w < WK_FORM) {
             dg.init = false;
         } else if (!(dying && d >= D_COVER + 1)) {
             dangle(e, dg, e.getLerpedPos(td), bellWorld, ms, vcp, light);
@@ -423,6 +461,15 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
             }
             default -> { }
         }
+    }
+
+    /** Пробуждение: тело собирается на коленях, поднимается и ревёт. */
+    private void wakePose(float w, float[] p) {
+        float kneel = 1 - sm((w - 50) / 18f);
+        mix(p, kneel, LIFT, -16, THR, -84, SHR, 92, THL, -84, SHL, 92, TX, 26, HX, 22, ARX, -22, ALX, -20, ARZ, -4, ALZ, 4,
+                FR, -8, FL, -8, TY, 0, TZ, 0, BX, 0, BZ, 0);
+        float roar = sm((w - WK_ROAR + 3) / 4f) * (1 - sm((w - WK_END + 6) / 8f));
+        mix(p, roar, TX, -10, HX, -28, ARZ, -35, ALZ, 35, ARX, -30, ALX, -30, FR, -20, FL, -20);
     }
 
     private void dyingPose(float d, float[] p) {

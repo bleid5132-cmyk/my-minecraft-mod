@@ -154,7 +154,7 @@ public abstract class BossBase extends HostileEntity {
         if (e instanceof PlayerEntity p && (p.isCreative() || p.isSpectator())) return false;
         if (e instanceof net.minecraft.entity.decoration.ArmorStandEntity) return false;
         if (e instanceof SeraelEntity s && s.statue()) return false;
-        if (e instanceof BellRingerEntity r && r.dying()) return false;
+        if (e instanceof BellRingerEntity r && (r.dying() || r.asleep())) return false;
         if (e instanceof SilentBellEntity b && b.state() != SilentBellEntity.S_FIGHT) return false;
         if (self instanceof SilentBellEntity && e.getCommandTags().contains("vestments_choir")) return false;   // свой хор
         return true;

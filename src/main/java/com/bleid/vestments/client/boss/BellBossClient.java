@@ -106,6 +106,61 @@ public final class BellBossClient {
 
     private static void ringer(BellRingerEntity e, int type, Vec3d p, float arg) {
         switch (type) {
+            case BellRingerEntity.E_WAKE -> {
+                shake(p, 0.5f, 30);
+                double gy = groundY(p.add(0, 1, 0)) + 0.06;
+                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 20f).color(GREEN).alpha(0.7f).life(30).fade(0f, 0.6f);
+                spawn(RING, p.x, gy + 0.02, p.z).mode(Mode.FLAT).delay(5).size(1f, 13f).color(PATINA).alpha(0.5f).life(30).fade(0f, 0.6f);
+                dust(p, 30, 2.5, 1f);
+                // тело собирается из звука: кольца сходятся к колоколу, звуковые искры стягиваются в силуэт
+                task(age -> {
+                    if (!e.isAlive() || e.wake() != BellRingerEntity.W_WAKING) return false;
+                    int w = age;
+                    if (w > BellRingerEntity.WK_RISE && w < BellRingerEntity.WK_FORM + 4) {
+                        Vec3d c = e.getPos();
+                        float u = (w - BellRingerEntity.WK_RISE) / (float) (BellRingerEntity.WK_FORM - BellRingerEntity.WK_RISE);
+                        if (w % 4 == 0) {
+                            for (int h = 0; h < 3; h++) {
+                                double y = c.y + 0.4 + h * 2.2 * Math.max(0.3, u);
+                                spawn(RING, c.x, y, c.z).mode(Mode.FLAT).size(9f, 1.2f).ease().color(h == 1 ? PALE : GREEN)
+                                        .alpha(0.55f).life(10).fade(0.2f, 0.3f);
+                            }
+                        }
+                        for (int i = 0; i < 6; i++) {
+                            double ang = rr(0, Math.PI * 2), r = rr(3.5, 6);
+                            double ty = c.y + rr(0.2, 0.4 + 6.4 * u);
+                            Vec3d from = new Vec3d(c.x + Math.cos(ang) * r, ty + rr(-0.5, 1.5), c.z + Math.sin(ang) * r);
+                            Vec3d to = new Vec3d(c.x + rr(-0.7, 0.7), ty, c.z + rr(-0.6, 0.6));
+                            int life = 8 + R().nextInt(4);
+                            spawn(i % 3 == 0 ? GLINT : ORB, from.x, from.y, from.z).vel((to.x - from.x) / life, (to.y - from.y) / life, (to.z - from.z) / life)
+                                    .size(0.12f, 0.05f).colors(PALE, GREEN).life(life).fade(0.2f, 0.2f);
+                        }
+                        if (w % 3 == 0) {
+                            Vec3d f = e.local(rr(-0.9, 0.9), rr(0.2, 0.4 + 6 * u), rr(-0.6, 0.6));
+                            spawn(SMOKE, f.x, f.y, f.z).vel(0, 0.01, 0).size(0.3f, 0.6f).color(ASH).alpha(0.4f).life(16);
+                        }
+                    }
+                    return age < BellRingerEntity.WK_END + 10;
+                });
+            }
+            case BellRingerEntity.E_FORM -> {
+                shake(p, 0.8f, 26);
+                Vec3d c = p.add(0, 4.5, 0);
+                spawn(FLARE, c.x, c.y, c.z).size(6f, 0.5f).color(PALE).life(10);
+                spawn(SHOCK, c.x, c.y, c.z).size(0.6f, 7f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.7f);
+                for (int i = 0; i < 50; i++) {
+                    spawn(i % 2 == 0 ? GLINT : STAR, c.x, c.y, c.z).vel(rr(-0.5, 0.5), rr(-0.3, 0.5), rr(-0.5, 0.5)).drag(0.9f)
+                            .rot((float) rr(0, 6), 0.3f).size(0.14f, 0.04f).colors(PALE, GREEN).life(14 + R().nextInt(8));
+                }
+            }
+            case BellRingerEntity.E_AWOKEN -> {
+                shake(p, 1f, 30);
+                double gy = groundY(p.add(0, 1, 0)) + 0.06;
+                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 14f).ease().colors(CANDLE, EMBER).life(14).fade(0f, 0.8f);
+                spawn(RING, p.x, gy + 0.1, p.z).mode(Mode.FLAT).size(1f, 22f).ease().color(CANDLE).alpha(0.6f).life(18).fade(0f, 0.6f);
+                dust(p, 40, 3.5, 1.2f);
+                sparks(p.add(0, 3, 0), 30, EMBER, 0.6);
+            }
             case BellRingerEntity.E_STEP -> {
                 shake(p, 0.18f, 14);
                 dust(p, 6, 1, 0.5f);
@@ -261,6 +316,22 @@ public final class BellBossClient {
 
     private static void tickRinger(BellRingerEntity e) {
         Random r = R();
+        if (!e.dying() && e.asleep()) {
+            // спящий страж: из трещины сочится тусклый зелёный свет, под колоколом лениво кружат руны
+            boolean dormant = e.wake() == BellRingerEntity.W_DORMANT;
+            float w = dormant ? 0 : e.age - e.clientWakeStart;
+            double up = dormant ? 0 : 1.5 * Math.min(1, w / BellRingerEntity.WK_RISE);
+            if (e.age % 3 == 0 && (dormant || w < BellRingerEntity.WK_FORM)) {
+                Vec3d c = e.local(rr(-0.5, 0.5), 4.4 + up + rr(-1.2, 1.2), 1.1);
+                spawn(ORB, c.x, c.y, c.z).vel(0, rr(0.005, 0.02), 0).size(0.05f, 0.01f).color(GREEN).alpha(dormant ? 0.6f : 1f).life(24 + r.nextInt(10));
+            }
+            if (dormant && e.age % 12 == 0) {
+                double ang = rr(0, Math.PI * 2);
+                spawn(RUNES, e.getX() + Math.cos(ang) * 2.2, e.getY() + 0.15, e.getZ() + Math.sin(ang) * 2.2).vel(0, 0.01, 0)
+                        .size(0.2f, 0.05f).color(PATINA).alpha(0.5f).life(40);
+            }
+            return;
+        }
         if (!e.dying() || e.age - e.clientDyingStart < BellRingerEntity.D_ASH) {
             // глаз под колоколом: зелёный свет сочится из трещины (пока колокол на плечах)
             float sk = e.age - e.clientAttackStart;

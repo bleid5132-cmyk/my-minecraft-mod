@@ -41,7 +41,12 @@ public class BellRingerEntity extends BossBase {
     public static final int[] DURATION = { 0, 50, 46, 46, 146, 60 };
     public static final int E_STEP = 1, E_SLAM = 2, E_CRACK = 3, E_WAVE = 4, E_TOLL = 5, E_CHAIN_SHOT = 6, E_CHAIN_BREAK = 7,
             E_CHAIN_HIT = 8, E_SWING_HIT = 9, E_LAND = 10, E_JUMP = 11, E_HAMMER_DROP = 12, E_SNAP = 13, E_BELL_FALL = 14,
-            E_ASH = 15, E_RAGE = 16, E_RISE = 17, E_CATCH = 18, E_TOSS = 19;
+            E_ASH = 15, E_RAGE = 16, E_RISE = 17, E_CATCH = 18, E_TOSS = 19, E_WAKE = 20, E_FORM = 21, E_AWOKEN = 22;
+    /** Пробуждение: колокол-страж стоит на арене, пока игрок не подойдёт на WAKE_RANGE блоков. */
+    public static final int W_DORMANT = 0, W_WAKING = 1, W_AWAKE = 2;
+    public static final double WAKE_RANGE = 25;
+    /** Такты пробуждения: колокол взлетает (0–14), тело собирается из звука (14–46), колокол сжимается и садится на плечи (46–66), рёв (70), бой (82). */
+    public static final int WK_RISE = 14, WK_FORM = 46, WK_HEAD = 66, WK_ROAR = 70, WK_END = 82;
     /** Погребальный размах: радиус орбиты колокола (блоки), угловая скорость (рад/такт), высота центра колокола. */
     public static final float SWING_R = 6f, SWING_R0 = 2.5f, SWING_W = 0.28f, SWING_Y = 2.1f;
     /** Размах: снимает колокол (14–28), раскручивает (36–110), сбавляет (110–118), подкидывает (118) и ловит головой (134). */
@@ -53,6 +58,9 @@ public class BellRingerEntity extends BossBase {
     private static final TrackedData<Integer> CHAIN_STATE = DataTracker.registerData(BellRingerEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Vector3f> CHAIN = DataTracker.registerData(BellRingerEntity.class, TrackedDataHandlerRegistry.VECTOR3F);
     private static final TrackedData<Boolean> RAGE = DataTracker.registerData(BellRingerEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Integer> WAKE = DataTracker.registerData(BellRingerEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    public int clientWakeStart;
+    private int wakeTicks;
 
     public int clientDyingStart;
 
@@ -73,6 +81,7 @@ public class BellRingerEntity extends BossBase {
         super(type, world, BossBar.Color.WHITE);
         setStepHeight(1.1f);
         experiencePoints = 0;
+        bossBar.setVisible(false);                       // до пробуждения полосы нет
     }
 
     public static DefaultAttributeContainer.Builder createAttributes() {
@@ -93,6 +102,7 @@ public class BellRingerEntity extends BossBase {
         dataTracker.startTracking(CHAIN_STATE, 0);
         dataTracker.startTracking(CHAIN, new Vector3f());
         dataTracker.startTracking(RAGE, false);
+        dataTracker.startTracking(WAKE, W_DORMANT);
     }
 
     @Override
@@ -104,6 +114,16 @@ public class BellRingerEntity extends BossBase {
     public void onTrackedDataSet(TrackedData<?> data) {
         super.onTrackedDataSet(data);
         if (DYING.equals(data) && dying()) clientDyingStart = age;
+        if (WAKE.equals(data)) clientWakeStart = age;
+    }
+
+    public int wake() {
+        return dataTracker.get(WAKE);
+    }
+
+    /** Спит или пробуждается — неуязвим и не воюет. */
+    public boolean asleep() {
+        return wake() != W_AWAKE;
     }
 
     public boolean dying() {
@@ -161,6 +181,10 @@ public class BellRingerEntity extends BossBase {
         super.mobTick();
         if (dyingTicks >= 0) {
             tickDying();
+            return;
+        }
+        if (asleep()) {
+            tickWake();
             return;
         }
         bossBar.setPercent(getHealth() / getMaxHealth());
@@ -514,6 +538,59 @@ public class BellRingerEntity extends BossBase {
         }
     }
 
+    // ================================================================== пробуждение
+
+    private void tickWake() {
+        setTarget(null);
+        setVelocity(0, getVelocity().y, 0);
+        bossBar.setVisible(false);
+        if (age % 10 == 0) forgetMe();
+        if (wake() == W_DORMANT) {
+            if (age % 5 != 0) return;
+            net.minecraft.entity.player.PlayerEntity pl = getWorld().getClosestPlayer(getX(), getY(), getZ(), WAKE_RANGE,
+                    e -> e instanceof net.minecraft.entity.player.PlayerEntity p && !p.isCreative() && !p.isSpectator() && p.isAlive());
+            if (pl == null) return;
+            wakeTicks = 0;
+            dataTracker.set(WAKE, W_WAKING);
+            faceTarget(pl, 360f);
+            event(E_WAKE, getPos(), 0);
+            sound(SoundEvents.BLOCK_BELL_RESONATE, 5f, 0.35f);
+            sound(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 4f, 0.5f);
+            return;
+        }
+        int w = ++wakeTicks;
+        net.minecraft.entity.player.PlayerEntity pl = getWorld().getClosestPlayer(this, 48);
+        if (pl != null && w < WK_ROAR) faceTarget(pl, 3f);
+        if (w == 6) sound(SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, 1.5f, 0.4f);
+        if (w > WK_RISE && w < WK_FORM && w % 4 == 0) {
+            float u = (w - WK_RISE) / (float) (WK_FORM - WK_RISE);
+            sound(SoundEvents.BLOCK_BELL_RESONATE, 2f, 0.5f + u * 0.5f);
+            sound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.4f + u * 0.4f);
+        }
+        if (w == WK_FORM) {
+            sound(SoundEvents.BLOCK_BELL_USE, 5f, 0.45f);
+            sound(SoundEvents.ENTITY_WARDEN_SONIC_BOOM, 1.5f, 0.6f);
+            event(E_FORM, getPos(), 0);
+        }
+        if (w == WK_HEAD) {
+            sound(SoundEvents.BLOCK_ANVIL_LAND, 2f, 0.5f);
+            sound(SoundEvents.BLOCK_BELL_USE, 3f, 0.6f);
+            event(E_CATCH, local(0, 6, 1), 0);
+        }
+        if (w == WK_ROAR) {
+            sound(SoundEvents.ENTITY_RAVAGER_ROAR, 4f, 0.45f);
+            sound(SoundEvents.ENTITY_WARDEN_ROAR, 3f, 0.6f);
+            event(E_AWOKEN, getPos(), 0);
+            for (LivingEntity e : enemies(getBoundingBox().expand(6, 3, 6))) knock(e, 1.2, 0.4);
+        }
+        if (w >= WK_END) {
+            dataTracker.set(WAKE, W_AWAKE);
+            bossBar.setPercent(getHealth() / getMaxHealth());
+            bossBar.setVisible(true);
+            cooldown = 20;
+        }
+    }
+
     // ================================================================== смерть и переход
 
     public void startDying() {
@@ -582,13 +659,13 @@ public class BellRingerEntity extends BossBase {
             }
             return super.damage(source, amount);
         }
-        if (dyingTicks >= 0 || source.getAttacker() == this) return false;
+        if (dyingTicks >= 0 || asleep() || source.getAttacker() == this) return false;
         return super.damage(source, amount);
     }
 
     @Override
     public boolean isAttackable() {
-        return !dying();
+        return !dying() && !asleep();
     }
 
     @Override
@@ -603,12 +680,12 @@ public class BellRingerEntity extends BossBase {
 
     @Override
     public boolean canTarget(LivingEntity target) {
-        return !dying() && super.canTarget(target);
+        return !dying() && !asleep() && super.canTarget(target);
     }
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return dying() ? null : SoundEvents.ENTITY_WARDEN_AMBIENT;
+        return dying() || asleep() ? null : SoundEvents.ENTITY_WARDEN_AMBIENT;
     }
 
     @Override
@@ -644,6 +721,10 @@ public class BellRingerEntity extends BossBase {
             dataTracker.set(DYING, true);
             bossBar.setVisible(false);
         }
+        // спящий страж: Dormant:1b (по умолчанию); сохранения без ключа (старые) — уже в бою
+        boolean dormant = nbt.contains("Dormant") ? nbt.getBoolean("Dormant") : !nbt.contains("RingerDying");
+        dataTracker.set(WAKE, dormant ? W_DORMANT : W_AWAKE);
+        if (dormant) bossBar.setVisible(false);
         bossBar.setName(getDisplayName());
     }
 
@@ -651,5 +732,6 @@ public class BellRingerEntity extends BossBase {
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
         nbt.putInt("RingerDying", dyingTicks);
+        nbt.putBoolean("Dormant", wake() != W_AWAKE);
     }
 }

@@ -216,6 +216,41 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         super.render(e, yaw, td, ms, vcp, light);
     }
 
+    /**
+     * Безмолвный Колокол как страж-статуя (спящий Звонарь) и в начале пробуждения. ms — в системе модели
+     * (поворот по телу, масштаб 1/16, начало у ног). hover — подъём над землёй в единицах модели.
+     */
+    static void renderGuard(MatrixStack ms, VertexConsumerProvider vcp, int light, float t, float hover, float robe, boolean eyeOpen,
+                            float eyeSince, float tremble) {
+        VoxelModel m = model();
+        if (m.parts.isEmpty()) return;
+        int n = m.parts.size();
+        Vector3f[] rot = new Vector3f[n];
+        float[] sc = new float[n];
+        for (int i = 0; i < n; i++) { rot[i] = new Vector3f(); sc[i] = 1f; }
+        if (ROBE >= 0) {
+            rot[ROBE].set(MathHelper.sin(t * 0.08f) * 4 * robe, 0, MathHelper.cos(t * 0.07f) * 3 * robe);
+            sc[ROBE] = Math.max(0.01f, robe);
+        }
+        if (EYE >= 0) sc[EYE] = eyeOpen ? 1f + 0.18f * (float) Math.exp(-eyeSince * 0.35f) : 0.92f;
+        boolean[] hide = new boolean[n];
+        if (!eyeOpen && EYE_G >= 0) hide[EYE_G] = true;
+        if (robe <= 0.02f && ROBE >= 0) hide[ROBE] = true;
+        Matrix4f[] mats = m.pose(rot, sc);
+        ms.push();
+        float jx = (float) Math.sin(t * 2.9) * 0.6f * tremble, jz = (float) Math.cos(t * 3.3) * 0.6f * tremble;
+        ms.translate(jx, hover, jz);
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
+        boolean[] noEye = hide.clone(), eyeOnly = new boolean[n];
+        for (int i = 0; i < n; i++) eyeOnly[i] = true;
+        if (EYE >= 0) { noEye[EYE] = true; eyeOnly[EYE] = false; }
+        if (EYE_G >= 0) { noEye[EYE_G] = true; eyeOnly[EYE_G] = hide[EYE_G]; }
+        float ed = eyeOpen ? 1f : 0.35f;
+        m.render(ms, vc, false, light, OverlayTexture.DEFAULT_UV, mats, 1f, 1f, 1f, -1e9f, 1e9f, noEye, null);
+        m.render(ms, vc, false, light, OverlayTexture.DEFAULT_UV, mats, ed, ed * 1.05f, ed, -1e9f, 1e9f, eyeOnly, null);
+        ms.pop();
+    }
+
     /** Тень-метка под поднявшимся колоколом: растёт и темнеет к моменту падения. */
     private void dropShadow(SilentBellEntity e, float td, float k, MatrixStack ms, VertexConsumerProvider vcp) {
         World w = e.getWorld();
