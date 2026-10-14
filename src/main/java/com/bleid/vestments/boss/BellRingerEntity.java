@@ -295,8 +295,14 @@ public class BellRingerEntity extends BossBase {
         if (k == 18) {
             Vec3d p = local(0.35, 0, 4.65);
             p = new Vec3d(p.x, ground(p), p.z);
-            for (LivingEntity e : enemies(new Box(p, p).expand(2.4, 2.6, 2.4))) {
-                if (hdist(e.getPos(), p) > 2.4) continue;
+            // зона удара: круг у места удара + вся полоса, по которой опускается молот, — вплотную к боссу тоже попадает
+            Vec3d f = forward(), r = new Vec3d(-f.z, 0, f.x);
+            for (LivingEntity e : enemies(getBoundingBox().expand(7.5, 2.6, 7.5))) {
+                Vec3d d = e.getPos().subtract(getPos());
+                double fw = d.x * f.x + d.z * f.z, lat = Math.abs(d.x * r.x + d.z * r.z);
+                boolean inCircle = hdist(e.getPos(), p) <= 2.4 + e.getWidth() * 0.5;
+                boolean inPath = fw > -0.8 && fw < 4.8 && lat < 2.3 + e.getWidth() * 0.5;
+                if (!inCircle && !inPath || Math.abs(e.getY() - p.y) > 2.8) continue;
                 e.damage(getDamageSources().mobAttack(this), 20f);
                 knock(e, 0.9, 0.45);
             }
@@ -471,6 +477,29 @@ public class BellRingerEntity extends BossBase {
             e.damage(getDamageSources().mobAttack(this), 14f);
             knock(e, 1.4, 0.45);
             soundAt(bell, SoundEvents.BLOCK_BELL_USE, 3f, 0.7f);
+            event(E_SWING_HIT, e.getPos().add(0, 1, 0), 0);
+        }
+        // цепь от босса до колокола: всё, через что она прошла за этот такт (сектор между прошлым и текущим углом)
+        float r = swingRadius(k), phi0 = swingAngle(k - 1), phi1 = swingAngle(k);
+        Vec3d f = forward();
+        Vec3d rt = new Vec3d(-MathHelper.cos(getYaw() * MathHelper.RADIANS_PER_DEGREE), 0, -MathHelper.sin(getYaw() * MathHelper.RADIANS_PER_DEGREE));   // как в local()
+        double cy = getY() + SWING_Y;
+        for (LivingEntity e : enemies(getBoundingBox().expand(r + 1, 3, r + 1))) {
+            Vec3d d = e.getPos().subtract(getPos());
+            double re = Math.sqrt(d.x * d.x + d.z * d.z);
+            if (re < 0.6 || re > r + 0.2) continue;
+            if (e.getY() > cy + 1.0 || e.getY() + e.getHeight() < cy - 1.0) continue;   // цепь идёт на высоте груди
+            double right = d.x * rt.x + d.z * rt.z, fwd = d.x * f.x + d.z * f.z;
+            double pe = Math.atan2(-right, -fwd);                                  // угол как в swingOffset
+            double margin = (0.5 + e.getWidth() * 0.5) / Math.max(1.0, re);
+            double rel = MathHelper.wrapDegrees(Math.toDegrees(pe - phi0)) * MathHelper.RADIANS_PER_DEGREE;
+            if (rel < -margin || rel > (phi1 - phi0) + margin) continue;
+            Integer last = swingHit.get(e.getId());
+            if (last != null && age - last < 12) continue;
+            swingHit.put(e.getId(), age);
+            e.damage(getDamageSources().mobAttack(this), 10f);
+            knock(e, 0.9, 0.35);
+            soundAt(e.getPos(), SoundEvents.BLOCK_CHAIN_HIT, 2f, 0.6f);
             event(E_SWING_HIT, e.getPos().add(0, 1, 0), 0);
         }
     }
