@@ -30,6 +30,7 @@ import org.joml.Vector3f;
 public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
     private static final Identifier TEX = new Identifier("vestments", "textures/entity/silent_bell.png");
     private static final Identifier MODEL = new Identifier("vestments", "models/entity/silent_bell.vxm");
+    private static final Identifier STONE = new Identifier("vestments", "textures/entity/silent_bell_stone.png");
     private static final Identifier SHADOW = new Identifier("textures/misc/shadow.png");
     private static VoxelModel model;
     private static int BELL_R, BELL_RG, BELL_L, BELL_LG, EYE, EYE_G, ROBE, CHAINS;
@@ -70,7 +71,9 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         if (m.parts.isEmpty()) return;
         float t = e.age + td;
         int st = e.state();
-        float sk = e.age - e.clientStateStart + td;
+        boolean stoneFull = st == S_STONE;
+        if (stoneFull) st = S_DYING;                                    // окаменевший — как конец смерти
+        float sk = stoneFull ? STONE_T + 100 : e.age - e.clientStateStart + td;
         int a = st == S_FIGHT ? e.attack() : IDLE;
         float k = e.age - e.clientAttackStart + td;
 
@@ -128,6 +131,7 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         }
         p[4] = MathHelper.sin(t * 0.08f) * 6 + vf * 60;
         p[5] = MathHelper.cos(t * 0.07f) * 5;
+        if (st == S_DYING) { p[0] = 0; p[1] = 0; p[4] = 0; p[5] = 0; }  // каменеет — покачивание затихает
         Springs.step(SPRINGS.get(e.getId()), p, OMEGA, 0.7f);
 
         int n = m.parts.size();
@@ -159,31 +163,16 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
             if (CHAINS >= 0) rot[CHAINS].set(-35 + MathHelper.sin(t * 0.9f) * 6, 0, 0);
         }
 
-        // ---- смерть: глаз гаснет, колокол раскалывается надвое
+        // ---- смерть: глаз гаснет, колокол опускается и каменеет снизу вверх
         boolean[] hide = new boolean[n];
         float dim = 1f, eyeDim = open ? 1f : 0.4f;
-        float jx = 0, jz = 0;
+        float jx = 0, jz = 0, stoneY = -1e9f;
         if (st == S_DYING) {
-            float tremble = sm(sk / 40f) * (sk < 40 ? 1 : 0);
-            jx = (float) Math.sin(t * 2.7) * 0.8f * tremble;
-            jz = (float) Math.cos(t * 3.1) * 0.8f * tremble;
-            eyeDim = Math.max(0.15f, 0.4f * (1 - sm(sk / 30f)));
-            if (sk >= 40) {
-                float u = MathHelper.clamp((sk - 40) / 12f, 0f, 1f);
-                float fall = u * u;                                        // падают с ускорением, затем отскок
-                float bounce = sk > 52 ? MathHelper.sin((sk - 52) * 0.8f) * 6 * Math.max(0, 1 - (sk - 52) / 16f) : 0;
-                float ang = 80 * fall - Math.abs(bounce);
-                if (BELL_L >= 0) rot[BELL_L].set(0, 0, -ang);
-                if (BELL_R >= 0) rot[BELL_R].set(0, 0, ang);
-                if (EYE >= 0) sc[EYE] = Math.max(0.01f, 1 - sm((sk - 40) / 8f));
-                if (CHAINS >= 0) hide[CHAINS] = true;
-                if (ROBE >= 0) {
-                    sc[ROBE] = Math.max(0.01f, 1 - 0.4f * sm((sk - 40) / 20f));
-                    rot[ROBE].set(0, 0, 0);
-                }
-            }
-            if (sk > 130) dim = 1f - 0.5f * sm((sk - 130) / 30f);
-            for (int i : new int[] { BELL_RG, BELL_LG }) if (i >= 0 && sk > 40) hide[i] = sk > 40 + (i == BELL_RG ? 22 : 28);
+            float tremble = sk < STONE_T ? 1 - sm(sk / STONE_T) : 0;
+            jx = (float) Math.sin(t * 2.7) * 0.6f * tremble;
+            jz = (float) Math.cos(t * 3.1) * 0.6f * tremble;
+            eyeDim = Math.max(0.1f, 0.4f * (1 - sm(sk / 20f)));
+            stoneY = -10 + 150 * sm(sk / STONE_T);
         } else if (e.widened()) {
             // гул: колокол мелко дрожит
             jx = (float) Math.sin(t * 3.9) * 0.35f;
@@ -196,7 +185,7 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw - spinDeg));
         ms.scale(scale / 16f, scale / 16f, scale / 16f);
         ms.translate(jx, 30 * robeVis, jz);
-        if (st != S_DYING || sk < 40) {
+        {
             ms.translate(0, 50, 0);
             ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees(p[0]));
             ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(p[1]));
@@ -208,8 +197,12 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
         for (int i = 0; i < n; i++) eyeOnly[i] = true;
         if (EYE >= 0) { noEye[EYE] = true; eyeOnly[EYE] = false; }
         if (EYE_G >= 0) { noEye[EYE_G] = true; eyeOnly[EYE_G] = hide[EYE_G]; }
-        m.render(ms, vc, false, light, overlay, mats, dim, dim, dim, -1e9f, 1e9f, noEye, null);
-        m.render(ms, vc, false, light, overlay, mats, eyeDim, eyeDim * 1.05f, eyeDim, -1e9f, 1e9f, eyeOnly, null);
+        m.render(ms, vc, false, light, overlay, mats, dim, dim, dim, stoneY, 1e9f, noEye, null);
+        m.render(ms, vc, false, light, overlay, mats, eyeDim, eyeDim * 1.05f, eyeDim, stoneY, 1e9f, eyeOnly, null);
+        if (stoneY > -1e8f) {
+            VertexConsumer sv = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(STONE));
+            m.render(ms, sv, true, light, overlay, mats, 1f, 1f, 1f, stoneY, 1e9f, hide, null);
+        }
         ms.pop();
 
         if (st == S_FIGHT && a == DROP && k < 46) dropShadow(e, td, k, ms, vcp);

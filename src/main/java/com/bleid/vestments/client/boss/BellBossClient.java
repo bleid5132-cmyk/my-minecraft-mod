@@ -493,19 +493,32 @@ public final class BellBossClient {
                     spawn(SMOKE, p.x, p.y, p.z).vel(rr(-0.05, 0.05), rr(0, 0.08), rr(-0.05, 0.05)).size(0.3f, 0.9f).color(ASH_D).alpha(0.5f).life(40);
                 }
             }
-            case SilentBellEntity.E_SPLIT -> {
-                shake(p, 1.2f, 30);
-                spawn(BEAM, p.x, p.y, p.z).mode(Mode.BEAM).height(9f).size(0.6f, 0.05f).color(GREEN).life(30).fade(0f, 0.7f);
-                spawn(FLARE, p.x, p.y + 3, p.z).size(5f, 0.5f).color(PALE).life(16);
-                for (int i = 0; i < 40; i++) {
-                    spawn(STAR, p.x + rr(-0.4, 0.4), p.y + rr(0.5, 5.5), p.z + rr(-0.4, 0.4)).vel(rr(-0.3, 0.3), rr(0, 0.3), rr(-0.3, 0.3))
-                            .gravity(0.04f).drag(0.95f).rot((float) rr(0, 6), 0.3f).size(0.12f).color(BRONZE).life(40);
+            case SilentBellEntity.E_SPLIT -> {                        // окаменел: каменная пыль, глухой удар
+                shake(p, 0.5f, 18);
+                double gy = groundY(p.add(0, 1, 0)) + 0.06;
+                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 9f).ease().color(ASH).alpha(0.6f).life(16).fade(0f, 0.6f);
+                dust(p, 40, 2.6, 1.2f);
+                for (int i = 0; i < 24; i++) {
+                    spawn(STAR, p.x + rr(-1.6, 1.6), p.y + rr(0.5, 5.5), p.z + rr(-1.6, 1.6)).vel(rr(-0.08, 0.08), rr(0, 0.1), rr(-0.08, 0.08))
+                            .gravity(0.04f).rot((float) rr(0, 6), 0.2f).size(0.1f).color(ASH).life(24);
                 }
-                for (int r = 0; r < 4; r++) {
-                    spawn(RING, p.x, p.y + 0.1, p.z).mode(Mode.FLAT).delay(r * 8).size(1f, 14f - r * 2).color(r % 2 == 0 ? GREEN : PATINA)
-                            .alpha(0.6f - r * 0.12f).life(30).fade(0f, 0.6f);
+            }
+            case SilentBellEntity.E_STONE_HIT -> {                    // каменный колокол взрывается
+                shake(p, 2f, 40);
+                spawn(FLARE, p.x, p.y, p.z).size(9f, 0.5f).color(PALE).life(10);
+                spawn(SHOCK, p.x, p.y, p.z).size(1f, 16f).ease().colors(PALE, GREEN).life(14).fade(0f, 0.7f);
+                double gy = groundY(p.add(0, 1, 0)) + 0.06;
+                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 24f).ease().colors(WHITE, ASH).life(16).fade(0f, 0.8f);
+                spawn(BEAM, p.x, gy, p.z).mode(Mode.BEAM).height(14f).size(2.2f, 0.1f).colors(PALE, GREEN).life(14).fade(0f, 0.8f);
+                for (int i = 0; i < 90; i++) {                          // каменные обломки
+                    spawn(STAR, p.x + rr(-1.2, 1.2), p.y + rr(-1.5, 2.5), p.z + rr(-1.2, 1.2)).vel(rr(-0.9, 0.9), rr(0.2, 1.1), rr(-0.9, 0.9))
+                            .gravity(0.06f).drag(0.97f).rot((float) rr(0, 6), 0.4f).size(0.18f, 0.12f).color(i % 4 == 0 ? BRONZE : ASH).life(40 + R().nextInt(20));
                 }
-                dust(p, 40, 3.4, 1.2f);
+                for (int i = 0; i < 40; i++) {                          // зелёный свет, запертый в камне, вырывается наружу
+                    spawn(i % 2 == 0 ? GLINT : ORB, p.x, p.y, p.z).vel(rr(-0.7, 0.7), rr(-0.3, 0.8), rr(-0.7, 0.7)).drag(0.92f)
+                            .size(0.2f, 0.05f).colors(PALE, GREEN).life(18 + R().nextInt(10));
+                }
+                dust(p, 70, 5, 1.6f);
             }
             case SilentBellEntity.E_RAM_CHARGE -> {
                 int dur = (int) arg;
@@ -666,7 +679,7 @@ public final class BellBossClient {
         int st = e.state();
         Random r = R();
         if (st == SilentBellEntity.S_AWAKEN && e.age - e.clientStateStart < SilentBellEntity.A_TOLL) return;   // тишина
-        if (st == SilentBellEntity.S_DYING && e.age - e.clientStateStart > 40) return;
+        if (st == SilentBellEntity.S_STONE || st == SilentBellEntity.S_DYING && e.age - e.clientStateStart > 20) return;
         // зелёные искры поднимаются из трещины; лохмотья роняют пыль
         if (e.age % 2 == 0) {
             Vec3d c = e.eyePos();

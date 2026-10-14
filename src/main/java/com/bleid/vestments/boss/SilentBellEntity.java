@@ -46,13 +46,17 @@ import net.minecraft.world.World;
  */
 public class SilentBellEntity extends BossBase {
     public static final int IDLE = 0, RING = 1, DROP = 2, CHOIR = 3, RAM = 4, SPIN = 5, VOLLEY = 6, HOPS = 7, KNELL = 8;
-    public static final int S_AWAKEN = 0, S_FIGHT = 1, S_DYING = 2;
+    public static final int S_AWAKEN = 0, S_FIGHT = 1, S_DYING = 2, S_STONE = 3;
     /** Пробуждение: тишина, удар колокола, открытие глаза, подъём. */
     public static final int A_TOLL = 50, A_EYE = 60, A_RISEN = 100;
     public static final int E_AWAKE = 1, E_CLANG = 2, E_CONE_CHARGE = 3, E_CONE = 4, E_SHADOW = 5, E_DROP_LAND = 6, E_TRAP = 7,
             E_TRAP_HIT = 8, E_RELEASE = 9, E_CHOIR = 10, E_HEAL = 11, E_GROUND_RING = 12, E_EYE_OPEN = 13, E_WIDEN = 14,
             E_SPLIT = 15, E_DARK = 16, E_RING_HIT = 17, E_RAM_CHARGE = 18, E_RAM_WALL = 19, E_SPIN = 20, E_CHAIN_HIT = 21,
-            E_ORB_FIRE = 22, E_ORB_BURST = 23, E_HOP_LAND = 24, E_PHANTOM_MARK = 25, E_PHANTOM_FALL = 26, E_DASH = 27, E_RAM_HIT = 28;
+            E_ORB_FIRE = 22, E_ORB_BURST = 23, E_HOP_LAND = 24, E_PHANTOM_MARK = 25, E_PHANTOM_FALL = 26, E_DASH = 27, E_RAM_HIT = 28,
+            E_STONE_HIT = 29;
+    /** Смерть: колокол каменеет за STONE_T тактов; затем удар или стрела — взрыв силой STONE_BLAST. */
+    public static final int STONE_T = 40;
+    public static final float STONE_BLAST = 7f;
     /** Скорость звуковых сфер, их жизнь; радиус вихря цепей; круг призрачного колокола. */
     public static final float ORB_SPEED = 0.85f, SPIN_R = 5.5f, PHANTOM_R = 2.4f;
     public static final int ORB_LIFE = 50, SPIN_UP = 10, KNELL_MARK = 4, KNELL_FALL = 30;
@@ -188,7 +192,7 @@ public class SilentBellEntity extends BossBase {
         if (age % 10 == 0 && state() != S_FIGHT) forgetMe();
         switch (state()) {
             case S_AWAKEN -> awaken();
-            case S_DYING -> tickDying();
+            case S_DYING, S_STONE -> tickDying();
             default -> fight();
         }
     }
@@ -957,12 +961,14 @@ public class SilentBellEntity extends BossBase {
     public boolean damage(DamageSource source, float amount) {
         if (getWorld().isClient) return false;
         if (source.isOf(DamageTypes.OUT_OF_WORLD) || source.isOf(DamageTypes.GENERIC_KILL)) {
-            if (state() == S_DYING) {
+            if (state() == S_DYING || state() == S_STONE) {
                 discard();
                 return true;
             }
             return super.damage(source, amount);
         }
+        if (state() == S_STONE) return hitStone(source);
+        if (state() == S_DYING) return false;
         if (source.getAttacker() == this || state() != S_FIGHT) return false;
         Entity src = source.getAttacker();
         if (trapped != null && src == trapped) {
@@ -1025,7 +1031,7 @@ public class SilentBellEntity extends BossBase {
     }
 
     public void startDying() {
-        if (state() == S_DYING) return;
+        if (state() == S_DYING || state() == S_STONE) return;
         setHealth(1f);
         if (trapped != null) release();
         setAttack(IDLE);
@@ -1042,41 +1048,58 @@ public class SilentBellEntity extends BossBase {
         sound(SoundEvents.BLOCK_BEACON_DEACTIVATE, 3f, 0.4f);
     }
 
+    /** Смерть: глаз гаснет, колокол опускается на землю и каменеет снизу вверх. Каменный колокол ждёт удара. */
     private void tickDying() {
         int k = stateTicks;
         setTarget(null);
         double gy = ground(getPos().add(0, 1, 0));
         setVelocity(0, MathHelper.clamp((gy - getY()) * 0.12, -0.25, 0.1), 0);
         if (k == 30) bossBar.setVisible(false);
-        if (k == 40) {
-            sound(SoundEvents.BLOCK_BELL_USE, 6f, 0.5f);
-            sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 4f, 0.5f);
-            sound(SoundEvents.BLOCK_ANVIL_BREAK, 3f, 0.4f);
+        if (k == 1) sound(SoundEvents.BLOCK_DEEPSLATE_PLACE, 3f, 0.5f);
+        if (k > 1 && k < STONE_T && k % 6 == 0) sound(SoundEvents.BLOCK_STONE_PLACE, 2.5f, 0.4f + k * 0.008f);
+        if (k == STONE_T) {
+            sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 3f, 0.4f);
+            sound(SoundEvents.BLOCK_BELL_RESONATE, 2f, 0.3f);
             event(E_SPLIT, getPos(), 0);
+            dataTracker.set(STATE, S_STONE);
         }
-        // долгое эхо раскола
-        if (k == 46 || k == 58 || k == 74 || k == 94 || k == 118) {
-            float fade = 1f - (k - 46) / 90f;
-            sound(SoundEvents.BLOCK_BELL_RESONATE, 4f * fade + 0.4f, 0.45f);
-        }
-        if (k == 60 && getWorld() instanceof ServerWorld sw) {
-            ItemEntity it = new ItemEntity(sw, getX(), gy + 1.0, getZ(), new ItemStack(Bosses.BELL_TONGUE));
-            it.setVelocity(0, 0.25, 0);
-            it.setToDefaultPickupDelay();
-            it.setGlowing(true);
-            sw.spawnEntity(it);
-        }
-        if (k >= 160) discard();
+        if (k > STONE_T && age % 80 == 0) sound(SoundEvents.BLOCK_BELL_RESONATE, 0.8f, 0.3f);   // глухое эхо внутри камня
+    }
+
+    /** Окаменевший колокол: удар игрока или снаряд — мощный взрыв (3–4 крипера), выпадает Язык Колокола. */
+    private boolean hitStone(DamageSource source) {
+        if (state() != S_STONE || isRemoved()) return false;
+        Entity atk = source.getAttacker();
+        if (atk == this || source.isOf(DamageTypes.EXPLOSION) || source.isOf(DamageTypes.PLAYER_EXPLOSION)) return false;
+        if (atk == null && source.getSource() == null) return false;
+        if (!(getWorld() instanceof ServerWorld sw)) return false;
+        Vec3d c = getPos().add(0, 2.2, 0);
+        event(E_STONE_HIT, c, 0);
+        sound(SoundEvents.BLOCK_BELL_USE, 6f, 0.4f);
+        sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 4f, 0.5f);
+        discard();
+        sw.createExplosion(this, c.x, c.y, c.z, STONE_BLAST, World.ExplosionSourceType.MOB);
+        ItemEntity it = new ItemEntity(sw, getX(), getY() + 1.0, getZ(), new ItemStack(Bosses.BELL_TONGUE));
+        it.setVelocity(0, 0.35, 0);
+        it.setToDefaultPickupDelay();
+        it.setGlowing(true);
+        it.setInvulnerable(true);
+        sw.spawnEntity(it);
+        return true;
+    }
+
+    public boolean stone() {
+        return state() == S_STONE;
     }
 
     @Override
     public boolean isAttackable() {
-        return state() == S_FIGHT;
+        return state() == S_FIGHT || state() == S_STONE;
     }
 
     @Override
     public boolean canHit() {
-        return state() != S_DYING && super.canHit();
+        return state() != S_AWAKEN && !isRemoved();
     }
 
     @Override
@@ -1127,6 +1150,10 @@ public class SilentBellEntity extends BossBase {
             if (s == S_FIGHT) {
                 dataTracker.set(STATE, S_FIGHT);
                 bossBar.setVisible(true);
+            } else if (s == S_STONE) {                       // каменный колокол так и стоит, ждёт удара
+                dataTracker.set(STATE, S_STONE);
+                stateTicks = STONE_T + 1;
+                bossBar.setVisible(false);
             }
         }
         bossBar.setName(getDisplayName());
