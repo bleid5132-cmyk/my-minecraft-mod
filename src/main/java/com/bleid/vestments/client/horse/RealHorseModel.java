@@ -25,8 +25,8 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     static final Identifier ARMOR_GEO = new Identifier("vestments", "geo/horse_armor.geo.json");
     static final Identifier ANIMS = new Identifier("vestments", "animations/horse.animation.json");
 
-    /** Рост как у настоящей верховой лошади: холка ~1,75 блока при росте игрока 1,8. */
-    static final float SCALE = 1.08f;
+    /** Модель в пропорциях SWEM (холка 32 px); масштаб даёт холку ~1,75 блока при росте игрока 1,8. */
+    static final float SCALE = 0.875f;
     static GeoModel model, tack, armor;
     static int[] tackMap, armorMap;
     static GeoAnimations anims;

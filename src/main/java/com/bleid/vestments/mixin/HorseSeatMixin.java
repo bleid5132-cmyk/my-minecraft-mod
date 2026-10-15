@@ -18,6 +18,6 @@ public abstract class HorseSeatMixin extends AbstractHorseEntity {
 
     @Override
     public double getMountedHeightOffset() {
-        return getHeight() * 0.75 + 0.17;
+        return getHeight() * 0.75 + 0.2;
     }
 }
