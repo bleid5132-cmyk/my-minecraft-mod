@@ -4,7 +4,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.passive.HorseEntity;
+import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.util.math.MathHelper;
 
 /**
@@ -20,8 +20,8 @@ public final class RiderPose {
         public float legPitch, legRoll, legOut, knee, armPitch, armRoll, elbow, chest, rise, sway;
     }
 
-    public static HorseEntity horse(Entity e) {
-        return e != null && e.getVehicle() instanceof HorseEntity h && !h.isBaby() ? h : null;
+    public static AbstractHorseEntity horse(Entity e) {
+        return e != null && e.getVehicle() instanceof AbstractHorseEntity h && !h.isBaby() ? h : null;
     }
 
     private static float sm(float x) {
@@ -31,7 +31,7 @@ public final class RiderPose {
 
     /** Поза для всадника этой лошади (null — сидит не на нашей лошади или она ещё не нарисована). */
     public static Pose compute(LivingEntity rider) {
-        HorseEntity h = horse(rider);
+        AbstractHorseEntity h = horse(rider);
         if (h == null) return null;
         RealHorseModel.State s = RealHorseModel.state(h);
         if (s == null) return null;

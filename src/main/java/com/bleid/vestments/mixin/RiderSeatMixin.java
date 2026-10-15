@@ -5,7 +5,7 @@ import com.bleid.vestments.client.horse.RiderPose;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.passive.HorseEntity;
+import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import org.joml.Vector3f;
@@ -26,7 +26,7 @@ public abstract class RiderSeatMixin {
     @Inject(method = "setupTransforms(Lnet/minecraft/client/network/AbstractClientPlayerEntity;Lnet/minecraft/client/util/math/MatrixStack;FFF)V",
             at = @At("HEAD"))
     private void vestments$seatMove(AbstractClientPlayerEntity player, MatrixStack ms, float progress, float bodyYaw, float td, CallbackInfo ci) {
-        HorseEntity h = RiderPose.horse(player);
+        AbstractHorseEntity h = RiderPose.horse(player);
         if (h == null) return;
         RealHorseModel.State s = RealHorseModel.state(h);
         RiderPose.Pose p = RiderPose.compute(player);
@@ -44,7 +44,7 @@ public abstract class RiderSeatMixin {
     @Inject(method = "setupTransforms(Lnet/minecraft/client/network/AbstractClientPlayerEntity;Lnet/minecraft/client/util/math/MatrixStack;FFF)V",
             at = @At("TAIL"))
     private void vestments$seatTilt(AbstractClientPlayerEntity player, MatrixStack ms, float progress, float bodyYaw, float td, CallbackInfo ci) {
-        HorseEntity h = RiderPose.horse(player);
+        AbstractHorseEntity h = RiderPose.horse(player);
         if (h == null) return;
         RealHorseModel.State s = RealHorseModel.state(h);
         RiderPose.Pose p = RiderPose.compute(player);

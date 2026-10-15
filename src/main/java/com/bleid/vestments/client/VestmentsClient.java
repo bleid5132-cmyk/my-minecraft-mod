@@ -50,6 +50,10 @@ public class VestmentsClient implements ClientModInitializer {
         // реалистичные лошади вместо ванильных (только вид и анимации — механика ванильная)
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(net.minecraft.entity.EntityType.HORSE,
                 com.bleid.vestments.client.horse.RealHorseRenderer::new);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(net.minecraft.entity.EntityType.SKELETON_HORSE,
+                ctx -> com.bleid.vestments.client.horse.RealHorseRenderer.of(ctx, com.bleid.vestments.client.horse.RealHorseRenderer.SKELETON));
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(net.minecraft.entity.EntityType.ZOMBIE_HORSE,
+                ctx -> com.bleid.vestments.client.horse.RealHorseRenderer.of(ctx, com.bleid.vestments.client.horse.RealHorseRenderer.ZOMBIE));
         PaladinKeys.register();
         PaladinHud.register();
         DodgeClient.register();

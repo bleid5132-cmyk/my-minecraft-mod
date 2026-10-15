@@ -7,7 +7,7 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.passive.HorseEntity;
+import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
@@ -19,7 +19,7 @@ import org.joml.Matrix4f;
  * взмахи хвостом, встряхивание головой, взгляд. Поведение лошади остаётся ванильным.
  */
 @Environment(EnvType.CLIENT)
-public class RealHorseModel extends EntityModel<HorseEntity> {
+public class RealHorseModel extends EntityModel<AbstractHorseEntity> {
     static final Identifier GEO = new Identifier("vestments", "geo/horse.geo.json");
     static final Identifier TACK_GEO = new Identifier("vestments", "geo/horse_tack.geo.json");
     static final Identifier ARMOR_GEO = new Identifier("vestments", "geo/horse_armor.geo.json");
@@ -71,10 +71,10 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         }
     }
 
-    static final Map<HorseEntity, State> STATES = new WeakHashMap<>();
+    static final Map<AbstractHorseEntity, State> STATES = new WeakHashMap<>();
 
     /** Состояние лошади с последнего кадра (для позы и посадки всадника); null — лошадь ещё не рисовалась. */
-    public static State state(HorseEntity h) {
+    public static State state(AbstractHorseEntity h) {
         State s = STATES.get(h);
         return s != null && s.seatValid ? s : null;
     }
@@ -103,7 +103,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     }
 
     @Override
-    public void setAngles(HorseEntity e, float limbAngle, float limbDistance, float t, float headYaw, float headPitch) {
+    public void setAngles(AbstractHorseEntity e, float limbAngle, float limbDistance, float t, float headYaw, float headPitch) {
         ensure();
         baby = e.isBaby();
         State s = STATES.computeIfAbsent(e, k -> {
@@ -219,7 +219,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
      * Грива: каждая прядь — пружина на шарнире вдоль гребня. Её отбрасывает поворот шеи и корпуса, тряска на аллюре
      * и встречный ветер на скорости; прядь может только отходить от шеи наружу (угол ≥ 0), поэтому сквозь шею не проходит.
      */
-    private static void mane(State s, GeoAnimations.Pose p, HorseEntity e, float dt, float sp, float t) {
+    private static void mane(State s, GeoAnimations.Pose p, AbstractHorseEntity e, float dt, float sp, float t) {
         if (LOCKS[0] < 0 || dt <= 0f) return;
         float neckYaw = p.rot[NECK * 3 + 1] + p.rot[HEAD * 3 + 1] * 0.5f;
         float bodyYaw = e.bodyYaw;

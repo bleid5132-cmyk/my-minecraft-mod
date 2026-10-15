@@ -14,6 +14,7 @@ import net.minecraft.client.render.entity.feature.FeatureRenderer;
 import net.minecraft.client.render.entity.feature.FeatureRendererContext;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.passive.HorseColor;
+import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.entity.passive.HorseEntity;
 import net.minecraft.entity.passive.HorseMarking;
 import net.minecraft.item.DyeableHorseArmorItem;
@@ -23,7 +24,7 @@ import net.minecraft.util.Identifier;
 
 /** Рендер ванильной лошади нашей моделью: масть, отметины, броня, седло с оголовьем. */
 @Environment(EnvType.CLIENT)
-public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseModel> {
+public class RealHorseRenderer extends MobEntityRenderer<AbstractHorseEntity, RealHorseModel> {
     private static final Map<HorseColor, Identifier[]> COAT = new EnumMap<>(HorseColor.class);
     private static final Map<HorseMarking, Identifier[]> MARK = new EnumMap<>(HorseMarking.class);
     static final Identifier TACK_TEX = tex("tack");
@@ -58,8 +59,21 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
         return new Identifier("vestments", "textures/entity/horse/" + n + ".png");
     }
 
+    /** Лошадь-скелет и лошадь-зомби: та же модель и анимации, своя «шкура». */
+    public static final Identifier SKELETON = tex("coat_skeleton"), ZOMBIE = tex("coat_zombie");
+    private final java.util.function.Function<AbstractHorseEntity, Identifier> skin;
+
     public RealHorseRenderer(EntityRendererFactory.Context ctx) {
+        this(ctx, e -> e instanceof HorseEntity h ? COAT.get(h.getVariant())[0] : COAT.get(HorseColor.BROWN)[0]);
+    }
+
+    public static RealHorseRenderer of(EntityRendererFactory.Context ctx, Identifier skin) {
+        return new RealHorseRenderer(ctx, e -> skin);
+    }
+
+    public RealHorseRenderer(EntityRendererFactory.Context ctx, java.util.function.Function<AbstractHorseEntity, Identifier> skin) {
         super(ctx, new RealHorseModel(), 1.0f);
+        this.skin = skin;
         addFeature(new Markings(this));
         addFeature(new Armor(this));
         addFeature(new Tack(this));
@@ -68,7 +82,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
     static final Identifier REIN = tex("rein");
 
     @Override
-    public void render(HorseEntity e, float yaw, float td, MatrixStack ms, VertexConsumerProvider vcp, int light) {
+    public void render(AbstractHorseEntity e, float yaw, float td, MatrixStack ms, VertexConsumerProvider vcp, int light) {
         super.render(e, yaw, td, ms, vcp, light);
         if (e.isSaddled() && !e.isInvisible() && !e.isBaby()) reins(e, td, ms, vcp, light);
     }
@@ -77,7 +91,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
      * Повод: от колец трензеля к рукам всадника; без всадника — лежит на шее и уходит к луке седла.
      * Точки считаются в осях модели (пиксели) по текущей позе лошади, затем переводятся в мир.
      */
-    private void reins(HorseEntity e, float td, MatrixStack ms, VertexConsumerProvider vcp, int light) {
+    private void reins(AbstractHorseEntity e, float td, MatrixStack ms, VertexConsumerProvider vcp, int light) {
         RealHorseModel m = getModel();
         if (m.mats == null || RealHorseModel.HEAD < 0) return;
         float by = net.minecraft.util.math.MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
@@ -157,35 +171,36 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
     }
 
     @Override
-    public Identifier getTexture(HorseEntity e) {
-        return COAT.get(e.getVariant())[0];
+    public Identifier getTexture(AbstractHorseEntity e) {
+        return skin.apply(e);
     }
 
-    static int overlay(HorseEntity e) {
+    static int overlay(AbstractHorseEntity e) {
         return LivingEntityRenderer.getOverlay(e, 0f);
     }
 
-    static final class Markings extends FeatureRenderer<HorseEntity, RealHorseModel> {
-        Markings(FeatureRendererContext<HorseEntity, RealHorseModel> ctx) {
+    static final class Markings extends FeatureRenderer<AbstractHorseEntity, RealHorseModel> {
+        Markings(FeatureRendererContext<AbstractHorseEntity, RealHorseModel> ctx) {
             super(ctx);
         }
 
         @Override
-        public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, HorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
-            Identifier[] t = MARK.get(e.getMarking());
+        public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, AbstractHorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
+            Identifier[] t = e instanceof HorseEntity h ? MARK.get(h.getMarking()) : null;
             if (t == null || e.isInvisible()) return;
             getContextModel().render(ms, vcp.getBuffer(RenderLayer.getEntityTranslucent(t[0])), light, overlay(e), 1f, 1f, 1f, 1f);
         }
     }
 
-    static final class Armor extends FeatureRenderer<HorseEntity, RealHorseModel> {
-        Armor(FeatureRendererContext<HorseEntity, RealHorseModel> ctx) {
+    static final class Armor extends FeatureRenderer<AbstractHorseEntity, RealHorseModel> {
+        Armor(FeatureRendererContext<AbstractHorseEntity, RealHorseModel> ctx) {
             super(ctx);
         }
 
         @Override
-        public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, HorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
-            ItemStack st = e.getArmorType();
+        public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, AbstractHorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
+            if (!(e instanceof HorseEntity h)) return;
+            ItemStack st = h.getArmorType();
             if (st.isEmpty() || e.isInvisible()) return;
             Identifier t;
             float r = 1f, g = 1f, b = 1f;
@@ -201,13 +216,13 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
         }
     }
 
-    static final class Tack extends FeatureRenderer<HorseEntity, RealHorseModel> {
-        Tack(FeatureRendererContext<HorseEntity, RealHorseModel> ctx) {
+    static final class Tack extends FeatureRenderer<AbstractHorseEntity, RealHorseModel> {
+        Tack(FeatureRendererContext<AbstractHorseEntity, RealHorseModel> ctx) {
             super(ctx);
         }
 
         @Override
-        public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, HorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
+        public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, AbstractHorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
             if (!e.isSaddled() || e.isInvisible()) return;
             getContextModel().renderTack(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TACK_TEX)), light, OverlayTexture.DEFAULT_UV);
         }
