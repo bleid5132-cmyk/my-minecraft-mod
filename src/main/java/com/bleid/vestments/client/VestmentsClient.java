@@ -63,5 +63,7 @@ public class VestmentsClient implements ClientModInitializer {
         com.bleid.vestments.client.fx.FxEffects.register();
         net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(
                 Vestments.HOLY_ALTAR, net.minecraft.client.render.RenderLayer.getCutout());
+        net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(
+                Vestments.BELL_PORTAL, net.minecraft.client.render.RenderLayer.getTranslucent());
     }
 }

@@ -10,11 +10,17 @@ public final class RankView {
     public static volatile int clientPoints;
     /** Только клиент: класс локального игрока ("" — не выбран). */
     public static volatile String clientClass = "";
+    /** Только клиент: победил ли локальный игрок Звонаря (открывает сан Патриарха). */
+    public static volatile boolean clientBellSlain;
+
+    public static int clientRankFor(int points) {
+        return Ranks.rankFor(points, clientBellSlain);
+    }
 
     private RankView() { }
 
     public static int clientRank() {
-        return clientPriest ? Ranks.rankFor(clientPoints) : -1;
+        return clientPriest ? clientRankFor(clientPoints) : -1;
     }
 
     public static boolean clientPaladin() {

@@ -35,12 +35,13 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
     private static VoxelModel model;
     private static int BELL_R, BELL_RG, BELL_L, BELL_LG, EYE, EYE_G, ROBE, CHAINS;
     static final Springs SPRINGS = new Springs();
+    static final float SC = (float) SilentBellEntity.S;
     // поза: наклон X, Z, взгляд yaw, pitch, ряса X, Z
     private static final float[] OMEGA = { 5, 5, 9, 9, 6, 6 };
 
     public SilentBellRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
-        shadowRadius = 2.2f;
+        shadowRadius = 4.4f;
         shadowOpacity = 0.6f;
     }
 
@@ -183,7 +184,7 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
 
         ms.push();
         ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw - spinDeg));
-        ms.scale(scale / 16f, scale / 16f, scale / 16f);
+        ms.scale(scale * SC / 16f, scale * SC / 16f, scale * SC / 16f);
         ms.translate(jx, 30 * robeVis, jz);
         {
             ms.translate(0, 50, 0);
@@ -259,7 +260,7 @@ public class SilentBellRenderer extends EntityRenderer<SilentBellEntity> {
             }
         }
         float u = MathHelper.clamp(k / 40f, 0f, 1f);
-        float r = 2.8f * (0.55f + 0.45f * u), al = 0.35f + 0.6f * u;
+        float r = 2.8f * SC * (0.55f + 0.45f * u), al = 0.35f + 0.6f * u;
         float yy = (float) (gy - ey + 0.02);
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityShadow(SHADOW));
         MatrixStack.Entry en = ms.peek();

@@ -278,5 +278,12 @@
   "entity.vestments.choir_singer": "Призрачный певчий",
   "item.vestments.bell_ringer_spawn_egg": "Яйцо призыва: Звонарь Безмолвного Собора",
   "item.vestments.bell_tongue": "Язык Колокола",
-  "tooltip.vestments.bell_tongue": "Каждый удар звенит: оглушает и замедляет врага"
+  "tooltip.vestments.bell_tongue": "Каждый удар звенит: оглушает и замедляет врага",
+  "block.vestments.bell_portal": "Звуковая завеса",
+  "message.vestments.patriarch_locked": "Сан Патриарха откроется лишь тому, кто одолеет Звонаря Безмолвного Собора.",
+  "message.vestments.patriarch_unlocked": "Звонарь повержен — вам открыт путь к сану Патриарха.",
+  "message.vestments.cathedral_missing": "Безмолвный Собор недоступен: измерение не загружено.",
+  "message.vestments.cathedral_enter": "Безмолвный Собор",
+  "message.vestments.fight_no_build": "Во время битвы нельзя ставить и ломать блоки",
+  "message.vestments.fight_barrier": "Звуковой барьер не выпускает из собора, пока идёт битва"
 }

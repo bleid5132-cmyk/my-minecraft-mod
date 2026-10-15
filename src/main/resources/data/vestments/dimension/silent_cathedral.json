@@ -1,0 +1,13 @@
+{
+  "type": "vestments:silent_cathedral",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "layers": [ { "block": "minecraft:air", "height": 1 } ],
+      "biome": "minecraft:the_void",
+      "lakes": false,
+      "features": false,
+      "structure_overrides": []
+    }
+  }
+}

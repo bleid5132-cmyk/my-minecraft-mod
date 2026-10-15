@@ -76,16 +76,24 @@ public class BellRingerEntity extends BossBase {
     private int landTick = -1, stepTimer, dyingTicks = -1, lastTurn;
     private float swingYaw;
 
+    /** Звонарь вдвое больше исходной модели. */
+    public static final double S = 2.0;
+
+    @Override
+    public double scale() {
+        return S;
+    }
+
     public BellRingerEntity(EntityType<? extends HostileEntity> type, World world) {
         super(type, world, BossBar.Color.WHITE);
-        setStepHeight(1.1f);
+        setStepHeight(2.2f);
         experiencePoints = 0;
         bossBar.setVisible(false);                       // до пробуждения полосы нет
     }
 
     public static DefaultAttributeContainer.Builder createAttributes() {
         return HostileEntity.createHostileAttributes()
-                .add(EntityAttributes.GENERIC_MAX_HEALTH, 500)
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 1500)
                 .add(EntityAttributes.GENERIC_ARMOR, 10)
                 .add(EntityAttributes.GENERIC_ARMOR_TOUGHNESS, 6)
                 .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 18)
@@ -231,27 +239,27 @@ public class BellRingerEntity extends BossBase {
             return;
         }
         boolean p2 = phase2();
-        if (p2 && ready(SWING) && d < 11 && random.nextFloat() < 0.45f) {
+        if (p2 && ready(SWING) && d < 11 * S && random.nextFloat() < 0.45f) {
             cds.put(SWING, 280);
             begin(SWING);
             return;
         }
-        if (d > 6.5 && d < 16 && ready(CHAINS) && random.nextFloat() < 0.6f) {
+        if (d > 6.5 * S && d < 16 * S && ready(CHAINS) && random.nextFloat() < 0.6f) {
             cds.put(CHAINS, p2 ? 100 : 140);
             begin(CHAINS);
             return;
         }
-        if (p2 && d > 5.5 && d < 18 && ready(LEAP) && random.nextFloat() < 0.6f) {
+        if (p2 && d > 5.5 * S && d < 18 * S && ready(LEAP) && random.nextFloat() < 0.6f) {
             cds.put(LEAP, 90);
             begin(LEAP);
             return;
         }
-        if (d < 9 && ready(TOLL) && random.nextFloat() < 0.35f) {
+        if (d < 9 * S && ready(TOLL) && random.nextFloat() < 0.35f) {
             cds.put(TOLL, p2 ? 120 : 170);
             begin(TOLL);
             return;
         }
-        if (d < 6.0) {
+        if (d < 6.0 * S) {
             begin(SMASH);
             return;
         }
@@ -297,18 +305,19 @@ public class BellRingerEntity extends BossBase {
             p = new Vec3d(p.x, ground(p), p.z);
             // зона удара: круг у места удара + вся полоса, по которой опускается молот, — вплотную к боссу тоже попадает
             Vec3d f = forward(), r = new Vec3d(-f.z, 0, f.x);
-            for (LivingEntity e : enemies(getBoundingBox().expand(7.5, 2.6, 7.5))) {
+            for (LivingEntity e : enemies(getBoundingBox().expand(7.5 * S, 2.6 * S, 7.5 * S))) {
                 Vec3d d = e.getPos().subtract(getPos());
                 double fw = d.x * f.x + d.z * f.z, lat = Math.abs(d.x * r.x + d.z * r.z);
-                boolean inCircle = hdist(e.getPos(), p) <= 2.4 + e.getWidth() * 0.5;
-                boolean inPath = fw > -0.8 && fw < 4.8 && lat < 2.3 + e.getWidth() * 0.5;
-                if (!inCircle && !inPath || Math.abs(e.getY() - p.y) > 2.8) continue;
-                e.damage(getDamageSources().mobAttack(this), 20f);
+                boolean inCircle = hdist(e.getPos(), p) <= 2.4 * S + e.getWidth() * 0.5;
+                boolean inPath = fw > -0.8 * S && fw < 4.8 * S && lat < 2.3 * S + e.getWidth() * 0.5;
+                if (!inCircle && !inPath || Math.abs(e.getY() - p.y) > 2.8 * S) continue;
+                e.damage(getDamageSources().mobAttack(this), 40f);
                 knock(e, 0.9, 0.45);
             }
             sound(SoundEvents.BLOCK_ANVIL_LAND, 2.5f, 0.45f);
             sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 1.6f, 0.55f);
             event(E_SLAM, p, 0);
+            com.bleid.vestments.cathedral.Cathedral.smashWalls(this, p.add(0, 1.5 * S, 0), 2.6 * S);         // молот крушит внутренние стены
             crackO = p;
             crackDir = forward();
             crackTick = 0;
@@ -328,12 +337,12 @@ public class BellRingerEntity extends BossBase {
         }
         if (crackTick >= 20 && crackTick < 28) {
             int i = crackTick - 20;
-            for (double s = i * 1.15; s < (i + 1) * 1.15; s += 0.5) {
-                Vec3d p = crackO.add(crackDir.multiply(s + 0.6));
+            for (double s = i * 1.15 * S; s < (i + 1) * 1.15 * S; s += 0.5) {
+                Vec3d p = crackO.add(crackDir.multiply(s + 0.6 * S));
                 p = new Vec3d(p.x, ground(p), p.z);
-                for (LivingEntity e : enemies(new Box(p, p).expand(1.5, 2.5, 1.5))) {
-                    if (hdist(e.getPos(), p) > 1.5 || !crackHit.add(e.getId())) continue;
-                    e.damage(getDamageSources().mobAttack(this), 12f);
+                for (LivingEntity e : enemies(new Box(p, p).expand(1.5 * S, 2.5 * S, 1.5 * S))) {
+                    if (hdist(e.getPos(), p) > 1.5 * S || !crackHit.add(e.getId())) continue;
+                    e.damage(getDamageSources().mobAttack(this), 24f);
                     e.addVelocity(0, 0.75, 0);
                     e.velocityModified = true;
                 }
@@ -350,13 +359,13 @@ public class BellRingerEntity extends BossBase {
             event(E_TOLL, local(0, 6.1, 0.94), 0);
         }
         if (k >= 14 && k <= 29) {
-            double r = (k - 14) * 0.75 + 0.6;
-            for (LivingEntity e : enemies(getBoundingBox().expand(r + 1, 3, r + 1))) {
+            double r = ((k - 14) * 0.75 + 0.6) * S;
+            for (LivingEntity e : enemies(getBoundingBox().expand(r + 1, 3 * S, r + 1))) {
                 double hd = hdist(e.getPos(), getPos());
-                if (hd < r - 0.9 || hd > r + 0.3 || hit.contains(e.getId())) continue;
-                if (hd < 2.6) continue;                                // прямо под колоколом-головой звук не задевает
+                if (hd < r - 0.9 * S || hd > r + 0.3 * S || hit.contains(e.getId())) continue;
+                if (hd < 2.6 * S) continue;                                // прямо под колоколом-головой звук не задевает
                 hit.add(e.getId());
-                e.damage(getDamageSources().mobAttack(this), 8f);
+                e.damage(getDamageSources().mobAttack(this), 16f);
                 e.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 100, 0), this);
                 e.addStatusEffect(new StatusEffectInstance(BossEffects.STUN, 20, 0), this);
                 knock(e, 0.6, 0.2);
@@ -370,7 +379,7 @@ public class BellRingerEntity extends BossBase {
         if (k == 10 && t != null) {
             chainPos = local(0, 6.6, 2.9);                      // с кончика колокола-головы
             Vec3d aim = t.getPos().add(0, t.getHeight() * 0.55, 0);
-            chainVel = aim.subtract(chainPos).normalize().multiply(1.3);
+            chainVel = aim.subtract(chainPos).normalize().multiply(1.3 * S);
             chainDist = 0;
             setChain(1, chainPos);
             sound(SoundEvents.BLOCK_CHAIN_PLACE, 2.5f, 0.5f);
@@ -381,18 +390,18 @@ public class BellRingerEntity extends BossBase {
         if (st == 1) {
             for (int sub = 0; sub < 2 && chainState() == 1; sub++) {
                 chainPos = chainPos.add(chainVel.multiply(0.5));
-                chainDist += 0.65;
-                for (LivingEntity e : enemies(new Box(chainPos, chainPos).expand(0.7))) {
+                chainDist += 0.65 * S;
+                for (LivingEntity e : enemies(new Box(chainPos, chainPos).expand(0.7 * S))) {
                     chainVictim = e;
                     chainTicks = 0;
-                    e.damage(getDamageSources().mobAttack(this), 6f);
+                    e.damage(getDamageSources().mobAttack(this), 12f);
                     setChain(2, chainPos);
                     sound(SoundEvents.BLOCK_CHAIN_HIT, 3f, 0.6f);
                     event(E_CHAIN_HIT, chainPos, 0);
                     return;
                 }
                 BlockPos bp = BlockPos.ofFloored(chainPos);
-                if (!getWorld().getBlockState(bp).getCollisionShape(getWorld(), bp).isEmpty() || chainDist > 16) {
+                if (!getWorld().getBlockState(bp).getCollisionShape(getWorld(), bp).isEmpty() || chainDist > 16 * S) {
                     soundAt(chainPos, SoundEvents.BLOCK_CHAIN_HIT, 2f, 0.8f);
                     setChain(0, chainPos);
                     return;
@@ -400,7 +409,7 @@ public class BellRingerEntity extends BossBase {
             }
             // цепь в полёте ломается от удара игрока, смотрящего на неё
             for (PlayerEntity p : getWorld().getPlayers()) {
-                if (!p.isAlive() || p.isSpectator() || p.squaredDistanceTo(chainPos) > 4.2 * 4.2 || !swinging(p)) continue;
+                if (!p.isAlive() || p.isSpectator() || p.squaredDistanceTo(chainPos) > 4.2 * 4.2 * S * S || !swinging(p)) continue;
                 Vec3d to = chainPos.subtract(p.getEyePos()).normalize();
                 if (to.dotProduct(p.getRotationVec(1f)) < 0.75) continue;
                 soundAt(chainPos, SoundEvents.BLOCK_CHAIN_BREAK, 3f, 0.7f);
@@ -419,10 +428,10 @@ public class BellRingerEntity extends BossBase {
                 setChain(0, null);
                 return;
             }
-            Vec3d dst = getPos().add(forward().multiply(4.4));
+            Vec3d dst = getPos().add(forward().multiply(4.4 * S));
             Vec3d to = dst.subtract(v.getPos());
             double d = Math.sqrt(to.x * to.x + to.z * to.z);
-            if (d < 1.3 || chainTicks > 26) {
+            if (d < 1.3 * S || chainTicks > 26) {
                 setChain(0, null);
                 v.setVelocity(v.getVelocity().multiply(0.2, 1, 0.2));
                 v.velocityModified = true;
@@ -431,7 +440,7 @@ public class BellRingerEntity extends BossBase {
                 cooldown = 1;
                 return;
             }
-            Vec3d pull = new Vec3d(to.x, 0, to.z).normalize().multiply(Math.min(1.15, 0.35 + d * 0.12));
+            Vec3d pull = new Vec3d(to.x, 0, to.z).normalize().multiply(Math.min(1.15 * S, 0.35 * S + d * 0.12));
             v.setVelocity(pull.x, Math.max(v.getVelocity().y, 0.08), pull.z);
             v.velocityModified = true;
             v.fallDistance = 0;
@@ -469,35 +478,36 @@ public class BellRingerEntity extends BossBase {
             soundAt(bell, SoundEvents.BLOCK_BELL_RESONATE, 1.5f, 0.6f);
         }
         if (k % 6 == 0) sound(SoundEvents.BLOCK_CHAIN_STEP, 1.5f, 0.5f);
-        for (LivingEntity e : enemies(new Box(bell, bell).expand(2.1, 2.6, 2.1))) {
-            if (hdist(e.getPos(), bell) > 2.1) continue;
+        if (k % 2 == 0) com.bleid.vestments.cathedral.Cathedral.smashWalls(this, bell, 1.8 * S);           // колокол на цепи сносит стены
+        for (LivingEntity e : enemies(new Box(bell, bell).expand(2.1 * S, 2.6 * S, 2.1 * S))) {
+            if (hdist(e.getPos(), bell) > 2.1 * S) continue;
             Integer last = swingHit.get(e.getId());
             if (last != null && age - last < 12) continue;
             swingHit.put(e.getId(), age);
-            e.damage(getDamageSources().mobAttack(this), 14f);
+            e.damage(getDamageSources().mobAttack(this), 28f);
             knock(e, 1.4, 0.45);
             soundAt(bell, SoundEvents.BLOCK_BELL_USE, 3f, 0.7f);
             event(E_SWING_HIT, e.getPos().add(0, 1, 0), 0);
         }
         // цепь от босса до колокола: всё, через что она прошла за этот такт (сектор между прошлым и текущим углом)
-        float r = swingRadius(k), phi0 = swingAngle(k - 1), phi1 = swingAngle(k);
+        float r = (float) (swingRadius(k) * S), phi0 = swingAngle(k - 1), phi1 = swingAngle(k);
         Vec3d f = forward();
         Vec3d rt = new Vec3d(-MathHelper.cos(getYaw() * MathHelper.RADIANS_PER_DEGREE), 0, -MathHelper.sin(getYaw() * MathHelper.RADIANS_PER_DEGREE));   // как в local()
-        double cy = getY() + SWING_Y;
+        double cy = getY() + SWING_Y * S;
         for (LivingEntity e : enemies(getBoundingBox().expand(r + 1, 3, r + 1))) {
             Vec3d d = e.getPos().subtract(getPos());
             double re = Math.sqrt(d.x * d.x + d.z * d.z);
-            if (re < 0.6 || re > r + 0.2) continue;
-            if (e.getY() > cy + 1.0 || e.getY() + e.getHeight() < cy - 1.0) continue;   // цепь идёт на высоте груди
+            if (re < 0.6 * S || re > r + 0.2 * S) continue;
+            if (e.getY() > cy + 1.0 * S || e.getY() + e.getHeight() < cy - 1.0 * S) continue;   // цепь идёт на высоте груди
             double right = d.x * rt.x + d.z * rt.z, fwd = d.x * f.x + d.z * f.z;
             double pe = Math.atan2(-right, -fwd);                                  // угол как в swingOffset
-            double margin = (0.5 + e.getWidth() * 0.5) / Math.max(1.0, re);
+            double margin = (0.5 * S + e.getWidth() * 0.5) / Math.max(1.0, re);
             double rel = MathHelper.wrapDegrees(Math.toDegrees(pe - phi0)) * MathHelper.RADIANS_PER_DEGREE;
             if (rel < -margin || rel > (phi1 - phi0) + margin) continue;
             Integer last = swingHit.get(e.getId());
             if (last != null && age - last < 12) continue;
             swingHit.put(e.getId(), age);
-            e.damage(getDamageSources().mobAttack(this), 10f);
+            e.damage(getDamageSources().mobAttack(this), 20f);
             knock(e, 0.9, 0.35);
             soundAt(e.getPos(), SoundEvents.BLOCK_CHAIN_HIT, 2f, 0.6f);
             event(E_SWING_HIT, e.getPos().add(0, 1, 0), 0);
@@ -507,12 +517,12 @@ public class BellRingerEntity extends BossBase {
     private void leap(int k, LivingEntity t) {
         if (k <= 10 && t != null) faceTarget(t, 14f);
         if (k == 10) {
-            Vec3d dst = t != null ? t.getPos() : getPos().add(forward().multiply(6));
+            Vec3d dst = t != null ? t.getPos() : getPos().add(forward().multiply(6 * S));
             Vec3d to = dst.subtract(getPos());
             double d = Math.sqrt(to.x * to.x + to.z * to.z);
-            Vec3d land = d > 1.6 ? dst.subtract(to.x / d * 1.4, 0, to.z / d * 1.4) : getPos();
-            leapVel = new Vec3d((land.x - getX()) / 22.0, 0, (land.z - getZ()) / 22.0);
-            setVelocity(leapVel.x, 0.95, leapVel.z);
+            Vec3d land = d > 1.6 * S ? dst.subtract(to.x / d * 1.4 * S, 0, to.z / d * 1.4 * S) : getPos();
+            leapVel = new Vec3d((land.x - getX()) / 31.0, 0, (land.z - getZ()) / 31.0);
+            setVelocity(leapVel.x, 1.34, leapVel.z);
             velocityDirty = true;
             leaping = true;
             sound(SoundEvents.ENTITY_RAVAGER_ROAR, 2f, 0.6f);
@@ -522,19 +532,20 @@ public class BellRingerEntity extends BossBase {
         }
         if (leaping) {
             setVelocity(leapVel.x, getVelocity().y, leapVel.z);
-            if (k > 16 && isOnGround() || k > 44) {
+            if (k > 20 && isOnGround() || k > 60) {
                 leaping = false;
                 landTick = k;
                 setVelocity(0, getVelocity().y, 0);
                 Vec3d p = getPos();
-                for (LivingEntity e : enemies(getBoundingBox().expand(5, 2, 5))) {
-                    if (hdist(e.getPos(), p) > 5) continue;
-                    e.damage(getDamageSources().mobAttack(this), 14f);
+                for (LivingEntity e : enemies(getBoundingBox().expand(5 * S, 2 * S, 5 * S))) {
+                    if (hdist(e.getPos(), p) > 5 * S) continue;
+                    e.damage(getDamageSources().mobAttack(this), 28f);
                     knock(e, 1.2, 0.6);
                 }
                 sound(SoundEvents.BLOCK_ANVIL_LAND, 3f, 0.4f);
                 sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 2f, 0.5f);
                 event(E_LAND, p, 0);
+                com.bleid.vestments.cathedral.Cathedral.smashWalls(this, p.add(0, 2 * S, 0), 3.2 * S);
             }
         }
     }
@@ -550,9 +561,9 @@ public class BellRingerEntity extends BossBase {
         if (t != null) {
             faceTarget(t, 6f);
             double d = distanceTo(t);
-            if (d > 3.3) {
+            if (d > 3.3 * S) {
                 Vec3d f = forward();
-                double sp = phase2() ? 0.14 : 0.12;
+                double sp = phase2() ? 0.24 : 0.2;
                 vx = f.x * sp;
                 vz = f.z * sp;
             }
@@ -597,7 +608,7 @@ public class BellRingerEntity extends BossBase {
             sound(SoundEvents.ENTITY_RAVAGER_ROAR, 4f, 0.45f);
             sound(SoundEvents.ENTITY_WARDEN_ROAR, 3f, 0.6f);
             event(E_AWOKEN, getPos(), 0);
-            for (LivingEntity e : enemies(getBoundingBox().expand(6, 3, 6))) knock(e, 1.2, 0.4);
+            for (LivingEntity e : enemies(getBoundingBox().expand(6 * S, 3 * S, 6 * S))) knock(e, 1.6, 0.5);
         }
         if (w >= WK_END) {
             dataTracker.set(WAKE, W_AWAKE);

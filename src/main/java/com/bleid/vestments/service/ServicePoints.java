@@ -132,7 +132,11 @@ public final class ServicePoints {
             }
             return;
         }
-        int oldRank = Ranks.rankFor(old), newRank = Ranks.rankFor(now);
+        boolean slain = bellSlain(server, player.getUuid());
+        int oldRank = Ranks.rankFor(old, slain), newRank = Ranks.rankFor(now, slain);
+        if (!slain && Ranks.isMax(Ranks.rankFor(now)) && !Ranks.isMax(Ranks.rankFor(old))) {
+            player.sendMessage(Text.translatable("message.vestments.patriarch_locked").formatted(Formatting.LIGHT_PURPLE), false);
+        }
         if (newRank > oldRank) {
             Text msg = Text.translatable("message.vestments.rank_up", player.getDisplayName(),
                     Text.translatable(Ranks.nameKey(newRank)).formatted(Formatting.GOLD));
@@ -166,6 +170,7 @@ public final class ServicePoints {
         buf.writeInt(get(player.getServer(), player.getUuid()));
         String cls = PlayerClasses.get(player.getServer(), player.getUuid());
         buf.writeString(cls == null ? "" : cls);
+        buf.writeBoolean(bellSlain(player.getServer(), player.getUuid()));
         ServerPlayNetworking.send(player, SYNC, buf);
     }
 
@@ -174,12 +179,36 @@ public final class ServicePoints {
     }
 
     public static int rank(ServerPlayerEntity player) {
-        return Ranks.rankFor(get(player.getServer(), player.getUuid()));
+        return Ranks.rankFor(get(player.getServer(), player.getUuid()), bellSlain(player.getServer(), player.getUuid()));
     }
 
     /** Множитель силы «Благословения» по сану; не священникам — 1. */
     public static float power(ServerPlayerEntity player) {
         return canServe(player) ? Ranks.power(rank(player)) : 1.0f;
+    }
+
+    /** Победил ли игрок Звонаря Безмолвного Собора. */
+    public static boolean bellSlain(MinecraftServer server, UUID player) {
+        return state(server).bellSlain.contains(player);
+    }
+
+    /** Звонарь повержен при участии игрока: открывается сан Патриарха (если очков хватает — сразу). */
+    public static void markBellSlain(ServerPlayerEntity player) {
+        MinecraftServer server = player.getServer();
+        State s = state(server);
+        if (!s.bellSlain.add(player.getUuid())) return;
+        s.markDirty();
+        int pts = get(server, player.getUuid());
+        int before = Ranks.rankFor(pts, false), after = Ranks.rankFor(pts, true);
+        if (canServe(player)) {
+            player.sendMessage(Text.translatable("message.vestments.patriarch_unlocked").formatted(Formatting.GOLD), false);
+            if (after > before) {
+                server.getPlayerManager().broadcast(Text.translatable("message.vestments.rank_up", player.getDisplayName(),
+                        Text.translatable(Ranks.nameKey(after)).formatted(Formatting.GOLD)), false);
+                bibleRankUp(player, before, after);
+            }
+        }
+        sync(player);
     }
 
     private static void set(MinecraftServer server, UUID player, int points) {
@@ -195,11 +224,14 @@ public final class ServicePoints {
 
     public static final class State extends PersistentState {
         final Map<UUID, Integer> points = new HashMap<>();
+        final java.util.Set<UUID> bellSlain = new java.util.HashSet<>();
 
         static State fromNbt(NbtCompound nbt) {
             State s = new State();
             NbtCompound map = nbt.getCompound("points");
             for (String key : map.getKeys()) s.points.put(UUID.fromString(key), map.getInt(key));
+            net.minecraft.nbt.NbtList list = nbt.getList("bell_slain", net.minecraft.nbt.NbtElement.STRING_TYPE);
+            for (int i = 0; i < list.size(); i++) s.bellSlain.add(UUID.fromString(list.getString(i)));
             return s;
         }
 
@@ -208,6 +240,9 @@ public final class ServicePoints {
             NbtCompound map = new NbtCompound();
             points.forEach((uuid, p) -> map.putInt(uuid.toString(), p));
             nbt.put("points", map);
+            net.minecraft.nbt.NbtList list = new net.minecraft.nbt.NbtList();
+            for (UUID u : bellSlain) list.add(net.minecraft.nbt.NbtString.of(u.toString()));
+            nbt.put("bell_slain", list);
             return nbt;
         }
     }

@@ -109,7 +109,7 @@ public class AltarScreen extends Screen {
         boolean priest = RankView.clientPriest;
         if (priest) {
             int pts = ServiceClient.displayed();
-            int rank = Ranks.rankFor(pts);
+            int rank = RankView.clientRankFor(pts);
             center(ctx, Text.translatable("screen.vestments.altar_status", Text.translatable(Ranks.nameKey(rank)), pts),
                     cx, y + 38, 0xFFB89A6A);
         } else {

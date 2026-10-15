@@ -38,6 +38,12 @@ public final class Ranks {
         return r;
     }
 
+    /** Сан с учётом условия: Патриархом можно стать только победив Звонаря Безмолвного Собора. */
+    public static int rankFor(int points, boolean bellSlain) {
+        int r = rankFor(points);
+        return bellSlain ? r : Math.min(r, IDS.length - 2);
+    }
+
     public static int degreeOf(int rank) {
         return DEGREE[rank];
     }

@@ -58,11 +58,13 @@ public class SilentBellEntity extends BossBase {
     public static final int STONE_T = 40;
     public static final float STONE_BLAST = 7f;
     /** Скорость звуковых сфер, их жизнь; радиус вихря цепей; круг призрачного колокола. */
-    public static final float ORB_SPEED = 0.85f, SPIN_R = 5.5f, PHANTOM_R = 2.4f;
+    /** Колокол вдвое больше исходной модели. */
+    public static final double S = 2.0;
+    public static final float ORB_SPEED = 1.3f, SPIN_R = 11f, PHANTOM_R = 4.8f;
     public static final int ORB_LIFE = 50, SPIN_UP = 10, KNELL_MARK = 4, KNELL_FALL = 30;
-    public static final float CONE_DEG = 35f, CONE_LEN = 13f, GROUND_RING_SPEED = 0.25f, GROUND_RING_MAX = 16f;
+    public static final float CONE_DEG = 35f, CONE_LEN = 26f, GROUND_RING_SPEED = 0.5f, GROUND_RING_MAX = 32f;
     /** Высота глаза над ногами сущности (блоки). */
-    public static final double EYE_Y = 3.9;
+    public static final double EYE_Y = 3.9 * S;
 
     private static final TrackedData<Integer> STATE = DataTracker.registerData(SilentBellEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> EYE = DataTracker.registerData(SilentBellEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
@@ -114,6 +116,11 @@ public class SilentBellEntity extends BossBase {
         }
     }
 
+    @Override
+    public double scale() {
+        return S;
+    }
+
     public SilentBellEntity(EntityType<? extends HostileEntity> type, World world) {
         super(type, world, BossBar.Color.GREEN);
         setNoGravity(true);
@@ -123,7 +130,7 @@ public class SilentBellEntity extends BossBase {
 
     public static DefaultAttributeContainer.Builder createAttributes() {
         return HostileEntity.createHostileAttributes()
-                .add(EntityAttributes.GENERIC_MAX_HEALTH, 700)
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 2100)
                 .add(EntityAttributes.GENERIC_ARMOR, 6)
                 .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 12)
                 .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 48)
@@ -180,7 +187,7 @@ public class SilentBellEntity extends BossBase {
     }
 
     public Vec3d eyePos() {
-        return getPos().add(forward().multiply(0.5)).add(0, EYE_Y, 0);
+        return getPos().add(forward().multiply(0.5 * S)).add(0, EYE_Y, 0);
     }
 
     // ================================================================== ИИ
@@ -215,7 +222,7 @@ public class SilentBellEntity extends BossBase {
         }
         if (k > A_EYE && k <= A_RISEN) {
             float s = (k - A_EYE) / (float) (A_RISEN - A_EYE);
-            setPosition(getX(), groundY + 0.6 * s * s * (3 - 2 * s), getZ());
+            setPosition(getX(), groundY + 0.6 * S * s * s * (3 - 2 * s), getZ());
         }
         if (k >= A_RISEN) {
             setState(S_FIGHT);
@@ -343,10 +350,10 @@ public class SilentBellEntity extends BossBase {
         if (random.nextFloat() < 0.5f) orbitDir = -orbitDir;
         Vec3d side = new Vec3d(-to.z, 0, to.x).multiply(orbitDir);
         double d = distanceTo(t);
-        double toward = d > 9 ? 0.6 : d < 4 ? -0.5 : 0.0;
+        double toward = d > 9 * S ? 0.6 : d < 4 * S ? -0.5 : 0.0;
         dashDir = side.add(to.multiply(toward)).normalize();
         dashTicks = 6;
-        event(E_DASH, getPos().add(0, 2.5, 0), (float) (Math.atan2(dashDir.z, dashDir.x) * 180 / Math.PI));
+        event(E_DASH, getPos().add(0, 2.5 * S, 0), (float) (Math.atan2(dashDir.z, dashDir.x) * 180 / Math.PI));
         sound(SoundEvents.ENTITY_PHANTOM_FLAP, 2f, 0.5f);
         sound(SoundEvents.BLOCK_CHAIN_HIT, 1.5f, 0.6f);
     }
@@ -402,17 +409,17 @@ public class SilentBellEntity extends BossBase {
             sound(SoundEvents.BLOCK_BELL_USE, 4f, 0.5f);
         }
         if (k >= fire && k <= fire + 12) {
-            double r = (k - fire) * 1.15 + 1.5;
+            double r = ((k - fire) * 1.15 + 1.5) * S;
             Vec3d o = getPos().add(0, EYE_Y, 0), f = forward();
             double cos = Math.cos(Math.toRadians(CONE_DEG));
-            for (LivingEntity e : enemies(getBoundingBox().expand(CONE_LEN + 1, 8, CONE_LEN + 1))) {
+            for (LivingEntity e : enemies(getBoundingBox().expand(CONE_LEN + 1, 8 * S, CONE_LEN + 1))) {
                 if (hit.contains(e.getId())) continue;
                 Vec3d to = e.getPos().add(0, e.getHeight() * 0.5, 0).subtract(o);
                 double hd = Math.sqrt(to.x * to.x + to.z * to.z);
-                if (hd > r || hd > CONE_LEN || Math.abs(to.y) > 6) continue;
-                if (hd > 1.2 && (to.x * f.x + to.z * f.z) / hd < cos) continue;
+                if (hd > r || hd > CONE_LEN || Math.abs(to.y) > 6 * S) continue;
+                if (hd > 1.2 * S && (to.x * f.x + to.z * f.z) / hd < cos) continue;
                 hit.add(e.getId());
-                e.damage(getDamageSources().mobAttack(this), 12f);
+                e.damage(getDamageSources().mobAttack(this), 24f);
                 e.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 80, 0), this);
                 knock(e, 1.3, 0.35);
             }
@@ -423,9 +430,9 @@ public class SilentBellEntity extends BossBase {
         switch (dropPhase) {
             case 0 -> {                                   // подъём над целью; тень следует за ним
                 if (t != null) {
-                    Vec3d dst = new Vec3d(t.getX(), t.getY() + 11, t.getZ());
+                    Vec3d dst = new Vec3d(t.getX(), t.getY() + 11 * S, t.getZ());
                     Vec3d v = dst.subtract(getPos()).multiply(0.14);
-                    if (v.length() > 0.9) v = v.normalize().multiply(0.9);
+                    if (v.length() > 0.9 * S) v = v.normalize().multiply(0.9 * S);
                     setVelocity(v);
                     faceTarget(t, 6f);
                 }
@@ -437,19 +444,19 @@ public class SilentBellEntity extends BossBase {
             }
             case 1 -> {                                   // падение
                 double gy = ground(getPos());
-                setVelocity(0, -1.7, 0);
-                if (getY() + getVelocity().y <= gy - 1.2 || verticalCollision || k > 80) {
+                setVelocity(0, -2.4, 0);
+                if (getY() + getVelocity().y <= gy - 1.2 * S || verticalCollision || k > 80) {
                     setVelocity(Vec3d.ZERO);
-                    setPosition(getX(), gy - 1.2, getZ());
+                    setPosition(getX(), gy - 1.2 * S, getZ());
                     land(gy);
                 }
             }
             case 2 -> tickTrap();
             case 3 -> {                                   // подъём обратно
                 riseTicks++;
-                double gy = ground(getPos().add(0, 1.3, 0));
-                double ty = gy + 0.6;
-                setVelocity(0, MathHelper.clamp((ty - getY()) * 0.2, -0.3, 0.3), 0);
+                double gy = ground(getPos().add(0, 1.3 * S, 0));
+                double ty = gy + 0.6 * S;
+                setVelocity(0, MathHelper.clamp((ty - getY()) * 0.2, -0.5, 0.5), 0);
                 if (riseTicks > 18) dropPhase = 4;
             }
             default -> { }
@@ -461,18 +468,19 @@ public class SilentBellEntity extends BossBase {
         sound(SoundEvents.BLOCK_ANVIL_LAND, 4f, 0.3f);
         sound(SoundEvents.BLOCK_BELL_USE, 5f, 0.4f);
         event(E_DROP_LAND, c, 0);
+        com.bleid.vestments.cathedral.Cathedral.smashWalls(this, c.add(0, 2 * S, 0), 3.2 * S);
         LivingEntity caught = null;
-        double best = 2.8;
-        for (LivingEntity e : enemies(new Box(c, c).expand(6, 3, 6))) {
+        double best = 2.8 * S;
+        for (LivingEntity e : enemies(new Box(c, c).expand(6 * S, 3 * S, 6 * S))) {
             double hd = hdist(e.getPos(), c);
-            if (hd < best && Math.abs(e.getY() - gy) < 2.5) {
+            if (hd < best && Math.abs(e.getY() - gy) < 2.5 * S) {
                 best = hd;
                 caught = e;
             }
         }
-        for (LivingEntity e : enemies(new Box(c, c).expand(6, 3, 6))) {
-            if (e == caught || hdist(e.getPos(), c) > 6) continue;
-            e.damage(getDamageSources().mobAttack(this), 14f);
+        for (LivingEntity e : enemies(new Box(c, c).expand(6 * S, 3 * S, 6 * S))) {
+            if (e == caught || hdist(e.getPos(), c) > 6 * S) continue;
+            e.damage(getDamageSources().mobAttack(this), 28f);
             knock(e, 1.1, 0.5);
         }
         if (caught != null) {
@@ -497,7 +505,7 @@ public class SilentBellEntity extends BossBase {
             release();
             return;
         }
-        Vec3d c = new Vec3d(getX(), getY() + 1.2, getZ());
+        Vec3d c = new Vec3d(getX(), getY() + 1.2 * S, getZ());
         if (hdist(v.getPos(), c) > 0.45 || Math.abs(v.getY() - c.y) > 0.6) {
             if (v instanceof ServerPlayerEntity p) p.networkHandler.requestTeleport(c.x, c.y, c.z, p.getYaw(), p.getPitch());
             else v.refreshPositionAndAngles(c.x, c.y, c.z, v.getYaw(), v.getPitch());
@@ -505,7 +513,7 @@ public class SilentBellEntity extends BossBase {
         v.setVelocity(Vec3d.ZERO);
         v.velocityModified = true;
         if (trapTicks % 20 == 0) {
-            v.damage(getDamageSources().mobAttack(this), 2f);
+            v.damage(getDamageSources().mobAttack(this), 4f);
             soundAt(c, SoundEvents.BLOCK_BELL_RESONATE, 1.2f, 0.5f + trapTicks * 0.003f);
         }
         if (trapTicks % 10 == 1) v.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 50, 0), this);
@@ -536,7 +544,7 @@ public class SilentBellEntity extends BossBase {
             int n = 3 + random.nextInt(2);
             for (int i = 0; i < n; i++) {
                 double ang = getYaw() * MathHelper.RADIANS_PER_DEGREE + i * Math.PI * 2 / n + 0.4;
-                Vec3d p = getPos().add(Math.cos(ang) * 4.5, 2.5, Math.sin(ang) * 4.5);
+                Vec3d p = getPos().add(Math.cos(ang) * 4.5 * S, 2.5 * S, Math.sin(ang) * 4.5 * S);
                 VexEntity v = EntityType.VEX.create(sw);
                 if (v == null) continue;
                 v.refreshPositionAndAngles(p.x, p.y, p.z, random.nextFloat() * 360, 0);
@@ -583,7 +591,7 @@ public class SilentBellEntity extends BossBase {
             }
             for (LivingEntity e : enemies(new Box(g.c, g.c).expand(g.r + 1, 2, g.r + 1))) {
                 if (!e.isOnGround() || Math.abs(e.getY() - g.c.y) > 1.5 || g.hit.contains(e.getId())) continue;
-                if (Math.abs(hdist(e.getPos(), g.c) - g.r) > 0.45) continue;
+                if (Math.abs(hdist(e.getPos(), g.c) - g.r) > 0.55) continue;
                 g.hit.add(e.getId());
                 e.damage(getDamageSources().mobAttack(this), g.dmg);
                 e.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 40, 1), this);
@@ -596,14 +604,14 @@ public class SilentBellEntity extends BossBase {
         if (a == DROP || a == RAM || a == SPIN || a == HOPS) return;   // эти атаки сами ведут колокол
         if (dashTicks > 0) {                                           // рывок между атаками
             dashTicks--;
-            double gy = ground(getPos().add(0, 1, 0)) + 0.6;
-            double sp = 0.35 + 0.17 * dashTicks;
-            setVelocity(dashDir.x * sp, MathHelper.clamp((gy - getY()) * 0.2, -0.3, 0.3), dashDir.z * sp);
+            double gy = ground(getPos().add(0, 1, 0)) + 0.6 * S;
+            double sp = (0.35 + 0.17 * dashTicks) * 1.6;
+            setVelocity(dashDir.x * sp, MathHelper.clamp((gy - getY()) * 0.2, -0.5, 0.5), dashDir.z * sp);
             if (t != null) faceTarget(t, 12f);
             return;
         }
         Vec3d want;
-        double bob = Math.sin(age * 0.05) * 0.25;
+        double bob = Math.sin(age * 0.05) * 0.25 * S;
         if (t != null) {
             if (a == IDLE || a == VOLLEY || a == KNELL) faceTarget(t, 8f);
             Vec3d away = new Vec3d(getX() - t.getX(), 0, getZ() - t.getZ());
@@ -612,13 +620,13 @@ public class SilentBellEntity extends BossBase {
             // быстро кружит вокруг цели на расстоянии ~5,5 блоков, иногда меняя направление
             if (a == IDLE && random.nextInt(70) == 0) orbitDir = -orbitDir;
             Vec3d side = new Vec3d(-away.z, 0, away.x).multiply(0.9 * orbitDir);
-            Vec3d p = t.getPos().add(away.add(side).normalize().multiply(5.5));
-            want = new Vec3d(p.x, ground(new Vec3d(p.x, Math.max(getY(), t.getY()) + 1, p.z)) + 0.6 + bob, p.z);
+            Vec3d p = t.getPos().add(away.add(side).normalize().multiply(5.5 * S));
+            want = new Vec3d(p.x, ground(new Vec3d(p.x, Math.max(getY(), t.getY()) + 1, p.z)) + 0.6 * S + bob, p.z);
         } else {
-            want = new Vec3d(getX(), ground(getPos().add(0, 1, 0)) + 0.6 + bob, getZ());
+            want = new Vec3d(getX(), ground(getPos().add(0, 1, 0)) + 0.6 * S + bob, getZ());
         }
         Vec3d v = want.subtract(getPos()).multiply(0.12);
-        double max = a == IDLE ? 0.34 : a == VOLLEY || a == KNELL || a == CHOIR ? 0.14 : 0.05;
+        double max = a == IDLE ? 0.55 : a == VOLLEY || a == KNELL || a == CHOIR ? 0.22 : 0.08;
         if (v.length() > max) v = v.normalize().multiply(max);
         setVelocity(v);
     }
@@ -627,8 +635,8 @@ public class SilentBellEntity extends BossBase {
 
     /** Держать колокол на высоте парения над землёй под ним. */
     private double hoverVy() {
-        double gy = ground(getPos().add(0, 1, 0)) + 0.6;
-        return MathHelper.clamp((gy - getY()) * 0.25, -0.4, 0.4);
+        double gy = ground(getPos().add(0, 1, 0)) + 0.6 * S;
+        return MathHelper.clamp((gy - getY()) * 0.25, -0.6, 0.6);
     }
 
     private boolean tooSoon(LivingEntity e, int gap) {
@@ -649,9 +657,9 @@ public class SilentBellEntity extends BossBase {
             case 0 -> {                                       // замах: отплывает назад, поворачивается к цели
                 if (t != null) faceTarget(t, 18f);
                 Vec3d f = forward();
-                setVelocity(f.x * -0.12, hoverVy(), f.z * -0.12);
+                setVelocity(f.x * -0.2, hoverVy(), f.z * -0.2);
                 if (phaseTick == 1) {
-                    event(E_RAM_CHARGE, getPos().add(0, 2.5, 0), windup);
+                    event(E_RAM_CHARGE, getPos().add(0, 2.5 * S, 0), windup);
                     sound(SoundEvents.BLOCK_BELL_RESONATE, 3f, 0.6f);
                     sound(SoundEvents.ENTITY_RAVAGER_ROAR, 1.2f, 0.5f);
                 }
@@ -674,12 +682,12 @@ public class SilentBellEntity extends BossBase {
                 }
             }
             case 1 -> {                                       // рывок
-                double sp = 1.35;
+                double sp = 1.35 * S;
                 setVelocity(dashDir.x * sp, hoverVy(), dashDir.z * sp);
-                for (LivingEntity e : enemies(getBoundingBox().expand(1.0, 0.5, 1.0))) {
+                for (LivingEntity e : enemies(getBoundingBox().expand(1.0 * S, 0.5 * S, 1.0 * S))) {
                     if (hit.contains(e.getId())) continue;
                     hit.add(e.getId());
-                    e.damage(getDamageSources().mobAttack(this), 13f);
+                    e.damage(getDamageSources().mobAttack(this), 26f);
                     Vec3d side = new Vec3d(e.getX() - getX(), 0, e.getZ() - getZ());
                     Vec3d push = dashDir.multiply(1.3).add(side.lengthSquared() > 1e-3 ? side.normalize().multiply(0.7) : Vec3d.ZERO);
                     e.addVelocity(push.x, 0.55, push.z);
@@ -687,15 +695,16 @@ public class SilentBellEntity extends BossBase {
                     event(E_RAM_HIT, e.getPos().add(0, 1, 0), 0);
                     soundAt(e.getPos(), SoundEvents.BLOCK_ANVIL_LAND, 1.5f, 0.7f);
                 }
+                com.bleid.vestments.cathedral.Cathedral.smashWalls(this, getPos().add(dashDir.multiply(2.2 * S)).add(0, 2.5 * S, 0), 2.4 * S);
                 boolean wall = horizontalCollision && phaseTick > 1;
                 if (wall || phaseTick >= 17) {
                     if (wall) {
-                        event(E_RAM_WALL, getPos().add(dashDir.multiply(1.6)).add(0, 2.5, 0), 0);
+                        event(E_RAM_WALL, getPos().add(dashDir.multiply(1.6 * S)).add(0, 2.5 * S, 0), 0);
                         sound(SoundEvents.BLOCK_BELL_USE, 5f, 0.45f);
                         sound(SoundEvents.BLOCK_ANVIL_LAND, 3f, 0.5f);
-                        for (LivingEntity e : enemies(getBoundingBox().expand(4, 2, 4))) {
-                            if (hdist(e.getPos(), getPos()) > 4.5) continue;
-                            e.damage(getDamageSources().mobAttack(this), 6f);
+                        for (LivingEntity e : enemies(getBoundingBox().expand(4 * S, 2 * S, 4 * S))) {
+                            if (hdist(e.getPos(), getPos()) > 4.5 * S) continue;
+                            e.damage(getDamageSources().mobAttack(this), 12f);
                             knock(e, 0.8, 0.4);
                         }
                     }
@@ -705,7 +714,7 @@ public class SilentBellEntity extends BossBase {
             }
             default -> {                                      // торможение / отскок
                 double back = horizontalCollision ? -0.25 : 0.0;
-                double sp = Math.max(0, 0.6 - phaseTick * 0.1) + back;
+                double sp = (Math.max(0, 0.6 - phaseTick * 0.1) + back) * S;
                 setVelocity(dashDir.x * sp, hoverVy(), dashDir.z * sp);
                 if (phaseTick >= 7) {
                     dashes++;
@@ -728,7 +737,7 @@ public class SilentBellEntity extends BossBase {
         Vec3d v = Vec3d.ZERO;
         if (t != null && k > SPIN_UP) {
             Vec3d d = new Vec3d(t.getX() - getX(), 0, t.getZ() - getZ());
-            if (d.lengthSquared() > 1) v = d.normalize().multiply(widened() ? 0.27 : 0.21);
+            if (d.lengthSquared() > 1) v = d.normalize().multiply((widened() ? 0.27 : 0.21) * 1.6);
         }
         setVelocity(v.x, hoverVy(), v.z);
         if (k == 1) {
@@ -741,17 +750,17 @@ public class SilentBellEntity extends BossBase {
             if (k % 10 == 0) sound(SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 2.5f, 0.5f);
             for (LivingEntity e : enemies(getBoundingBox().expand(r, 3, r))) {
                 double hd = hdist(e.getPos(), getPos());
-                if (hd > r || Math.abs(e.getY() - (getY() + 1.5)) > 4) continue;
+                if (hd > r || Math.abs(e.getY() - (getY() + 1.5 * S)) > 4 * S) continue;
                 // затягивание по спирали
                 Vec3d in = new Vec3d(getX() - e.getX(), 0, getZ() - e.getZ());
                 if (in.lengthSquared() > 1e-3) {
                     Vec3d n = in.normalize(), tan = new Vec3d(-n.z, 0, n.x);
-                    Vec3d pull = n.multiply(hd > 2 ? 0.06 : 0).add(tan.multiply(0.05));
+                    Vec3d pull = n.multiply(hd > 2 * S ? 0.08 : 0).add(tan.multiply(0.07));
                     e.addVelocity(pull.x, 0, pull.z);
                     e.velocityModified = true;
                 }
                 if (tooSoon(e, 10)) continue;
-                e.damage(getDamageSources().mobAttack(this), 5f);
+                e.damage(getDamageSources().mobAttack(this), 10f);
                 event(E_CHAIN_HIT, e.getPos().add(0, 1, 0), 0);
             }
         }
@@ -759,9 +768,9 @@ public class SilentBellEntity extends BossBase {
             event(E_SPIN, getPos(), 1);
             sound(SoundEvents.BLOCK_BELL_USE, 5f, 0.6f);
             sound(SoundEvents.ENTITY_GENERIC_EXPLODE, 1.5f, 1.4f);
-            for (LivingEntity e : enemies(getBoundingBox().expand(r + 1.5, 3, r + 1.5))) {
-                if (hdist(e.getPos(), getPos()) > r + 1.5) continue;
-                e.damage(getDamageSources().mobAttack(this), 7f);
+            for (LivingEntity e : enemies(getBoundingBox().expand(r + 1.5 * S, 3 * S, r + 1.5 * S))) {
+                if (hdist(e.getPos(), getPos()) > r + 1.5 * S) continue;
+                e.damage(getDamageSources().mobAttack(this), 14f);
                 knock(e, 1.7, 0.55);
             }
         }
@@ -789,7 +798,7 @@ public class SilentBellEntity extends BossBase {
         int i = k - VOLLEY_FIRST;
         if (i >= 0 && i % gap == 0 && i / gap < n && t != null) {
             int idx = i / gap;
-            Vec3d o = eyePos().add(forward().multiply(0.8));
+            Vec3d o = eyePos().add(forward().multiply(0.8 * S));
             Vec3d aim = t.getPos().add(0, t.getHeight() * 0.5, 0);
             double tt = o.distanceTo(aim) / ORB_SPEED;
             aim = aim.add(t.getVelocity().multiply(tt * 0.8));
@@ -837,9 +846,9 @@ public class SilentBellEntity extends BossBase {
             event(E_ORB_BURST, o.p, 0);
             soundAt(o.p, SoundEvents.BLOCK_BELL_USE, 2.5f, 1.3f);
             soundAt(o.p, SoundEvents.ENTITY_GENERIC_EXPLODE, 0.8f, 1.7f);
-            for (LivingEntity e : enemies(new Box(o.p, o.p).expand(2.6))) {
-                if (e.getPos().add(0, e.getHeight() * 0.5, 0).distanceTo(o.p) > 2.8) continue;
-                e.damage(getDamageSources().mobAttack(this), 8f);
+            for (LivingEntity e : enemies(new Box(o.p, o.p).expand(2.6 * S))) {
+                if (e.getPos().add(0, e.getHeight() * 0.5, 0).distanceTo(o.p) > 2.8 * S) continue;
+                e.damage(getDamageSources().mobAttack(this), 16f);
                 Vec3d k = e.getPos().subtract(o.p);
                 k = new Vec3d(k.x, 0, k.z);
                 if (k.lengthSquared() > 1e-3) k = k.normalize().multiply(0.6);
@@ -862,11 +871,11 @@ public class SilentBellEntity extends BossBase {
             if (t != null) faceTarget(t, 20f);
             if (phaseTick >= crouch) {
                 hopFrom = getPos();
-                Vec3d to = t != null ? t.getPos().add(t.getVelocity().multiply(air * 0.6)) : getPos().add(forward().multiply(4));
+                Vec3d to = t != null ? t.getPos().add(t.getVelocity().multiply(air * 0.6)) : getPos().add(forward().multiply(4 * S));
                 Vec3d d = new Vec3d(to.x - getX(), 0, to.z - getZ());
-                if (d.length() > 10) d = d.normalize().multiply(10);
+                if (d.length() > 10 * S) d = d.normalize().multiply(10 * S);
                 Vec3d tgt = getPos().add(d);
-                hopTo = new Vec3d(tgt.x, ground(new Vec3d(tgt.x, Math.max(getY(), tgt.y) + 2, tgt.z)) + 0.6, tgt.z);
+                hopTo = new Vec3d(tgt.x, ground(new Vec3d(tgt.x, Math.max(getY(), tgt.y) + 2, tgt.z)) + 0.6 * S, tgt.z);
                 phase = 1;
                 phaseTick = 0;
                 sound(SoundEvents.ENTITY_RAVAGER_STEP, 2f, 0.5f);
@@ -874,26 +883,27 @@ public class SilentBellEntity extends BossBase {
             }
         } else if (phase == 1) {                              // полёт по дуге
             double s = Math.min(1.0, phaseTick / (double) air);
-            Vec3d p = hopFrom.lerp(hopTo, s).add(0, 5.5 * 4 * s * (1 - s), 0);
+            Vec3d p = hopFrom.lerp(hopTo, s).add(0, 5.5 * S * 4 * s * (1 - s), 0);
             setVelocity(p.subtract(getPos()));
             if (phaseTick >= air) {
                 setVelocity(Vec3d.ZERO);
                 setPosition(hopTo.x, hopTo.y, hopTo.z);
-                Vec3d c = new Vec3d(getX(), hopTo.y - 0.6, getZ());
+                Vec3d c = new Vec3d(getX(), hopTo.y - 0.6 * S, getZ());
                 event(E_HOP_LAND, c, 0);
+                com.bleid.vestments.cathedral.Cathedral.smashWalls(this, c.add(0, 2 * S, 0), 3 * S);
                 sound(SoundEvents.BLOCK_ANVIL_LAND, 3f, 0.4f);
                 sound(SoundEvents.BLOCK_BELL_USE, 4f, 0.55f);
-                for (LivingEntity e : enemies(new Box(c, c).expand(4.5, 3, 4.5))) {
-                    if (hdist(e.getPos(), c) > 4.2 || Math.abs(e.getY() - c.y) > 2.5) continue;
-                    e.damage(getDamageSources().mobAttack(this), 10f);
+                for (LivingEntity e : enemies(new Box(c, c).expand(4.5 * S, 3 * S, 4.5 * S))) {
+                    if (hdist(e.getPos(), c) > 4.2 * S || Math.abs(e.getY() - c.y) > 2.5 * S) continue;
+                    e.damage(getDamageSources().mobAttack(this), 20f);
                     knock(e, 0.9, 0.6);
                     hit.add(e.getId());
                 }
-                Ring g = new Ring(c, 0.6f, 10f, 5f, 4.2f);
+                Ring g = new Ring(c, 1.0f, 20f, 10f, 8.4f);
                 g.hit.addAll(hit);
                 hit.clear();
                 rings.add(g);
-                event(E_GROUND_RING, c, 0.6f);
+                event(E_GROUND_RING, c, 1.0f);
                 dashes++;
                 phase = 2;
                 phaseTick = 0;
@@ -931,7 +941,7 @@ public class SilentBellEntity extends BossBase {
             Vec3d spot;
             if (i == 0 && t != null) spot = base.add(t.getVelocity().multiply(10));
             else {
-                double ang = random.nextDouble() * Math.PI * 2, r = 2.5 + random.nextDouble() * 3.5;
+                double ang = random.nextDouble() * Math.PI * 2, r = (2.5 + random.nextDouble() * 3.5) * S;
                 spot = base.add(Math.cos(ang) * r, 0, Math.sin(ang) * r);
             }
             spot = new Vec3d(spot.x, ground(new Vec3d(spot.x, base.y + 2, spot.z)), spot.z);
@@ -945,9 +955,9 @@ public class SilentBellEntity extends BossBase {
             event(E_PHANTOM_FALL, c, 0);
             soundAt(c, SoundEvents.BLOCK_BELL_USE, 3f, 0.4f + random.nextFloat() * 0.2f);
             soundAt(c, SoundEvents.BLOCK_ANVIL_LAND, 1.5f, 0.6f);
-            for (LivingEntity e : enemies(new Box(c, c).expand(PHANTOM_R + 0.5, 3, PHANTOM_R + 0.5))) {
-                if (hdist(e.getPos(), c) > PHANTOM_R || Math.abs(e.getY() - c.y) > 2.5) continue;
-                e.damage(getDamageSources().mobAttack(this), 11f);
+            for (LivingEntity e : enemies(new Box(c, c).expand(PHANTOM_R + 0.5, 3 * S, PHANTOM_R + 0.5))) {
+                if (hdist(e.getPos(), c) > PHANTOM_R || Math.abs(e.getY() - c.y) > 2.5 * S) continue;
+                e.damage(getDamageSources().mobAttack(this), 22f);
                 e.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 30, 2), this);
                 knock(e, 0.3, 0.4);
             }
@@ -993,7 +1003,7 @@ public class SilentBellEntity extends BossBase {
     }
 
     /** Зона разлома с глазом: эллипсоид спереди на высоте глаза (в системе колокола). */
-    private static final double EYE_FWD = 1.0, EYE_H = 4.1, RX = 0.95, RY = 1.15, RZ = 1.0;
+    private static final double EYE_FWD = 1.0 * S, EYE_H = 4.1 * S, RX = 0.95 * S, RY = 1.15 * S, RZ = 1.0 * S;
 
     private boolean hitsEye(DamageSource source) {
         Entity atk = source.getAttacker(), direct = source.getSource();
@@ -1007,8 +1017,8 @@ public class SilentBellEntity extends BossBase {
         }
         if (atk instanceof net.minecraft.entity.LivingEntity le) {
             Vec3d o = le.getEyePos();
-            if (o.subtract(c).dotProduct(f) < -0.2) return false;          // бьёт сбоку или со спины
-            return rayHits(o, le.getRotationVec(1f), 7, c, r, f);
+            if (o.subtract(c).dotProduct(f) < -0.2 * S) return false;          // бьёт сбоку или со спины
+            return rayHits(o, le.getRotationVec(1f), 7 * S, c, r, f);
         }
         return false;
     }
@@ -1046,6 +1056,12 @@ public class SilentBellEntity extends BossBase {
         choir.clear();
         event(E_DARK, eyePos(), 0);
         sound(SoundEvents.BLOCK_BEACON_DEACTIVATE, 3f, 0.4f);
+        // победа: всем, кто бился рядом, открывается сан Патриарха
+        if (getWorld() instanceof ServerWorld sw) {
+            for (ServerPlayerEntity p : sw.getPlayers()) {
+                if (p.squaredDistanceTo(this) < 128 * 128 && !p.isSpectator()) com.bleid.vestments.service.ServicePoints.markBellSlain(p);
+            }
+        }
     }
 
     /** Смерть: глаз гаснет, колокол опускается на землю и каменеет снизу вверх. Каменный колокол ждёт удара. */
@@ -1073,7 +1089,7 @@ public class SilentBellEntity extends BossBase {
         if (atk == this || source.isOf(DamageTypes.EXPLOSION) || source.isOf(DamageTypes.PLAYER_EXPLOSION)) return false;
         if (atk == null && source.getSource() == null) return false;
         if (!(getWorld() instanceof ServerWorld sw)) return false;
-        Vec3d c = getPos().add(0, 2.2, 0);
+        Vec3d c = getPos().add(0, 2.2 * S, 0);
         event(E_STONE_HIT, c, 0);
         sound(SoundEvents.BLOCK_BELL_USE, 6f, 0.4f);
         sound(SoundEvents.BLOCK_DEEPSLATE_BREAK, 4f, 0.5f);

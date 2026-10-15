@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "axis=x": { "model": "vestments:block/bell_portal_ns" },
+    "axis=z": { "model": "vestments:block/bell_portal_ew" }
+  }
+}

@@ -109,8 +109,8 @@ public final class BellBossClient {
             case BellRingerEntity.E_WAKE -> {
                 shake(p, 0.5f, 30);
                 double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 20f).color(GREEN).alpha(0.7f).life(30).fade(0f, 0.6f);
-                spawn(RING, p.x, gy + 0.02, p.z).mode(Mode.FLAT).delay(5).size(1f, 13f).color(PATINA).alpha(0.5f).life(30).fade(0f, 0.6f);
+                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 40f).color(GREEN).alpha(0.7f).life(30).fade(0f, 0.6f);
+                spawn(RING, p.x, gy + 0.02, p.z).mode(Mode.FLAT).delay(5).size(2f, 26f).color(PATINA).alpha(0.5f).life(30).fade(0f, 0.6f);
                 dust(p, 30, 2.5, 1f);
                 // тело собирается из звука: кольца сходятся к колоколу, звуковые искры стягиваются в силуэт
                 task(age -> {
@@ -122,7 +122,7 @@ public final class BellBossClient {
                         if (w % 4 == 0) {
                             for (int h = 0; h < 3; h++) {
                                 double y = c.y + 0.4 + h * 2.2 * Math.max(0.3, u);
-                                spawn(RING, c.x, y, c.z).mode(Mode.FLAT).size(9f, 1.2f).ease().color(h == 1 ? PALE : GREEN)
+                                spawn(RING, c.x, y, c.z).mode(Mode.FLAT).size(18f, 2.4f).ease().color(h == 1 ? PALE : GREEN)
                                         .alpha(0.55f).life(10).fade(0.2f, 0.3f);
                             }
                         }
@@ -146,8 +146,8 @@ public final class BellBossClient {
             case BellRingerEntity.E_FORM -> {
                 shake(p, 0.8f, 26);
                 Vec3d c = p.add(0, 4.5, 0);
-                spawn(FLARE, c.x, c.y, c.z).size(6f, 0.5f).color(PALE).life(10);
-                spawn(SHOCK, c.x, c.y, c.z).size(0.6f, 7f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.7f);
+                spawn(FLARE, c.x, c.y, c.z).size(12f, 1f).color(PALE).life(10);
+                spawn(SHOCK, c.x, c.y, c.z).size(1.2f, 14f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.7f);
                 for (int i = 0; i < 50; i++) {
                     spawn(i % 2 == 0 ? GLINT : STAR, c.x, c.y, c.z).vel(rr(-0.5, 0.5), rr(-0.3, 0.5), rr(-0.5, 0.5)).drag(0.9f)
                             .rot((float) rr(0, 6), 0.3f).size(0.14f, 0.04f).colors(PALE, GREEN).life(14 + R().nextInt(8));
@@ -156,8 +156,8 @@ public final class BellBossClient {
             case BellRingerEntity.E_AWOKEN -> {
                 shake(p, 1f, 30);
                 double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 14f).ease().colors(CANDLE, EMBER).life(14).fade(0f, 0.8f);
-                spawn(RING, p.x, gy + 0.1, p.z).mode(Mode.FLAT).size(1f, 22f).ease().color(CANDLE).alpha(0.6f).life(18).fade(0f, 0.6f);
+                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 28f).ease().colors(CANDLE, EMBER).life(14).fade(0f, 0.8f);
+                spawn(RING, p.x, gy + 0.1, p.z).mode(Mode.FLAT).size(2f, 44f).ease().color(CANDLE).alpha(0.6f).life(18).fade(0f, 0.6f);
                 dust(p, 40, 3.5, 1.2f);
                 sparks(p.add(0, 3, 0), 30, EMBER, 0.6);
             }
@@ -167,19 +167,19 @@ public final class BellBossClient {
             }
             case BellRingerEntity.E_SLAM -> {
                 shake(p, 0.9f, 18);
-                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(0.5f, 3.2f).ease().colors(EMBER, ASH).life(12).fade(0f, 0.8f);
-                spawn(RING, p.x, p.y + 0.08, p.z).mode(Mode.FLAT).size(0.6f, 4.4f).ease().color(CANDLE).life(10).alpha(0.8f).fade(0f, 0.7f);
-                spawn(FLARE, p.x, p.y + 0.4, p.z).size(2.2f, 0.4f).color(EMBER).life(7);
+                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(1f, 6.4f).ease().colors(EMBER, ASH).life(12).fade(0f, 0.8f);
+                spawn(RING, p.x, p.y + 0.08, p.z).mode(Mode.FLAT).size(1.2f, 8.8f).ease().color(CANDLE).life(10).alpha(0.8f).fade(0f, 0.7f);
+                spawn(FLARE, p.x, p.y + 0.4, p.z).size(4.4f, 0.8f).color(EMBER).life(7);
                 dust(p, 22, 2.2, 0.9f);
                 sparks(p.add(0, 0.3, 0), 24, EMBER, 0.45);
             }
             case BellRingerEntity.E_CRACK -> {
                 Vec3d f = dirOf(arg);
                 for (int i = 0; i < 16; i++) {
-                    double s = 0.6 + i * 0.56;
+                    double s = (0.6 + i * 0.56) * 2;
                     Vec3d q = p.add(f.multiply(s));
                     double gy = groundY(q.add(0, 1, 0)) + 0.04;
-                    spawn(CRACK, q.x, gy, q.z).mode(Mode.FLAT).delay(i / 2).size(0.75f, 0.85f).rot((float) rr(0, 6.28), 0f)
+                    spawn(CRACK, q.x, gy, q.z).mode(Mode.FLAT).delay(i / 2).size(1.5f, 1.7f).rot((float) rr(0, 6.28), 0f)
                             .color(EMBER).life(26 - i / 2).alpha(0.95f).pulse(0.25f, 0.6f).fade(0.05f, 0.25f);
                     if (i % 3 == 0) spawn(FLAME, q.x, gy + 0.1, q.z).delay(i / 2).vel(0, 0.03, 0).size(0.18f, 0.05f).color(EMBER).life(14);
                 }
@@ -187,11 +187,11 @@ public final class BellBossClient {
             case BellRingerEntity.E_WAVE -> {
                 Vec3d f = dirOf(arg);
                 for (int i = 0; i < 18; i++) {
-                    double s = 0.6 + i * 0.52;
+                    double s = (0.6 + i * 0.52) * 2;
                     Vec3d q = p.add(f.multiply(s));
                     double gy = groundY(q.add(0, 1, 0));
                     int dl = (int) (i * 0.45);
-                    spawn(SHOCK, q.x, gy + 0.05, q.z).mode(Mode.FLAT).delay(dl).size(0.3f, 1.7f).ease().colors(CANDLE, ASH).life(9).fade(0f, 0.8f);
+                    spawn(SHOCK, q.x, gy + 0.05, q.z).mode(Mode.FLAT).delay(dl).size(0.6f, 3.4f).ease().colors(CANDLE, ASH).life(9).fade(0f, 0.8f);
                     for (int j = 0; j < 3; j++) {
                         spawn(FLAME, q.x + rr(-0.4, 0.4), gy + 0.1, q.z + rr(-0.4, 0.4)).delay(dl).vel(rr(-0.03, 0.03), rr(0.18, 0.32), rr(-0.03, 0.03))
                                 .drag(0.88f).size(0.32f, 0.08f).colors(CANDLE, EMBER).life(12 + R().nextInt(6));
@@ -212,12 +212,12 @@ public final class BellBossClient {
                 double gy = groundY(e.getPos().add(0, 1, 0)) + 0.08;
                 // звуковое кольцо идёт от звонаря; под колоколом — тихий островок
                 for (int h = 0; h < 3; h++) {
-                    spawn(RING, e.getX(), gy + h * 0.7, e.getZ()).mode(Mode.FLAT).delay(h).size(0.6f, 12.5f).color(h == 0 ? PALE : WHITE)
+                    spawn(RING, e.getX(), gy + h * 1.4, e.getZ()).mode(Mode.FLAT).delay(h).size(1.2f, 25f).color(h == 0 ? PALE : WHITE)
                             .alpha(0.8f - h * 0.2f).life(16).fade(0f, 0.5f);
                 }
-                spawn(RING, p.x, p.y, p.z).size(0.8f, 4.5f).ease().color(WHITE).life(10).fade(0f, 0.8f);
-                spawn(RING, p.x, p.y, p.z).delay(3).size(0.6f, 3.4f).ease().color(CANDLE).life(10).fade(0f, 0.8f);
-                spawn(ORB, e.getX(), gy - 0.04, e.getZ()).mode(Mode.FLAT).size(2.6f).color(CANDLE).alpha(0.18f).life(24).fade(0.1f, 0.5f);
+                spawn(RING, p.x, p.y, p.z).size(1.6f, 9f).ease().color(WHITE).life(10).fade(0f, 0.8f);
+                spawn(RING, p.x, p.y, p.z).delay(3).size(1.2f, 6.8f).ease().color(CANDLE).life(10).fade(0f, 0.8f);
+                spawn(ORB, e.getX(), gy - 0.04, e.getZ()).mode(Mode.FLAT).size(5.2f).color(CANDLE).alpha(0.18f).life(24).fade(0.1f, 0.5f);
                 for (int i = 0; i < 6; i++) {
                     double ang = rr(0, Math.PI * 2);
                     spawn(GLINT, p.x, p.y, p.z).vel(Math.cos(ang) * 0.2, rr(0, 0.15), Math.sin(ang) * 0.2).drag(0.9f).size(0.25f, 0.05f).color(WHITE).life(16);
@@ -226,11 +226,11 @@ public final class BellBossClient {
             case BellRingerEntity.E_CHAIN_SHOT -> sparks(p, 8, BRONZE, 0.2);
             case BellRingerEntity.E_CHAIN_HIT -> {
                 sparks(p, 14, BRONZE, 0.3);
-                spawn(FLARE, p.x, p.y, p.z).size(0.9f, 0.2f).color(BRONZE).life(5);
+                spawn(FLARE, p.x, p.y, p.z).size(1.8f, 0.4f).color(BRONZE).life(5);
             }
             case BellRingerEntity.E_CHAIN_BREAK -> {
-                spawn(FLARE, p.x, p.y, p.z).size(1.6f, 0.2f).color(WHITE).life(6);
-                spawn(RING, p.x, p.y, p.z).size(0.2f, 1.6f).ease().color(CANDLE).life(8);
+                spawn(FLARE, p.x, p.y, p.z).size(3.2f, 0.4f).color(WHITE).life(6);
+                spawn(RING, p.x, p.y, p.z).size(0.4f, 3.2f).ease().color(CANDLE).life(8);
                 sparks(p, 30, CANDLE, 0.5);
                 for (int i = 0; i < 9; i++) {
                     spawn(STAR, p.x, p.y, p.z).vel(rr(-0.2, 0.2), rr(0.05, 0.3), rr(-0.2, 0.2)).gravity(0.05f).drag(0.96f)
@@ -239,15 +239,15 @@ public final class BellBossClient {
             }
             case BellRingerEntity.E_SWING_HIT -> {
                 shake(p, 0.4f, 8);
-                spawn(SHOCK, p.x, p.y, p.z).size(0.4f, 1.8f).ease().color(CANDLE).life(8);
+                spawn(SHOCK, p.x, p.y, p.z).size(0.8f, 3.6f).ease().color(CANDLE).life(8);
                 sparks(p, 16, BRONZE, 0.4);
             }
             case BellRingerEntity.E_JUMP -> dust(p, 16, 1.6, 0.8f);
             case BellRingerEntity.E_LAND -> {
                 shake(p, 1.0f, 20);
                 double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(0.6f, 4.6f).ease().colors(CANDLE, ASH).life(12).fade(0f, 0.8f);
-                spawn(RING, p.x, gy + 0.02, p.z).mode(Mode.FLAT).size(0.6f, 5f).ease().color(EMBER).alpha(0.8f).life(12).fade(0f, 0.7f);
+                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(1.2f, 9.2f).ease().colors(CANDLE, ASH).life(12).fade(0f, 0.8f);
+                spawn(RING, p.x, gy + 0.02, p.z).mode(Mode.FLAT).size(1.2f, 10f).ease().color(EMBER).alpha(0.8f).life(12).fade(0f, 0.7f);
                 for (int i = 0; i < 10; i++) {
                     double ang = i * Math.PI / 5 + rr(-0.2, 0.2);
                     spawn(CRACK, p.x + Math.cos(ang) * 1.8, gy, p.z + Math.sin(ang) * 1.8).mode(Mode.FLAT).size(0.8f).rot((float) ang, 0)
@@ -261,7 +261,7 @@ public final class BellBossClient {
             }
             case BellRingerEntity.E_SNAP -> {
                 sparks(p, 18, BRONZE, 0.35);
-                spawn(FLARE, p.x, p.y, p.z).size(0.8f, 0.1f).color(CANDLE).life(5);
+                spawn(FLARE, p.x, p.y, p.z).size(1.6f, 0.2f).color(CANDLE).life(5);
                 for (int i = 0; i < 5; i++) {
                     spawn(STAR, p.x, p.y, p.z).vel(rr(-0.12, 0.12), rr(0, 0.15), rr(-0.12, 0.12)).gravity(0.06f).drag(0.96f)
                             .rot((float) rr(0, 6), 0.3f).size(0.08f).color(ASH).life(30);
@@ -270,7 +270,7 @@ public final class BellBossClient {
             case BellRingerEntity.E_BELL_FALL -> {                // выросший колокол накрыл тело
                 shake(p, 1.0f, 24);
                 double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 4.4f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.8f);
+                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 8.8f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.8f);
                 for (int i = 0; i < 40; i++) {
                     double ang = rr(0, Math.PI * 2);
                     spawn(SMOKE, p.x + Math.cos(ang) * 1.9, gy + 0.2, p.z + Math.sin(ang) * 1.9).vel(Math.cos(ang) * rr(0.1, 0.3), rr(0.02, 0.1), Math.sin(ang) * rr(0.1, 0.3))
@@ -279,13 +279,13 @@ public final class BellBossClient {
             }
             case BellRingerEntity.E_RISE -> {
                 Vec3d h = e.local(0, 6.1, 0.94);
-                spawn(FLARE, h.x, h.y, h.z).size(2.6f, 0.4f).color(GREEN).life(12);
+                spawn(FLARE, h.x, h.y, h.z).size(5.2f, 0.8f).color(GREEN).life(12);
                 for (int i = 0; i < 20; i++) spawn(RUNES, h.x + rr(-1, 1), h.y + rr(-1, 1), h.z + rr(-1, 1)).vel(0, rr(0.05, 0.15), 0).size(0.2f, 0.05f).color(GREEN).life(24);
             }
             case BellRingerEntity.E_TOSS -> sparks(p, 12, BRONZE, 0.3);
             case BellRingerEntity.E_CATCH -> {
                 shake(p, 0.5f, 14);
-                spawn(RING, p.x, p.y, p.z).size(0.5f, 3f).ease().color(WHITE).life(10).fade(0f, 0.8f);
+                spawn(RING, p.x, p.y, p.z).size(1f, 6f).ease().color(WHITE).life(10).fade(0f, 0.8f);
                 sparks(p, 16, BRONZE, 0.35);
             }
             case BellRingerEntity.E_ASH -> {
@@ -305,7 +305,7 @@ public final class BellBossClient {
             }
             case BellRingerEntity.E_RAGE -> {
                 Vec3d h = e.local(0, 5.95, 1.6);
-                spawn(FLARE, h.x, h.y, h.z).size(2.4f, 0.4f).color(GREEN).life(10);
+                spawn(FLARE, h.x, h.y, h.z).size(4.8f, 0.8f).color(GREEN).life(10);
                 for (int i = 0; i < 24; i++) {
                     spawn(FLAME, h.x, h.y, h.z).vel(rr(-0.2, 0.2), rr(0, 0.25), rr(-0.2, 0.2)).drag(0.9f).size(0.2f, 0.05f).colors(CANDLE, EMBER).life(16);
                 }
@@ -370,16 +370,16 @@ public final class BellBossClient {
             case SilentBellEntity.E_AWAKE -> {
                 shake(p, 0.7f, 30);
                 double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 18f).color(GREEN).alpha(0.7f).life(30).fade(0f, 0.6f);
-                spawn(RING, p.x, gy + 0.02, p.z).mode(Mode.FLAT).delay(6).size(1f, 12f).color(PATINA).alpha(0.5f).life(30).fade(0f, 0.6f);
+                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 36f).color(GREEN).alpha(0.7f).life(30).fade(0f, 0.6f);
+                spawn(RING, p.x, gy + 0.02, p.z).mode(Mode.FLAT).delay(6).size(2f, 24f).color(PATINA).alpha(0.5f).life(30).fade(0f, 0.6f);
                 dust(p, 26, 2.5, 1f);
             }
             case SilentBellEntity.E_EYE_OPEN -> {
-                spawn(FLARE, p.x, p.y, p.z).size(1.8f, 0.3f).color(GREEN).life(8);
-                spawn(RING, p.x, p.y, p.z).size(0.3f, 1.6f).ease().color(PALE).life(8);
+                spawn(FLARE, p.x, p.y, p.z).size(3.6f, 0.6f).color(GREEN).life(8);
+                spawn(RING, p.x, p.y, p.z).size(0.6f, 3.2f).ease().color(PALE).life(8);
             }
             case SilentBellEntity.E_CLANG -> {
-                spawn(FLARE, p.x, p.y, p.z).size(0.7f, 0.1f).color(BRONZE).life(4);
+                spawn(FLARE, p.x, p.y, p.z).size(1.4f, 0.2f).color(BRONZE).life(4);
                 sparks(p, 10, BRONZE, 0.3);
             }
             case SilentBellEntity.E_CONE_CHARGE -> {
@@ -399,7 +399,7 @@ public final class BellBossClient {
                     double a = rr(-half, half), el = rr(-0.25, 0.2);
                     double ca = Math.cos(a), sa = Math.sin(a);
                     Vec3d d = new Vec3d(f.x * ca - f.z * sa, el, f.z * ca + f.x * sa).normalize();
-                    double sp = rr(0.9, 1.25);
+                    double sp = rr(1.8, 2.5);
                     spawn(i % 3 == 0 ? GLINT : ORB, p.x, p.y, p.z).vel(d.x * sp, d.y * sp, d.z * sp).drag(0.97f)
                             .size(0.14f, 0.5f).colors(PALE, GREEN).alpha(0.8f).life(11 + R().nextInt(3)).fade(0.05f, 0.5f);
                 }
@@ -408,25 +408,25 @@ public final class BellBossClient {
                     for (int j = -4; j <= 4; j++) {
                         double a = half * j / 4.0, ca = Math.cos(a), sa = Math.sin(a);
                         Vec3d d = new Vec3d(f.x * ca - f.z * sa, 0, f.z * ca + f.x * sa);
-                        spawn(RING, p.x, p.y - 1.2, p.z).delay(w * 2).vel(d.x * 1.15, 0, d.z * 1.15).size(0.6f, 2.6f).color(GREEN)
+                        spawn(RING, p.x, p.y - 2.4, p.z).delay(w * 2).vel(d.x * 2.3, 0, d.z * 2.3).size(1.2f, 5.2f).color(GREEN)
                                 .alpha(0.55f).life(11).fade(0f, 0.6f);
                     }
                 }
-                spawn(FLARE, p.x, p.y, p.z).size(3f, 0.4f).color(GREEN).life(8);
+                spawn(FLARE, p.x, p.y, p.z).size(6f, 0.8f).color(GREEN).life(8);
             }
             case SilentBellEntity.E_SHADOW -> {
                 task(age -> {
                     if (!e.isAlive() || e.attack() != SilentBellEntity.DROP) return false;
                     double gy = groundY(e.getPos());
-                    if (age % 3 == 0) spawn(RING, e.getX(), gy + 0.05, e.getZ()).mode(Mode.FLAT).size(3.1f, 2.6f).color(GREEN).alpha(0.5f).life(4);
+                    if (age % 3 == 0) spawn(RING, e.getX(), gy + 0.05, e.getZ()).mode(Mode.FLAT).size(6.2f, 5.2f).color(GREEN).alpha(0.5f).life(4);
                     if (age % 2 == 0) spawn(RUNES, e.getX() + rr(-2, 2), gy + 0.1, e.getZ() + rr(-2, 2)).vel(0, 0.05, 0).size(0.2f, 0.05f).color(GREEN).life(10);
                     return age < 40;
                 });
             }
             case SilentBellEntity.E_DROP_LAND -> {
                 shake(p, 1.1f, 22);
-                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(1f, 6.4f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.8f);
-                spawn(RING, p.x, p.y + 0.08, p.z).mode(Mode.FLAT).size(1f, 7f).ease().color(PATINA).alpha(0.8f).life(14).fade(0f, 0.7f);
+                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(2f, 12.8f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.8f);
+                spawn(RING, p.x, p.y + 0.08, p.z).mode(Mode.FLAT).size(2f, 14f).ease().color(PATINA).alpha(0.8f).life(14).fade(0f, 0.7f);
                 dust(p, 40, 3.4, 1.2f);
             }
             case SilentBellEntity.E_TRAP -> {
@@ -436,19 +436,19 @@ public final class BellBossClient {
                 }
             }
             case SilentBellEntity.E_TRAP_HIT -> {
-                spawn(FLARE, p.x, p.y, p.z).size(1.4f + arg * 0.3f, 0.2f).color(GREEN).life(6);
+                spawn(FLARE, p.x, p.y, p.z).size(2.8f + arg * 0.6f, 0.4f).color(GREEN).life(6);
                 sparks(p, 12, GREEN, 0.3);
                 shake(p, 0.25f, 6);
             }
             case SilentBellEntity.E_RELEASE -> {
                 if (arg > 0) {
                     shake(p, 0.6f, 12);
-                    spawn(SHOCK, p.x, p.y + 1.3, p.z).size(0.6f, 4f).ease().color(GREEN).life(10);
+                    spawn(SHOCK, p.x, p.y + 1.3, p.z).size(1.2f, 8f).ease().color(GREEN).life(10);
                     sparks(p.add(0, 1.5, 0), 26, PALE, 0.5);
                 }
             }
             case SilentBellEntity.E_CHOIR -> {
-                spawn(FLARE, p.x, p.y, p.z).size(1.4f, 0.2f).color(PALE).life(10);
+                spawn(FLARE, p.x, p.y, p.z).size(2.8f, 0.4f).color(PALE).life(10);
                 for (int i = 0; i < 14; i++) {
                     spawn(SMOKE, p.x, p.y, p.z).vel(rr(-0.08, 0.08), rr(-0.02, 0.1), rr(-0.08, 0.08)).drag(0.92f).size(0.3f, 0.9f)
                             .color(PALE).alpha(0.35f).life(30);
@@ -465,22 +465,22 @@ public final class BellBossClient {
             }
             case SilentBellEntity.E_GROUND_RING -> {
                 if (arg > 0) {                                     // быстрая волна от приземления скачка
-                    int life = (int) ((10f - 4.2f) / arg);
-                    spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(8.4f, 21f).color(GREEN).alpha(0.85f).life(life).fade(0f, 0.3f);
-                    spawn(RING, p.x, p.y + 0.4, p.z).mode(Mode.FLAT).size(8.4f, 21f).color(PALE).alpha(0.35f).life(life).fade(0f, 0.3f);
+                    int life = (int) ((20f - 8.4f) / arg);
+                    spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(16.8f, 42f).color(GREEN).alpha(0.85f).life(life).fade(0f, 0.3f);
+                    spawn(RING, p.x, p.y + 0.4, p.z).mode(Mode.FLAT).size(16.8f, 42f).color(PALE).alpha(0.35f).life(life).fade(0f, 0.3f);
                     break;
                 }
                 int life = (int) (SilentBellEntity.GROUND_RING_MAX / SilentBellEntity.GROUND_RING_SPEED);
-                spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(0.1f, SilentBellEntity.GROUND_RING_MAX * 1.05f).color(GREEN)
+                spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(0.2f, SilentBellEntity.GROUND_RING_MAX * 1.05f).color(GREEN)
                         .alpha(0.75f).life(life).fade(0.02f, 0.2f).pulse(0.15f, 0.4f);
-                spawn(RING, p.x, p.y + 0.5, p.z).mode(Mode.FLAT).size(0.1f, SilentBellEntity.GROUND_RING_MAX * 1.05f).color(PATINA)
+                spawn(RING, p.x, p.y + 0.5, p.z).mode(Mode.FLAT).size(0.2f, SilentBellEntity.GROUND_RING_MAX * 1.05f).color(PATINA)
                         .alpha(0.3f).life(life).fade(0.02f, 0.2f);
             }
             case SilentBellEntity.E_RING_HIT -> sparks(p.add(0, 0.3, 0), 8, GREEN, 0.25);
             case SilentBellEntity.E_WIDEN -> {
                 shake(p, 0.8f, 24);
-                spawn(FLARE, p.x, p.y, p.z).size(4f, 0.5f).color(GREEN).life(14);
-                spawn(RING, p.x, p.y, p.z).size(0.5f, 6f).ease().color(PALE).life(14);
+                spawn(FLARE, p.x, p.y, p.z).size(8f, 1f).color(GREEN).life(14);
+                spawn(RING, p.x, p.y, p.z).size(1f, 12f).ease().color(PALE).life(14);
                 sparks(p, 40, GREEN, 0.6);
             }
             case SilentBellEntity.E_DARK -> {
@@ -491,7 +491,7 @@ public final class BellBossClient {
             case SilentBellEntity.E_SPLIT -> {                        // окаменел: каменная пыль, глухой удар
                 shake(p, 0.5f, 18);
                 double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 9f).ease().color(ASH).alpha(0.6f).life(16).fade(0f, 0.6f);
+                spawn(RING, p.x, gy, p.z).mode(Mode.FLAT).size(4f, 18f).ease().color(ASH).alpha(0.6f).life(16).fade(0f, 0.6f);
                 dust(p, 40, 2.6, 1.2f);
                 for (int i = 0; i < 24; i++) {
                     spawn(STAR, p.x + rr(-1.6, 1.6), p.y + rr(0.5, 5.5), p.z + rr(-1.6, 1.6)).vel(rr(-0.08, 0.08), rr(0, 0.1), rr(-0.08, 0.08))
@@ -500,11 +500,11 @@ public final class BellBossClient {
             }
             case SilentBellEntity.E_STONE_HIT -> {                    // каменный колокол взрывается
                 shake(p, 2f, 40);
-                spawn(FLARE, p.x, p.y, p.z).size(9f, 0.5f).color(PALE).life(10);
-                spawn(SHOCK, p.x, p.y, p.z).size(1f, 16f).ease().colors(PALE, GREEN).life(14).fade(0f, 0.7f);
+                spawn(FLARE, p.x, p.y, p.z).size(18f, 1f).color(PALE).life(10);
+                spawn(SHOCK, p.x, p.y, p.z).size(2f, 32f).ease().colors(PALE, GREEN).life(14).fade(0f, 0.7f);
                 double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 24f).ease().colors(WHITE, ASH).life(16).fade(0f, 0.8f);
-                spawn(BEAM, p.x, gy, p.z).mode(Mode.BEAM).height(14f).size(2.2f, 0.1f).colors(PALE, GREEN).life(14).fade(0f, 0.8f);
+                spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(4f, 48f).ease().colors(WHITE, ASH).life(16).fade(0f, 0.8f);
+                spawn(BEAM, p.x, gy, p.z).mode(Mode.BEAM).height(28f).size(4.4f, 0.2f).colors(PALE, GREEN).life(14).fade(0f, 0.8f);
                 for (int i = 0; i < 90; i++) {                          // каменные обломки
                     spawn(STAR, p.x + rr(-1.2, 1.2), p.y + rr(-1.5, 2.5), p.z + rr(-1.2, 1.2)).vel(rr(-0.9, 0.9), rr(0.2, 1.1), rr(-0.9, 0.9))
                             .gravity(0.06f).drag(0.97f).rot((float) rr(0, 6), 0.4f).size(0.18f, 0.12f).color(i % 4 == 0 ? BRONZE : ASH).life(40 + R().nextInt(20));
@@ -517,7 +517,7 @@ public final class BellBossClient {
             }
             case SilentBellEntity.E_RAM_CHARGE -> {
                 int dur = (int) arg;
-                spawn(FLARE, p.x, p.y, p.z).size(0.5f, 2.6f).ease().color(GREEN).alpha(0.6f).life(dur).fade(0.6f, 0.1f);
+                spawn(FLARE, p.x, p.y, p.z).size(1f, 5.2f).ease().color(GREEN).alpha(0.6f).life(dur).fade(0.6f, 0.1f);
                 for (int i = 0; i < 18; i++) {
                     double ang = rr(0, Math.PI * 2), r = rr(2.5, 4.5);
                     spawn(STREAK, p.x + Math.cos(ang) * r, p.y + rr(-2, 2), p.z + Math.sin(ang) * r).delay(R().nextInt(Math.max(1, dur - 3)))
@@ -527,14 +527,14 @@ public final class BellBossClient {
             }
             case SilentBellEntity.E_RAM_HIT -> {
                 shake(p, 0.5f, 10);
-                spawn(FLARE, p.x, p.y, p.z).size(1.6f, 0.2f).color(PALE).life(5);
-                spawn(SHOCK, p.x, p.y, p.z).size(0.4f, 2.4f).ease().color(GREEN).life(7);
+                spawn(FLARE, p.x, p.y, p.z).size(3.2f, 0.4f).color(PALE).life(5);
+                spawn(SHOCK, p.x, p.y, p.z).size(0.8f, 4.8f).ease().color(GREEN).life(7);
                 sparks(p, 16, BRONZE, 0.5);
             }
             case SilentBellEntity.E_RAM_WALL -> {
                 shake(p, 0.9f, 18);
-                spawn(FLARE, p.x, p.y, p.z).size(3.2f, 0.3f).color(PALE).life(8);
-                spawn(SHOCK, p.x, p.y, p.z).size(0.6f, 5f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.7f);
+                spawn(FLARE, p.x, p.y, p.z).size(6.4f, 0.6f).color(PALE).life(8);
+                spawn(SHOCK, p.x, p.y, p.z).size(1.2f, 10f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.7f);
                 sparks(p, 40, BRONZE, 0.7);
                 dust(p, 20, 2.5, 1.1f);
             }
@@ -542,8 +542,8 @@ public final class BellBossClient {
                 if (arg > 0) {                                     // отброс в конце вихря
                     shake(p, 0.8f, 16);
                     double gy = groundY(p.add(0, 1, 0)) + 0.06;
-                    spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(1f, 15f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.7f);
-                    spawn(RING, p.x, p.y + 2.5, p.z).mode(Mode.FLAT).size(2f, 16f).ease().color(PATINA).alpha(0.7f).life(10).fade(0f, 0.6f);
+                    spawn(SHOCK, p.x, gy, p.z).mode(Mode.FLAT).size(2f, 30f).ease().colors(PALE, GREEN).life(12).fade(0f, 0.7f);
+                    spawn(RING, p.x, p.y + 2.5, p.z).mode(Mode.FLAT).size(4f, 32f).ease().color(PATINA).alpha(0.7f).life(10).fade(0f, 0.6f);
                     for (int i = 0; i < 40; i++) {
                         double ang = rr(0, Math.PI * 2), sp = rr(0.5, 0.9);
                         spawn(STREAK, p.x, p.y + rr(1, 3.5), p.z).vel(Math.cos(ang) * sp, rr(0, 0.15), Math.sin(ang) * sp).drag(0.88f)
@@ -578,13 +578,13 @@ public final class BellBossClient {
                 });
             }
             case SilentBellEntity.E_CHAIN_HIT -> {
-                spawn(FLARE, p.x, p.y, p.z).size(0.9f, 0.1f).color(BRONZE).life(4);
+                spawn(FLARE, p.x, p.y, p.z).size(1.8f, 0.2f).color(BRONZE).life(4);
                 sparks(p, 10, BRONZE, 0.4);
             }
             case SilentBellEntity.E_ORB_FIRE -> {
                 Vec3d d = SilentBellEntity.unpackDir(arg).multiply(SilentBellEntity.ORB_SPEED);
-                spawn(FLARE, p.x, p.y, p.z).size(1.6f, 0.2f).color(GREEN).life(5);
-                spawn(RING, p.x, p.y, p.z).size(0.3f, 2.2f).ease().color(PALE).life(6);
+                spawn(FLARE, p.x, p.y, p.z).size(3.2f, 0.4f).color(GREEN).life(5);
+                spawn(RING, p.x, p.y, p.z).size(0.6f, 4.4f).ease().color(PALE).life(6);
                 Vec3d[] pos = { p };
                 task(age -> {
                     Vec3d np = pos[0].add(d);
@@ -597,14 +597,14 @@ public final class BellBossClient {
                     pos[0] = np;
                     spawn(ORB, np.x, np.y, np.z).size(0.55f, 0.35f).colors(PALE, GREEN).life(3);
                     spawn(GLINT, np.x, np.y, np.z).size(0.25f, 0.05f).color(GREEN).alpha(0.7f).life(8).vel(rr(-0.03, 0.03), rr(-0.03, 0.03), rr(-0.03, 0.03));
-                    if (age % 3 == 0) spawn(RING, np.x, np.y, np.z).size(0.3f, 1.3f).color(GREEN).alpha(0.5f).life(6).fade(0f, 0.6f);
+                    if (age % 3 == 0) spawn(RING, np.x, np.y, np.z).size(0.6f, 2.6f).color(GREEN).alpha(0.5f).life(6).fade(0f, 0.6f);
                     return age < SilentBellEntity.ORB_LIFE;
                 });
             }
             case SilentBellEntity.E_ORB_BURST -> {
                 shake(p, 0.4f, 10);
-                spawn(FLARE, p.x, p.y, p.z).size(2.4f, 0.3f).color(GREEN).life(6);
-                spawn(SHOCK, p.x, p.y, p.z).size(0.4f, 5.6f).ease().colors(PALE, GREEN).life(9).fade(0f, 0.7f);
+                spawn(FLARE, p.x, p.y, p.z).size(4.8f, 0.6f).color(GREEN).life(6);
+                spawn(SHOCK, p.x, p.y, p.z).size(0.8f, 11.2f).ease().colors(PALE, GREEN).life(9).fade(0f, 0.7f);
                 for (int i = 0; i < 24; i++) {
                     spawn(i % 2 == 0 ? GLINT : ORB, p.x, p.y, p.z).vel(rr(-0.35, 0.35), rr(-0.2, 0.35), rr(-0.35, 0.35)).drag(0.9f)
                             .size(0.15f, 0.05f).colors(PALE, GREEN).life(10 + R().nextInt(6));
@@ -612,8 +612,8 @@ public final class BellBossClient {
             }
             case SilentBellEntity.E_HOP_LAND -> {
                 shake(p, 0.9f, 20);
-                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(1f, 8.4f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.8f);
-                spawn(FLARE, p.x, p.y + 0.5, p.z).size(3f, 0.3f).color(GREEN).life(6);
+                spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(2f, 16.8f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.8f);
+                spawn(FLARE, p.x, p.y + 0.5, p.z).size(6f, 0.6f).color(GREEN).life(6);
                 dust(p, 30, 3, 1.1f);
                 for (int i = 0; i < 14; i++) {
                     double ang = rr(0, Math.PI * 2);
@@ -627,7 +627,7 @@ public final class BellBossClient {
                 spawn(RING, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(rad * 2.2f, rad * 2f).color(GREEN).alpha(0.8f).life(dur).fade(0.1f, 0f).pulse(0.2f, 0.6f);
                 spawn(RING, p.x, p.y + 0.07, p.z).mode(Mode.FLAT).size(0.2f, rad * 2f).color(PALE).alpha(0.5f).life(dur).fade(0f, 0f);
                 spawn(RUNES, p.x, p.y + 0.08, p.z).mode(Mode.FLAT).size(rad * 1.4f, rad * 1.6f).color(PATINA).alpha(0.6f).life(dur).rot(0f, 0.05f);
-                spawn(BEAM, p.x, p.y, p.z).mode(Mode.BEAM).height(12f).size(0.05f, 0.25f).color(GREEN).alpha(0.35f).life(dur).fade(0.3f, 0f);
+                spawn(BEAM, p.x, p.y, p.z).mode(Mode.BEAM).height(24f).size(0.1f, 0.5f).color(GREEN).alpha(0.35f).life(dur).fade(0.3f, 0f);
                 // призрачный колокол проявляется над кругом и падает
                 task(age -> {
                     if (age >= dur) return false;
@@ -648,8 +648,8 @@ public final class BellBossClient {
                 shake(p, 0.6f, 14);
                 float rad = SilentBellEntity.PHANTOM_R;
                 spawn(SHOCK, p.x, p.y + 0.06, p.z).mode(Mode.FLAT).size(0.5f, rad * 2.6f).ease().colors(PALE, GREEN).life(10).fade(0f, 0.7f);
-                spawn(BEAM, p.x, p.y, p.z).mode(Mode.BEAM).height(8f).size(1.6f, 0.1f).colors(PALE, GREEN).life(10).fade(0f, 0.8f);
-                spawn(FLARE, p.x, p.y + 1, p.z).size(3f, 0.3f).color(PALE).life(6);
+                spawn(BEAM, p.x, p.y, p.z).mode(Mode.BEAM).height(16f).size(3.2f, 0.2f).colors(PALE, GREEN).life(10).fade(0f, 0.8f);
+                spawn(FLARE, p.x, p.y + 1, p.z).size(6f, 0.6f).color(PALE).life(6);
                 for (int i = 0; i < 16; i++) {
                     double ang = i * Math.PI / 8;
                     spawn(SMOKE, p.x + Math.cos(ang) * rad * 0.8, p.y + 0.3, p.z + Math.sin(ang) * rad * 0.8)
@@ -659,7 +659,7 @@ public final class BellBossClient {
             }
             case SilentBellEntity.E_DASH -> {
                 Vec3d d = new Vec3d(Math.cos(Math.toRadians(arg)), 0, Math.sin(Math.toRadians(arg)));
-                spawn(RING, p.x, p.y, p.z).size(0.5f, 3.6f).ease().color(PATINA).alpha(0.5f).life(7).fade(0f, 0.6f);
+                spawn(RING, p.x, p.y, p.z).size(1f, 7.2f).ease().color(PATINA).alpha(0.5f).life(7).fade(0f, 0.6f);
                 for (int i = 0; i < 16; i++) {
                     spawn(STREAK, p.x + rr(-1.5, 1.5), p.y + rr(-2, 2), p.z + rr(-1.5, 1.5)).vel(-d.x * 0.7, 0, -d.z * 0.7).drag(0.85f)
                             .stretch(5f).size(0.05f).color(PALE).alpha(0.6f).life(6);
@@ -688,13 +688,13 @@ public final class BellBossClient {
         }
         if (e.widened() && st == SilentBellEntity.S_FIGHT && e.age % 24 == 0) {
             Vec3d c = e.eyePos();
-            spawn(RING, c.x, c.y, c.z).size(0.6f, 3.5f).color(GREEN).alpha(0.4f).life(16).fade(0f, 0.7f);
+            spawn(RING, c.x, c.y, c.z).size(1.2f, 7f).color(GREEN).alpha(0.4f).life(16).fade(0f, 0.7f);
         }
         // шлейф тарана и рывков: быстрое движение оставляет зелёный след и пыль
         double spd = e.getVelocity().horizontalLength();
         if (st == SilentBellEntity.S_FIGHT && spd > 0.5) {
             Vec3d c = e.getPos();
-            spawn(RING, c.x, c.y + 2.4, c.z).size(3.4f, 3.6f).color(GREEN).alpha(0.25f).life(6).fade(0f, 0.8f);
+            spawn(RING, c.x, c.y + 2.4, c.z).size(6.8f, 7.2f).color(GREEN).alpha(0.25f).life(6).fade(0f, 0.8f);
             for (int i = 0; i < 3; i++) {
                 spawn(GLINT, c.x + rr(-1.6, 1.6), c.y + rr(0.5, 4.5), c.z + rr(-1.6, 1.6)).size(0.18f, 0.04f)
                         .colors(PALE, GREEN).alpha(0.7f).life(8);

@@ -278,5 +278,12 @@
   "entity.vestments.choir_singer": "Ghostly Chorister",
   "item.vestments.bell_ringer_spawn_egg": "Ringer of the Silent Cathedral Spawn Egg",
   "item.vestments.bell_tongue": "Bell Tongue",
-  "tooltip.vestments.bell_tongue": "Every blow tolls: stuns and slows the target"
+  "tooltip.vestments.bell_tongue": "Every blow tolls: stuns and slows the target",
+  "block.vestments.bell_portal": "Sound Veil",
+  "message.vestments.patriarch_locked": "The rank of Patriarch opens only to one who defeats the Ringer of the Silent Cathedral.",
+  "message.vestments.patriarch_unlocked": "The Ringer has fallen — the path to Patriarch is open to you.",
+  "message.vestments.cathedral_missing": "The Silent Cathedral is unavailable: the dimension is not loaded.",
+  "message.vestments.cathedral_enter": "The Silent Cathedral",
+  "message.vestments.fight_no_build": "You can't place or break blocks during the battle",
+  "message.vestments.fight_barrier": "A sound barrier holds you inside the cathedral while the battle lasts"
 }

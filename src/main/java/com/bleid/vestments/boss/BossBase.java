@@ -185,7 +185,14 @@ public abstract class BossBase extends HostileEntity {
         getLookControl().lookAt(t, 30f, 30f);
     }
 
+    /** Во сколько раз босс больше своей исходной модели: все смещения local() умножаются на это. */
+    public double scale() {
+        return 1;
+    }
+
     public Vec3d local(double right, double up, double fwd) {
+        double sc = scale();
+        right *= sc; up *= sc; fwd *= sc;
         float y = getYaw() * MathHelper.RADIANS_PER_DEGREE;
         Vec3d f = new Vec3d(-MathHelper.sin(y), 0, MathHelper.cos(y));
         Vec3d r = new Vec3d(-MathHelper.cos(y), 0, -MathHelper.sin(y));

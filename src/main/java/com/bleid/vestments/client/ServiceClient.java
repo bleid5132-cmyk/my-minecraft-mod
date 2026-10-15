@@ -57,7 +57,9 @@ public final class ServiceClient {
             boolean priest = buf.readBoolean();
             int total = buf.readInt();
             String cls = buf.readString();
+            boolean slain = buf.isReadable() && buf.readBoolean();
             client.execute(() -> {
+                com.bleid.vestments.service.RankView.clientBellSlain = slain;
                 hasClass = priest || "paladin".equals(cls);
                 serverPoints = total;
                 com.bleid.vestments.service.RankView.clientPriest = priest;
@@ -129,7 +131,7 @@ public final class ServiceClient {
     }
 
     private static int rankFor(int points) {
-        return paladin() ? com.bleid.vestments.paladin.PaladinRanks.rankFor(points) : Ranks.rankFor(points);
+        return paladin() ? com.bleid.vestments.paladin.PaladinRanks.rankFor(points) : com.bleid.vestments.service.RankView.clientRankFor(points);
     }
 
     static int displayed() {

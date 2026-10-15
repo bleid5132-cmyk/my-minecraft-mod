@@ -48,7 +48,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
 
     public BellRingerRenderer(EntityRendererFactory.Context ctx) {
         super(ctx);
-        shadowRadius = 2.0f;
+        shadowRadius = 4.0f;
         shadowOpacity = 0.8f;
     }
 
@@ -106,9 +106,12 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
     }
 
     /** Цепь на кончике колокола: точки в мировых координатах, верле с ограничениями длины и обтеканием колокола. */
+    /** Модель рисуется вдвое крупнее (как и хитбокс босса). */
+    static final float SC = (float) BellRingerEntity.S;
+
     static final class Dangle {
         static final int N = 7;
-        static final float SEG = 0.2f;
+        static final float SEG = 0.2f * (float) BellRingerEntity.S;
         final double[] x = new double[N * 3], px = new double[N * 3];
         boolean init;
         long nanos;
@@ -139,7 +142,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
                 for (int c = 0; c < 3; c++) {
                     double cur = dg.x[i * 3 + c], v = (cur - dg.px[i * 3 + c]) * 0.985;
                     dg.px[i * 3 + c] = cur;
-                    dg.x[i * 3 + c] = cur + v + (c == 1 ? -16.0 * h * h : 0);
+                    dg.x[i * 3 + c] = cur + v + (c == 1 ? -16.0 * SC * h * h : 0);
                 }
             }
             dg.x[0] = ax; dg.x[1] = ay; dg.x[2] = az;
@@ -172,7 +175,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         for (int i = 0; i + 1 < Dangle.N; i++) {
             Vector3f a = new Vector3f((float) (dg.x[i * 3] - origin.x), (float) (dg.x[i * 3 + 1] - origin.y), (float) (dg.x[i * 3 + 2] - origin.z));
             Vector3f b = new Vector3f((float) (dg.x[i * 3 + 3] - origin.x), (float) (dg.x[i * 3 + 4] - origin.y), (float) (dg.x[i * 3 + 5] - origin.z));
-            drawChain(ms, vcp, a, b, light, 0.07f);
+            drawChain(ms, vcp, a, b, light, 0.07f * SC);
         }
     }
 
@@ -192,7 +195,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
                 float by = MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw);
                 ms.push();
                 ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-by));
-                ms.scale(1 / 16f, 1 / 16f, 1 / 16f);
+                ms.scale(SC / 16f, SC / 16f, SC / 16f);
                 float hover = 54 * sm(w / WK_RISE);                    // спит — стоит краем на земле
                 float robe = 0f;
                 float tremble = !waking ? 0 : w < WK_RISE ? 0.5f : 0.3f + 0.9f * sm((w - WK_RISE) / (float) (WK_FORM - WK_RISE));
@@ -337,7 +340,7 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
 
         ms.push();
         ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw));
-        ms.scale(1 / 16f, 1 / 16f, 1 / 16f);
+        ms.scale(SC / 16f, SC / 16f, SC / 16f);
         ms.translate(0, lift, 0);
         int overlay = dying || waking ? OverlayTexture.DEFAULT_UV : LivingEntityRenderer.getOverlay(e, 0f);
         m.render(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), false, light, overlay, mats, 1f, 1f, 1f, stoneY, crumbleY, hide, exempt);
@@ -345,19 +348,19 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
         ms.pop();
 
         // ---- цепи: гарпун и висячая цепь с кончика колокола, на размахе — колокол на цепи в руках
-        Matrix4f ent = new Matrix4f().rotateY((float) Math.toRadians(-bodyYaw)).scale(1 / 16f).translate(0, lift, 0);
+        Matrix4f ent = new Matrix4f().rotateY((float) Math.toRadians(-bodyYaw)).scale(SC / 16f).translate(0, lift, 0);
         Matrix4f bellWorld = new Matrix4f(ent).mul(mats[BELL]);
         Vector3f crown = new Matrix4f(bellWorld).transformPosition(new Vector3f(0, 123, 15));
         Dangle dg = DANGLE.computeIfAbsent(e.getId(), id -> new Dangle());
         boolean shooting = !dying && a == CHAINS && e.chainState() != 0;
         if (shooting) {
             Vec3d c = e.chainPos().subtract(e.getLerpedPos(td));
-            drawChain(ms, vcp, crown, new Vector3f((float) c.x, (float) c.y, (float) c.z), light, 0.11f);
+            drawChain(ms, vcp, crown, new Vector3f((float) c.x, (float) c.y, (float) c.z), light, 0.11f * SC);
             dg.init = false;
         } else if (held) {
             Vector3f hl = new Matrix4f(ent).mul(mats[HAND_L]).transformPosition(new Vector3f(19.6f, 30, 17.5f));
             Vector3f hr = new Matrix4f(ent).mul(mats[HAND_R]).transformPosition(new Vector3f(-19.6f, 30, 17.5f));
-            drawChain(ms, vcp, hl.add(hr).mul(0.5f), crown, light, 0.11f);
+            drawChain(ms, vcp, hl.add(hr).mul(0.5f), crown, light, 0.11f * SC);
             dg.init = false;
         } else if (waking && w < WK_FORM) {
             dg.init = false;
@@ -528,11 +531,11 @@ public class BellRingerRenderer extends EntityRenderer<BellRingerEntity> {
     static Vec3d swingBell(BellRingerEntity e, float k, float td) {
         double[] o = swingOffset(k);
         float y = (float) Math.toRadians(MathHelper.lerpAngleDegrees(td, e.prevBodyYaw, e.bodyYaw));
-        double lx = o[0], lz = o[2];
+        double lx = o[0] * BellRingerEntity.S, lz = o[2] * BellRingerEntity.S;
         // локально: x — лево, z — вперёд; мир: поворот на -yaw вокруг Y
         double wx = lx * Math.cos(y) - lz * Math.sin(y);
         double wz = lx * Math.sin(y) + lz * Math.cos(y);
-        return e.getLerpedPos(td).add(wx, o[1] + 10 / 16.0, wz);
+        return e.getLerpedPos(td).add(wx, (o[1] + 10 / 16.0) * BellRingerEntity.S, wz);
     }
 
     @Override

@@ -41,6 +41,19 @@ public class Vestments implements ModInitializer {
     public static final Item HOLY_ALTAR_ITEM = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "holy_altar"),
             new net.minecraft.item.BlockItem(HOLY_ALTAR, new FabricItemSettings().rarity(Rarity.UNCOMMON)));
 
+    /** Звуковая завеса — портал в Безмолвный Собор (рама из резной меди, зажигается осколком аметиста). */
+    public static final net.minecraft.block.Block BELL_PORTAL = Registry.register(Registries.BLOCK,
+            new Identifier(MOD_ID, "bell_portal"),
+            new com.bleid.vestments.cathedral.BellPortalBlock(net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings.create()
+                    .mapColor(net.minecraft.block.MapColor.CYAN)
+                    .noCollision()
+                    .strength(-1f, 3600000f)
+                    .dropsNothing()
+                    .nonOpaque()
+                    .luminance(state -> 11)
+                    .sounds(net.minecraft.sound.BlockSoundGroup.AMETHYST_BLOCK)
+                    .pistonBehavior(net.minecraft.block.piston.PistonBehavior.BLOCK)));
+
     /** Библия — способности степеней; продаёт мастер-священник (шанс 50%). */
     public static final Item BIBLE = Registry.register(Registries.ITEM, new Identifier(MOD_ID, "bible"),
             new com.bleid.vestments.patriarch.BibleItem(new FabricItemSettings().maxCount(1).rarity(Rarity.EPIC)));
@@ -99,6 +112,7 @@ public class Vestments implements ModInitializer {
         StaffOfLightItem.registerEvents();
         com.bleid.vestments.classes.PlayerClasses.register();
         com.bleid.vestments.service.ServicePoints.register();
+        com.bleid.vestments.cathedral.Cathedral.register();
         com.bleid.vestments.church.ChurchSpawner.register();
         com.bleid.vestments.altar.HolyAltarBlock.registerNetworking();
         com.bleid.vestments.church.ChurchPriests.register();
