@@ -1,8 +1,6 @@
 package com.bleid.vestments.horse;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.WeakHashMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.MovementType;
@@ -49,8 +47,6 @@ public class CartEntity extends Entity {
     /** Гнёзда сундуков в кузове (x, z — блоки в осях повозки: x влево, z вперёд). */
     public static final double[][] SLOTS = { { 0.3125, -0.6875 }, { -0.3125, -0.6875 }, { 0.3125, -0.21875 }, { -0.3125, -0.21875 },
             { 0.3125, 0.25 }, { -0.3125, 0.25 } };
-
-    private static final Map<Entity, CartEntity> BY_HORSE = new WeakHashMap<>();
 
     private final SimpleInventory[] inv = new SimpleInventory[6];
     private UUID horseUuid;
@@ -105,11 +101,9 @@ public class CartEntity extends Entity {
 
     /** Не дать коню в упряжке развернуться поперёк повозки: курс коня — не дальше MAX_TURN от направления оглобель. */
     public static void clampHorse(AbstractHorseEntity h) {
-        CartEntity c = hitchedTo(h);
-        if (c == null) return;
-        double dx = h.getX() - c.getX(), dz = h.getZ() - c.getZ();
-        if (dx * dx + dz * dz < 1e-4) return;
-        float axis = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float axis = axis(h);
+        if (Float.isNaN(axis)) return;
+        for (Entity p : h.getPassengerList()) clampRider(h, p);
         float d = MathHelper.wrapDegrees(h.getYaw() - axis);
         if (Math.abs(d) <= MAX_TURN) return;
         float y = axis + Math.copySign(MAX_TURN, d);
@@ -122,14 +116,37 @@ public class CartEntity extends Entity {
 
     /** Повозка, прицепленная к этому коню (на клиенте и сервере), или null. */
     public static CartEntity hitchedTo(Entity horse) {
-        CartEntity c = BY_HORSE.get(horse);
-        return c != null && c.isAlive() && c.horse() == horse ? c : null;
+        if (horse == null) return null;
+        for (CartEntity c : horse.getWorld().getEntitiesByClass(CartEntity.class, horse.getBoundingBox().expand(HITCH + 2),
+                c -> c.isAlive() && c.horse() == horse)) return c;
+        return null;
+    }
+
+    /** Направление оглобель (от повозки к коню), градусы рысканья; NaN — если конь не в упряжке. */
+    public static float axis(Entity horse) {
+        CartEntity c = hitchedTo(horse);
+        if (c == null) return Float.NaN;
+        double dx = horse.getX() - c.getX(), dz = horse.getZ() - c.getZ();
+        if (dx * dx + dz * dz < 1e-4) return c.getYaw();
+        return (float) Math.toDegrees(Math.atan2(-dx, dz));
+    }
+
+    /** Всадник в упряжке смотрит не дальше 90° от оглобель — как в лодке: обзор 180°. */
+    public static void clampRider(Entity horse, Entity rider) {
+        float a = axis(horse);
+        if (Float.isNaN(a)) return;
+        float d = MathHelper.wrapDegrees(rider.getYaw() - a);
+        float c = MathHelper.clamp(d, -90f, 90f);
+        if (c == d) return;
+        float y = rider.getYaw() + (c - d);
+        rider.prevYaw += c - d;
+        rider.setYaw(y);
+        rider.setHeadYaw(y);
     }
 
     private void hitch(AbstractHorseEntity h) {
         horseUuid = h == null ? null : h.getUuid();
         dataTracker.set(HORSE, h == null ? -1 : h.getId());
-        if (h != null) BY_HORSE.put(h, this);
     }
 
     // ------------------------------------------------------------------ движение
@@ -146,7 +163,6 @@ public class CartEntity extends Entity {
         Vec3d v = getVelocity();
         double vx, vz;
         if (h != null) {
-            BY_HORSE.put(h, this);
             if (!w.isClient && (!h.isAlive() || squaredDistanceTo(h) > 10 * 10)) {
                 hitch(null);
                 h = null;
