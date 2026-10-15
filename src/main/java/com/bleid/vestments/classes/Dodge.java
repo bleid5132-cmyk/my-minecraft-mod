@@ -30,7 +30,7 @@ public final class Dodge {
     private Dodge() { }
 
     public static boolean allowed(String cls) {
-        return "paladin".equals(cls) || "priest".equals(cls);
+        return "paladin".equals(cls) || "priest".equals(cls) || "samurai".equals(cls);
     }
 
     public static void register() {
