@@ -40,7 +40,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
                 case GRAY -> "gray";
                 default -> "darkbrown";
             };
-            COAT.put(c, new Identifier[] { tex("coat_" + n + "_hi"), tex("coat_" + n + "_lo") });
+            COAT.put(c, new Identifier[] { tex("coat_" + n) });
         }
         for (HorseMarking m : HorseMarking.values()) {
             String n = switch (m) {
@@ -50,7 +50,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
                 case BLACK_DOTS -> "blackdots";
                 default -> null;
             };
-            if (n != null) MARK.put(m, new Identifier[] { tex("mark_" + n + "_hi"), tex("mark_" + n + "_lo") });
+            if (n != null) MARK.put(m, new Identifier[] { tex("mark_" + n) });
         }
     }
 
@@ -59,7 +59,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
     }
 
     public RealHorseRenderer(EntityRendererFactory.Context ctx) {
-        super(ctx, new RealHorseModel(), 0.8f);
+        super(ctx, new RealHorseModel(), 0.9f);
         addFeature(new Markings(this));
         addFeature(new Armor(this));
         addFeature(new Tack(this));
@@ -67,7 +67,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
 
     @Override
     public Identifier getTexture(HorseEntity e) {
-        return COAT.get(e.getVariant())[RealHorseModel.far(e) ? 1 : 0];
+        return COAT.get(e.getVariant())[0];
     }
 
     static int overlay(HorseEntity e) {
@@ -83,8 +83,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
         public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, HorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
             Identifier[] t = MARK.get(e.getMarking());
             if (t == null || e.isInvisible()) return;
-            RealHorseModel m = getContextModel();
-            m.render(ms, vcp.getBuffer(RenderLayer.getEntityTranslucent(t[m.far ? 1 : 0])), light, overlay(e), 1f, 1f, 1f, 1f);
+            getContextModel().render(ms, vcp.getBuffer(RenderLayer.getEntityTranslucent(t[0])), light, overlay(e), 1f, 1f, 1f, 1f);
         }
     }
 
@@ -107,8 +106,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
                 int c = d.getColor(st);
                 r = (c >> 16 & 255) / 255f; g = (c >> 8 & 255) / 255f; b = (c & 255) / 255f;
             } else t = IRON;
-            RealHorseModel.ensure();
-            getContextModel().renderWith(RealHorseModel.armor, ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(t)), light, OverlayTexture.DEFAULT_UV, r, g, b);
+            getContextModel().renderArmor(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(t)), light, OverlayTexture.DEFAULT_UV, r, g, b);
         }
     }
 
@@ -120,8 +118,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
         @Override
         public void render(MatrixStack ms, VertexConsumerProvider vcp, int light, HorseEntity e, float la, float ld, float td, float ap, float hy, float hp) {
             if (!e.isSaddled() || e.isInvisible()) return;
-            RealHorseModel.ensure();
-            getContextModel().renderWith(RealHorseModel.tack, ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TACK_TEX)), light, OverlayTexture.DEFAULT_UV, 1f, 1f, 1f);
+            getContextModel().renderTack(ms, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TACK_TEX)), light, OverlayTexture.DEFAULT_UV);
         }
     }
 }

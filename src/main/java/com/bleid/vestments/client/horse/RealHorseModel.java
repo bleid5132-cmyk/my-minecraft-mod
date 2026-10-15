@@ -1,11 +1,9 @@
 package com.bleid.vestments.client.horse;
 
-import com.bleid.vestments.client.boss.VoxelModel;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.util.math.MatrixStack;
@@ -14,72 +12,60 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 /**
- * Реалистичная лошадь вместо ванильной: своя воксельная модель (ближняя/дальняя детализация), аллюры по скорости
- * (шаг, рысь, кентер, карьер с плавными переходами), покой (уши, хвост, дыхание, взгляд), щипание травы,
- * свечка (на дыбы), открытый рот, поджатые ноги в прыжке. Поведение лошади — полностью ванильное.
+ * Лошадь из кубов (модель и анимации в формате Blockbench) вместо ванильной. Аллюр выбирается по настоящей скорости
+ * (шаг → рысь → кентер → галоп с плавными переходами), поверх — покой, щипание травы, свечка, прыжок, плавание,
+ * взмахи хвостом, встряхивание головой, взгляд. Поведение лошади остаётся ванильным.
  */
 @Environment(EnvType.CLIENT)
 public class RealHorseModel extends EntityModel<HorseEntity> {
-    static final Identifier HI = new Identifier("vestments", "models/entity/horse/horse_hi.vxm");
-    static final Identifier LO = new Identifier("vestments", "models/entity/horse/horse_lo.vxm");
-    static final Identifier TACK = new Identifier("vestments", "models/entity/horse/tack.vxm");
-    static final Identifier ARMOR = new Identifier("vestments", "models/entity/horse/armor.vxm");
-    /** Во сколько раз модель больше «сырой»: спина под седлом — на высоте ванильной посадки всадника. */
-    static final float SCALE = 1.08f;
-    static final float LOD_DIST = 22f;
+    static final Identifier GEO = new Identifier("vestments", "geo/horse.geo.json");
+    static final Identifier TACK_GEO = new Identifier("vestments", "geo/horse_tack.geo.json");
+    static final Identifier ARMOR_GEO = new Identifier("vestments", "geo/horse_armor.geo.json");
+    static final Identifier ANIMS = new Identifier("vestments", "animations/horse.animation.json");
 
-    static VoxelModel hi, lo, tack, armor;
-    static HorseGaits gaits;
-    static int BODY, NECK, HEAD, JAW, EAR_L, EAR_R, MANE, TAIL1, TAIL2, TAIL3;
-    static int[] UP = new int[4], MID = new int[4], LOW = new int[4];     // FL FR HL HR
-    static int COUNT;
+    static GeoModel model, tack, armor;
+    static int[] tackMap, armorMap;
+    static GeoAnimations anims;
+    static GeoAnimations.Anim[] GAITS;
+    static GeoAnimations.Anim IDLE, GRAZE, REAR, JUMP_UP, JUMP_DOWN, SWIM, SWISH, HEADSHAKE;
+    static int NECK, HEAD, JAW;
+    /** Длина шага цикла каждого аллюра в блоках (при этой длине анимация идёт в своём темпе). */
+    static final float[] STRIDE = { 2.6f, 3.6f, 5.3f, 6.6f };
 
     static void ensure() {
-        if (hi != null) return;
-        hi = VoxelModel.load(HI);
-        lo = VoxelModel.load(LO);
-        tack = VoxelModel.load(TACK);
-        armor = VoxelModel.load(ARMOR);
-        COUNT = hi.parts.size();
-        BODY = hi.index("body"); NECK = hi.index("neck"); HEAD = hi.index("head"); JAW = hi.index("jaw");
-        EAR_L = hi.index("ear_l"); EAR_R = hi.index("ear_r"); MANE = hi.index("mane");
-        TAIL1 = hi.index("tail1"); TAIL2 = hi.index("tail2"); TAIL3 = hi.index("tail3");
-        String[] legs = { "fl", "fr", "hl", "hr" };
-        for (int i = 0; i < 4; i++) {
-            UP[i] = hi.index(legs[i] + "_up"); MID[i] = hi.index(legs[i] + "_mid"); LOW[i] = hi.index(legs[i] + "_low");
-        }
-        gaits = HorseGaits.load(new HorseGaits.VoxelIndex() {
-            @Override
-            public int index(String name) {
-                return hi.index(name);
-            }
-
-            @Override
-            public int count() {
-                return COUNT;
-            }
-        });
+        if (model != null) return;
+        model = GeoModel.load(GEO);
+        tack = GeoModel.load(TACK_GEO);
+        armor = GeoModel.load(ARMOR_GEO);
+        tackMap = tack.mapTo(model);
+        armorMap = armor.mapTo(model);
+        anims = GeoAnimations.load(ANIMS, model, "animation.horse.");
+        GAITS = new GeoAnimations.Anim[] { anims.get("walk"), anims.get("trot"), anims.get("canter"), anims.get("gallop") };
+        IDLE = anims.get("idle"); GRAZE = anims.get("graze"); REAR = anims.get("rear");
+        JUMP_UP = anims.get("jump_up"); JUMP_DOWN = anims.get("jump_down"); SWIM = anims.get("swim");
+        SWISH = anims.get("swish"); HEADSHAKE = anims.get("headshake");
+        NECK = model.index("neck"); HEAD = model.index("head"); JAW = model.index("jaw");
     }
 
-    /** Состояние анимации конкретной лошади (живёт, пока жива сущность на клиенте). */
     static final class State {
-        float last = Float.NaN, speed, gait, phase, move, air, swish, swishT, earL, earR, earLs, earRs, earT, ridden;
+        float last = Float.NaN, speed, gait, phase, move, swim, up, down, swishT = -1, swishNext = 80, shakeT = -1, shakeNext = 400;
         long seed;
+
+        float rnd() {
+            seed = seed * 6364136223846793005L + 1442695040888963407L;
+            return ((seed >>> 33) & 0xFFFFFF) / (float) 0x1000000;
+        }
     }
 
     static final Map<HorseEntity, State> STATES = new WeakHashMap<>();
 
-    // результат setAngles — его же используют слои сбруи и брони
     Matrix4f[] mats;
-    boolean far, baby;
-    float rearAngle;
+    boolean baby;
 
-    static boolean far(HorseEntity e) {
-        var cam = MinecraftClient.getInstance().gameRenderer.getCamera();
-        return cam != null && cam.getPos().squaredDistanceTo(e.getX(), e.getY(), e.getZ()) > LOD_DIST * LOD_DIST;
+    private static float approach(float cur, float target, float rate, float dt) {
+        return cur + (target - cur) * (1f - (float) Math.exp(-dt * rate));
     }
 
     private static float sm(float x) {
@@ -87,165 +73,122 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         return x * x * (3 - 2 * x);
     }
 
-    private static float noise1(float t, long seed) {
-        // гладкий одномерный шум: сумма двух синусов с «случайными» частотами
-        float a = (seed & 255) / 255f, b = ((seed >> 8) & 255) / 255f;
-        return MathHelper.sin(t * (0.37f + 0.2f * a) + 6.28f * b) * 0.6f + MathHelper.sin(t * (0.91f + 0.3f * b) + 6.28f * a) * 0.4f;
-    }
-
-    @Override
-    public void animateModel(HorseEntity e, float limbAngle, float limbDistance, float tickDelta) {
+    /** Аллюр 0..3 по скорости (блоков за такт) с зонами плавного перехода. */
+    private static float gaitOf(float sp) {
+        if (sp < 0.10f) return 0f;
+        if (sp < 0.14f) return sm((sp - 0.10f) / 0.04f);
+        if (sp < 0.22f) return 1f;
+        if (sp < 0.27f) return 1f + sm((sp - 0.22f) / 0.05f);
+        if (sp < 0.40f) return 2f;
+        if (sp < 0.46f) return 2f + sm((sp - 0.40f) / 0.06f);
+        return 3f;
     }
 
     @Override
     public void setAngles(HorseEntity e, float limbAngle, float limbDistance, float t, float headYaw, float headPitch) {
         ensure();
-        far = far(e);
         baby = e.isBaby();
         State s = STATES.computeIfAbsent(e, k -> {
             State n = new State();
             n.seed = k.getUuid().getLeastSignificantBits();
-            n.phase = (n.seed & 1023) / 1023f;
+            n.phase = n.rnd();
+            n.swishNext = 40 + n.rnd() * 200;
+            n.shakeNext = 200 + n.rnd() * 800;
             return n;
         });
-        float dt = Float.isNaN(s.last) ? 0f : MathHelper.clamp(t - s.last, 0f, 4f);
+        float dt = Float.isNaN(s.last) ? 0f : MathHelper.clamp(t - s.last, 0f, 5f);   // такты
         s.last = t;
         float tickDelta = t - (int) t;
 
-        // ---- скорость: смещение за такт вдоль корпуса (назад — отрицательная)
+        // скорость вдоль корпуса (назад — отрицательная)
         double dx = e.getX() - e.prevX, dz = e.getZ() - e.prevZ;
         float yaw = MathHelper.lerp(tickDelta, e.prevBodyYaw, e.bodyYaw) * MathHelper.RADIANS_PER_DEGREE;
         double fwd = -MathHelper.sin(yaw) * dx + MathHelper.cos(yaw) * dz;
         float hs = (float) Math.sqrt(dx * dx + dz * dz);
         float signed = fwd < -0.01 ? -hs : hs;
-        float k = 1f - (float) Math.exp(-dt * 0.35f);
-        s.speed += (signed - s.speed) * k;
+        s.speed = approach(s.speed, signed, 0.35f, dt);
         float sp = Math.abs(s.speed);
-        // аллюр — непрерывное число 0..3: шаг, рысь, кентер, карьер
-        float target = sp < 0.075f ? 0f : sp < 0.13f ? (sp - 0.075f) / 0.055f : sp < 0.2f ? 1f + (sp - 0.13f) / 0.07f
-                : Math.min(3f, 2f + (sp - 0.2f) / 0.08f);
-        s.gait += (target - s.gait) * (1f - (float) Math.exp(-dt * 0.15f));
+        s.gait = approach(s.gait, gaitOf(sp), 0.12f, dt);
+        s.move = approach(s.move, MathHelper.clamp((sp - 0.008f) / 0.03f, 0f, 1f), 0.35f, dt);
         int g0 = Math.min(2, (int) s.gait);
         float gf = s.gait - g0;
-        float stride = MathHelper.lerp(gf, gaits.stride[g0], gaits.stride[g0 + 1]);
-        s.phase += dt * s.speed / stride;
-        s.move += (MathHelper.clamp((sp - 0.006f) / 0.03f, 0f, 1f) - s.move) * (1f - (float) Math.exp(-dt * 0.4f));
-        boolean jumping = !e.isOnGround() && !e.isTouchingWater() && e.hasPassengers() && e.getVelocity().y > -0.6;
-        s.air += ((jumping ? 1f : 0f) - s.air) * (1f - (float) Math.exp(-dt * 0.5f));
-        s.ridden += ((e.hasPassengers() ? 1f : 0f) - s.ridden) * (1f - (float) Math.exp(-dt * 0.1f));
-
-        Vector3f[] rot = new Vector3f[COUNT];
-        float[] sc = new float[COUNT];
-        for (int i = 0; i < COUNT; i++) { rot[i] = new Vector3f(); sc[i] = 1f; }
-        float[] g = new float[COUNT * 3];
-        float bob = 0f;
-        if (s.move > 0.001f) {
-            bob += gaits.sample(g0, s.phase, (1 - gf) * s.move, g);
-            bob += gaits.sample(g0 + 1, s.phase, gf * s.move, g);
+        // скорость фазы: по длине шага, но не дальше 0,6…1,6 от авторского темпа анимации
+        float rate = 0f;
+        for (int k = 0; k < 2; k++) {
+            int gi = g0 + k;
+            float w = k == 0 ? 1 - gf : gf;
+            float natural = 1f / (GAITS[gi].length * 20f);
+            float r = MathHelper.clamp(sp / STRIDE[gi], natural * 0.6f, natural * 1.6f);
+            rate += w * r;
         }
-        for (int i = 0; i < COUNT; i++) rot[i].set(g[i * 3], g[i * 3 + 1], g[i * 3 + 2]);
+        s.phase += dt * rate * Math.signum(s.speed);
 
-        // ---- покой: дыхание, взгляд, уши, хвост
+        boolean inWater = e.isTouchingWater() && !e.isOnGround();
+        s.swim = approach(s.swim, inWater ? 1f : 0f, 0.2f, dt);
+        boolean air = !e.isOnGround() && !e.isTouchingWater() && e.hasPassengers();
+        double vy = e.getY() - e.prevY;
+        s.up = approach(s.up, air && vy > 0.02 ? 1f : 0f, 0.45f, dt);
+        s.down = approach(s.down, air && vy <= 0.02 ? 1f : 0f, 0.3f, dt);
+
+        GeoAnimations.Pose p = new GeoAnimations.Pose(model.bones.size());
         float still = 1f - s.move;
-        float breath = MathHelper.sin(t * 0.09f);
-        rot[BODY].x += 0.4f * breath * still;
-        rot[NECK].x += (2.5f + 2f * noise1(t * 0.05f, s.seed)) * still - 6f * s.ridden * still;
-        rot[HEAD].x += 1.5f * noise1(t * 0.07f, s.seed >> 3) * still;
-        float hy = MathHelper.clamp(MathHelper.wrapDegrees(headYaw), -60f, 60f);
-        rot[NECK].y += hy * 0.45f;
-        rot[HEAD].y += hy * 0.35f;
-        rot[NECK].x += MathHelper.clamp(headPitch, -30f, 40f) * 0.35f;
-        rot[HEAD].x += MathHelper.clamp(headPitch, -30f, 40f) * 0.3f;
-        // уши: время от времени поворачиваются по отдельности
-        s.earT -= dt;
-        if (s.earT <= 0) {
-            long r = s.seed = s.seed * 6364136223846793005L + 1442695040888963407L;
-            s.earT = 20 + ((r >>> 33) % 80);
-            int which = (int) ((r >>> 20) & 3);
-            float a = ((r >>> 40) % 50) - 20f;
-            if (which != 1) s.earL = a;
-            if (which != 2) s.earR = which == 0 ? -a * 0.5f : a;
+        IDLE.apply(t / 20f, still * (1 - s.swim), false, p);
+        float loco = s.move * (1 - s.swim);
+        for (int k = 0; k < 2; k++) {
+            GeoAnimations.Anim a = GAITS[g0 + k];
+            a.apply(s.phase * a.length, loco * (k == 0 ? 1 - gf : gf), false, p);
         }
-        float ek = 1f - (float) Math.exp(-dt * 0.25f);
-        s.earLs += (s.earL - s.earLs) * ek;
-        s.earRs += (s.earR - s.earRs) * ek;
-        rot[EAR_L].y += s.earLs;
-        rot[EAR_R].y -= s.earRs;
-        rot[EAR_L].x -= Math.abs(s.earLs) * 0.3f;
-        rot[EAR_R].x -= Math.abs(s.earRs) * 0.3f;
-        // хвост: редкие взмахи от мух
-        s.swishT -= dt;
-        if (s.swishT <= 0) {
-            long r = s.seed = s.seed * 6364136223846793005L + 1442695040888963407L;
-            s.swishT = 40 + ((r >>> 33) % 140);
-            s.swish = 1f;
-        }
-        s.swish = Math.max(0f, s.swish - dt / 22f);
-        float sw = MathHelper.sin((1f - s.swish) * 3.1416f * 3f) * sm(s.swish * 3f) * still;
-        rot[TAIL1].y += 22f * sw;
-        rot[TAIL2].y += 16f * sw;
-        rot[TAIL3].y += 10f * sw;
-        rot[TAIL2].x += 2f * breath * still;
+        SWIM.apply(t / 20f, s.swim, false, p);
 
-        // ---- щипание травы, рот, свечка (ванильные таймеры лошади)
+        // одиночные: взмах хвостом от мух, встряхивание головой (только в покое)
+        s.swishNext -= dt;
+        if (s.swishT < 0 && s.swishNext <= 0) { s.swishT = 0; s.swishNext = 60 + s.rnd() * 220; }
+        if (s.swishT >= 0) {
+            s.swishT += dt / 20f;
+            if (s.swishT > SWISH.length) s.swishT = -1;
+            else SWISH.apply(s.swishT, 1f - s.move * 0.5f, false, p);
+        }
+        s.shakeNext -= dt * still;
+        if (s.shakeT < 0 && s.shakeNext <= 0 && still > 0.9f) { s.shakeT = 0; s.shakeNext = 300 + s.rnd() * 900; }
+        if (s.shakeT >= 0) {
+            s.shakeT += dt / 20f;
+            if (s.shakeT > HEADSHAKE.length) s.shakeT = -1;
+            else HEADSHAKE.apply(s.shakeT, still, false, p);
+        }
+
+        // взгляд
+        float hy = MathHelper.clamp(MathHelper.wrapDegrees(headYaw), -70f, 70f);
+        float hp = MathHelper.clamp(headPitch, -35f, 45f);
+        p.rot[NECK * 3 + 1] += hy * 0.45f;
+        p.rot[HEAD * 3 + 1] += hy * 0.35f;
+        p.rot[NECK * 3] += hp * 0.3f;
+        p.rot[HEAD * 3] += hp * 0.35f;
+
+        // ванильные таймеры: щипание травы, свечка, жевание
         float graze = e.getEatingGrassAnimationProgress(tickDelta);
         float rear = e.getAngryAnimationProgress(tickDelta);
         float mouth = e.getEatingAnimationProgress(tickDelta);
-        float gr = graze * (1 - rear);
-        rot[NECK].x = MathHelper.lerp(gr, rot[NECK].x, 62f);
-        rot[NECK].y *= 1 - gr;
-        rot[HEAD].x = MathHelper.lerp(gr, rot[HEAD].x, 34f + 4f * MathHelper.sin(t * 0.9f));
-        rot[HEAD].y *= 1 - gr;
-        rot[JAW].x += 12f * gr * Math.max(0f, MathHelper.sin(t * 0.9f)) + 24f * mouth;
-        rot[EAR_L].x -= 8f * gr;
-        rot[EAR_R].x -= 8f * gr;
-        // свечка: корпус поднимается вокруг задних копыт, задние ноги остаются отвесно, передние поджаты
-        rearAngle = 48f * rear;
-        for (int i = 2; i < 4; i++) {
-            rot[UP[i]].x = MathHelper.lerp(rear, rot[UP[i]].x, rearAngle * 0.7f);
-            rot[MID[i]].x = MathHelper.lerp(rear, rot[MID[i]].x, rearAngle * 0.15f);
-            rot[LOW[i]].x = MathHelper.lerp(rear, rot[LOW[i]].x, rearAngle * 0.15f);
+        GRAZE.apply(t / 20f, sm(graze) * (1 - rear), true, p);
+        float jump = Math.max(s.up, s.down) * (1 - rear);
+        if (jump > 0.001f) {
+            float wu = s.up / Math.max(1e-3f, s.up + s.down);
+            JUMP_UP.apply(0, jump * wu, true, p);
+            JUMP_DOWN.apply(0, jump * (1 - wu), true, p);
         }
-        float paw = MathHelper.sin(t * 0.55f);
-        for (int i = 0; i < 2; i++) {
-            float side = i == 0 ? 1f : -1f;
-            rot[UP[i]].x = MathHelper.lerp(rear, rot[UP[i]].x, -40f + 14f * paw * side);
-            rot[MID[i]].x = MathHelper.lerp(rear, rot[MID[i]].x, 95f - 10f * paw * side);
-            rot[LOW[i]].x = MathHelper.lerp(rear, rot[LOW[i]].x, -10f);
+        REAR.apply(t / 20f, sm(rear), true, p);
+        p.rot[JAW * 3] += 22f * mouth;
+        if (baby) {
+            int h = HEAD * 3;
+            p.scl[h] *= 1.3f; p.scl[h + 1] *= 1.3f; p.scl[h + 2] *= 1.3f;
         }
-        rot[NECK].x = MathHelper.lerp(rear, rot[NECK].x, 22f);
-        rot[HEAD].x = MathHelper.lerp(rear, rot[HEAD].x, -14f);
-        rot[TAIL1].x += 10f * rear;
-        // прыжок: ноги поджаты, шея вытянута
-        float a = s.air * (1 - rear);
-        if (a > 0.001f) {
-            for (int i = 0; i < 2; i++) {
-                rot[UP[i]].x = MathHelper.lerp(a, rot[UP[i]].x, -46f);
-                rot[MID[i]].x = MathHelper.lerp(a, rot[MID[i]].x, 100f);
-                rot[LOW[i]].x = MathHelper.lerp(a, rot[LOW[i]].x, -20f);
-            }
-            for (int i = 2; i < 4; i++) {
-                rot[UP[i]].x = MathHelper.lerp(a, rot[UP[i]].x, 34f);
-                rot[MID[i]].x = MathHelper.lerp(a, rot[MID[i]].x, -46f);
-                rot[LOW[i]].x = MathHelper.lerp(a, rot[LOW[i]].x, 52f);
-            }
-            rot[NECK].x = MathHelper.lerp(a, rot[NECK].x, 14f);
-            rot[TAIL1].x = MathHelper.lerp(a, rot[TAIL1].x, 30f);
-        }
-        if (baby) sc[HEAD] = 1.35f;
-
-        mats = (far ? lo : hi).pose(rot, sc);
-        // подъём корпуса при аллюре и свечка вокруг задних копыт — общая матрица поверх всех частей
-        Matrix4f root = new Matrix4f().translate(0, bob, 0);
-        if (rearAngle > 0) root.translate(0, 2.6f, -11.6f).rotateX((float) Math.toRadians(-rearAngle)).translate(0, -2.6f, 11.6f);
-        for (int i = 0; i < COUNT; i++) mats[i] = new Matrix4f(root).mul(mats[i]);
+        mats = model.pose(p.rot, p.pos, p.scl);
     }
 
-    /** Из ванильной системы координат модели (y вниз, вперёд −z) — в систему вокселей (1/16, y вверх, вперёд +z). */
+    /** Из ванильной системы координат модели (y вниз, вперёд −z) — в нашу (пиксели, y вверх, вперёд +z). */
     void enter(MatrixStack ms) {
         ms.translate(0, 1.501, 0);
         ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));
-        float s = SCALE / 16f * (baby ? 0.55f : 1f);
+        float s = 1f / 16f * (baby ? 0.55f : 1f);
         ms.scale(s, s, s);
     }
 
@@ -254,16 +197,23 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         if (mats == null) return;
         ms.push();
         enter(ms);
-        (far ? lo : hi).render(ms, vc, light, overlay, mats, r, g, b);
+        model.render(ms, vc, light, overlay, mats, null, r, g, b, a);
         ms.pop();
     }
 
-    /** Нарисовать другую модель (сбруя, броня) с теми же матрицами частей. */
-    void renderWith(VoxelModel m, MatrixStack ms, VertexConsumer vc, int light, int overlay, float r, float g, float b) {
+    void renderTack(MatrixStack ms, VertexConsumer vc, int light, int overlay) {
         if (mats == null) return;
         ms.push();
         enter(ms);
-        m.render(ms, vc, light, overlay, mats, r, g, b);
+        tack.render(ms, vc, light, overlay, mats, tackMap, 1f, 1f, 1f, 1f);
+        ms.pop();
+    }
+
+    void renderArmor(MatrixStack ms, VertexConsumer vc, int light, int overlay, float r, float g, float b) {
+        if (mats == null) return;
+        ms.push();
+        enter(ms);
+        armor.render(ms, vc, light, overlay, mats, armorMap, r, g, b, 1f);
         ms.pop();
     }
 }
