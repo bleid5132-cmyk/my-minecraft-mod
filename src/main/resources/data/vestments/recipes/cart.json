@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["S  ", "PPP", "W W"],
+  "key": { "S": { "item": "minecraft:stick" }, "P": { "tag": "minecraft:planks" }, "W": { "tag": "minecraft:logs" } },
+  "result": { "item": "vestments:cart" }
+}

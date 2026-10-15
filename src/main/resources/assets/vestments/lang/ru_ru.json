@@ -285,5 +285,17 @@
   "message.vestments.cathedral_missing": "Безмолвный Собор недоступен: измерение не загружено.",
   "message.vestments.cathedral_enter": "Безмолвный Собор",
   "message.vestments.fight_no_build": "Во время битвы нельзя ставить и ломать блоки",
-  "message.vestments.fight_barrier": "Звуковой барьер не выпускает из собора, пока идёт битва"
+  "message.vestments.fight_barrier": "Звуковой барьер не выпускает из собора, пока идёт битва",
+  "entity.vestments.cart": "Повозка",
+  "item.vestments.cart": "Повозка",
+  "container.vestments.cart_chest": "Сундук повозки %s",
+  "message.vestments.horse_bonded": "Этот конь теперь откликается на ваш козий рог",
+  "message.vestments.horn_no_horse": "Нет коня, который отзовётся на рог: приручите коня",
+  "message.vestments.horn_dead": "Ваш конь погиб и больше не придёт. Приручите нового",
+  "message.vestments.horn_busy": "Ваш конь сейчас под другим всадником",
+  "message.vestments.horse_died": "Ваш конь погиб. Рог больше не призовёт его — приручите нового коня",
+  "message.vestments.cart_hitched": "Повозка прицеплена",
+  "message.vestments.cart_unhitched": "Повозка отцеплена",
+  "message.vestments.cart_full": "В повозке уже 6 сундуков",
+  "message.vestments.cart_seats_taken": "Сзади сидят — сундук некуда поставить"
 }

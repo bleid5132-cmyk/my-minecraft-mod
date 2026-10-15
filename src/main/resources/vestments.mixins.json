@@ -25,6 +25,7 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "HorseSpeedMixin",
     "HorseSeatMixin",
     "MerchantInventoryMixin",
     "TradeOfferMixin",

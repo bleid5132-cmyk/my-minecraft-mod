@@ -285,5 +285,17 @@
   "message.vestments.cathedral_missing": "The Silent Cathedral is unavailable: the dimension is not loaded.",
   "message.vestments.cathedral_enter": "The Silent Cathedral",
   "message.vestments.fight_no_build": "You can't place or break blocks during the battle",
-  "message.vestments.fight_barrier": "A sound barrier holds you inside the cathedral while the battle lasts"
+  "message.vestments.fight_barrier": "A sound barrier holds you inside the cathedral while the battle lasts",
+  "entity.vestments.cart": "Cart",
+  "item.vestments.cart": "Cart",
+  "container.vestments.cart_chest": "Cart Chest %s",
+  "message.vestments.horse_bonded": "This horse now answers your goat horn",
+  "message.vestments.horn_no_horse": "No horse answers the horn: tame a horse first",
+  "message.vestments.horn_dead": "Your horse has died and will not come. Tame a new one",
+  "message.vestments.horn_busy": "Your horse is ridden by someone else",
+  "message.vestments.horse_died": "Your horse has died. The horn will no longer summon it — tame a new horse",
+  "message.vestments.cart_hitched": "Cart hitched",
+  "message.vestments.cart_unhitched": "Cart unhitched",
+  "message.vestments.cart_full": "The cart already holds 6 chests",
+  "message.vestments.cart_seats_taken": "Someone sits in the back — no room for a chest"
 }

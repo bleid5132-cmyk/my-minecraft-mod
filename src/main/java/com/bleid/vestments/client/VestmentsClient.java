@@ -50,6 +50,19 @@ public class VestmentsClient implements ClientModInitializer {
         // реалистичные лошади вместо ванильных (только вид и анимации — механика ванильная)
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(net.minecraft.entity.EntityType.HORSE,
                 com.bleid.vestments.client.horse.RealHorseRenderer::new);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.horse.Horses.CART,
+                com.bleid.vestments.client.horse.CartRenderer::new);
+        // рывок коня на CTRL: сообщаем серверу, зажата ли клавиша бега, пока сидим на коне
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+            boolean on = mc.player != null && mc.player.getVehicle() instanceof net.minecraft.entity.passive.AbstractHorseEntity
+                    && mc.options.sprintKey.isPressed();
+            if (on != com.bleid.vestments.horse.HorseSprint.client && mc.getNetworkHandler() != null) {
+                com.bleid.vestments.horse.HorseSprint.client = on;
+                var buf = net.fabricmc.fabric.api.networking.v1.PacketByteBufs.create();
+                buf.writeBoolean(on);
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(com.bleid.vestments.horse.HorseSprint.PACKET, buf);
+            }
+        });
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(net.minecraft.entity.EntityType.SKELETON_HORSE,
                 ctx -> com.bleid.vestments.client.horse.RealHorseRenderer.of(ctx, com.bleid.vestments.client.horse.RealHorseRenderer.SKELETON));
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(net.minecraft.entity.EntityType.ZOMBIE_HORSE,

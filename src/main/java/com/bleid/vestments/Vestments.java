@@ -101,6 +101,7 @@ public class Vestments implements ModInitializer {
                             entries.add(com.bleid.vestments.boss.Bosses.SERAEL_HALO);
                             entries.add(com.bleid.vestments.boss.Bosses.BELL_RINGER_SPAWN_EGG);
                             entries.add(com.bleid.vestments.boss.Bosses.BELL_TONGUE);
+                            entries.add(com.bleid.vestments.horse.Horses.CART_ITEM);
                         })
                         .build());
         SetBonus.register();
@@ -121,6 +122,7 @@ public class Vestments implements ModInitializer {
         com.bleid.vestments.patriarch.Mana.register();
         com.bleid.vestments.patriarch.BibleAbilities.register();
         com.bleid.vestments.patriarch.SoulAllies.register();
+        com.bleid.vestments.horse.Horses.register();
         // последняя сделка мастера-священника: с шансом 50% — Книга Патриарха
         net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper.registerVillagerOffers(
                 net.minecraft.village.VillagerProfession.CLERIC, 5, factories -> factories.add((entity, random) ->
