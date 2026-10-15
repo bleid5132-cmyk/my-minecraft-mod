@@ -210,7 +210,8 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         // по ней бежит волна; пряди дополнительно качаются от поворотов и тряски
         float lift = MathHelper.clamp(sp * 120f, 0f, 55f);
         float liftT = lift + (lift > 1f ? MathHelper.sin(t * 0.8f) * (2f + lift * 0.08f) : 0f);
-        float wind = 0f;
+        // пряди раскрываются в одну плоскость с гребнем, чтобы поднятая грива была ровным полотном, а не углом
+        float wind = 90f * MathHelper.clamp(s.liftA / 55f, 0f, 1f);
         int steps = Math.max(1, (int) Math.ceil(dt / 0.5f));
         float h = dt / steps;
         for (int i = 0; i < LOCKS.length; i++) {
@@ -222,7 +223,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
                 s.lockV[i] += acc * h;
                 s.lockA[i] += s.lockV[i] * h;
                 if (s.lockA[i] < 0f) { s.lockA[i] = 0f; if (s.lockV[i] < 0f) s.lockV[i] *= -0.25f; }
-                if (s.lockA[i] > 55f) { s.lockA[i] = 55f; if (s.lockV[i] > 0f) s.lockV[i] = 0f; }
+                if (s.lockA[i] > 95f) { s.lockA[i] = 95f; if (s.lockV[i] > 0f) s.lockV[i] = 0f; }
             }
             if (LOCKS[i] >= 0) {
                 p.rot[LOCKS[i] * 3 + 1] -= s.lockA[i];
