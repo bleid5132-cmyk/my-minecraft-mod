@@ -32,7 +32,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     static GeoAnimations anims;
     static GeoAnimations.Anim[] GAITS;
     static GeoAnimations.Anim IDLE, GRAZE, REAR, JUMP_UP, JUMP_DOWN, SWIM, SWISH, HEADSHAKE;
-    static int NECK, HEAD, JAW, BODY;
+    static int NECK, HEAD, JAW, BODY, MANE;
     static final int[] LOCKS = new int[7];
     /** Длина шага цикла каждого аллюра в блоках (при этой длине анимация идёт в своём темпе). */
     static final float[] STRIDE = { 2.6f, 3.6f, 5.3f, 6.6f };
@@ -49,12 +49,13 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         IDLE = anims.get("idle"); GRAZE = anims.get("graze"); REAR = anims.get("rear");
         JUMP_UP = anims.get("jump_up"); JUMP_DOWN = anims.get("jump_down"); SWIM = anims.get("swim");
         SWISH = anims.get("swish"); HEADSHAKE = anims.get("headshake");
-        NECK = model.index("neck"); HEAD = model.index("head"); JAW = model.index("jaw"); BODY = model.index("body");
+        NECK = model.index("neck"); HEAD = model.index("head"); JAW = model.index("jaw"); BODY = model.index("body"); MANE = model.index("mane");
         for (int i = 0; i < LOCKS.length; i++) LOCKS[i] = model.index("mane" + (i + 1));
     }
 
     static final class State {
         final float[] lockA = new float[7], lockV = new float[7];
+        float liftA, liftV;
         float lastNeckYaw = Float.NaN, lastBob = Float.NaN, lastBodyYaw = Float.NaN;
         float last = Float.NaN, speed, gait, phase, move, swim, up, down, swishT = -1, swishNext = 80, shakeT = -1, shakeNext = 400;
         long seed;
@@ -183,7 +184,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         }
         REAR.apply(t / 20f, sm(rear), true, p);
         p.rot[JAW * 3] += 22f * mouth;
-        mane(s, p, e, dt, sp);
+        mane(s, p, e, dt, Math.max(0f, s.speed), t);
         if (baby) {
             int h = HEAD * 3;
             p.scl[h] *= 1.3f; p.scl[h + 1] *= 1.3f; p.scl[h + 2] *= 1.3f;
@@ -195,7 +196,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
      * Грива: каждая прядь — пружина на шарнире вдоль гребня. Её отбрасывает поворот шеи и корпуса, тряска на аллюре
      * и встречный ветер на скорости; прядь может только отходить от шеи наружу (угол ≥ 0), поэтому сквозь шею не проходит.
      */
-    private static void mane(State s, GeoAnimations.Pose p, HorseEntity e, float dt, float sp) {
+    private static void mane(State s, GeoAnimations.Pose p, HorseEntity e, float dt, float sp, float t) {
         if (LOCKS[0] < 0 || dt <= 0f) return;
         float neckYaw = p.rot[NECK * 3 + 1] + p.rot[HEAD * 3 + 1] * 0.5f;
         float bodyYaw = e.bodyYaw;
@@ -205,7 +206,11 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         float yawRate = (neckYaw - s.lastNeckYaw - MathHelper.wrapDegrees(bodyYaw - s.lastBodyYaw)) / dt;   // град/такт
         float bobRate = (bob - s.lastBob) / dt;
         s.lastNeckYaw = neckYaw; s.lastBodyYaw = bodyYaw; s.lastBob = bob;
-        float wind = MathHelper.clamp(sp * 40f, 0f, 16f);                     // на скорости пряди приподнимает
+        // на бегу вся грива целиком поднимается с шеи и откидывается назад-вверх (шарнир — левый край гребня),
+        // по ней бежит волна; пряди дополнительно качаются от поворотов и тряски
+        float lift = MathHelper.clamp(sp * 120f, 0f, 55f);
+        float liftT = lift + (lift > 1f ? MathHelper.sin(t * 0.8f) * (2f + lift * 0.08f) : 0f);
+        float wind = 0f;
         int steps = Math.max(1, (int) Math.ceil(dt / 0.5f));
         float h = dt / steps;
         for (int i = 0; i < LOCKS.length; i++) {
@@ -219,8 +224,17 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
                 if (s.lockA[i] < 0f) { s.lockA[i] = 0f; if (s.lockV[i] < 0f) s.lockV[i] *= -0.25f; }
                 if (s.lockA[i] > 55f) { s.lockA[i] = 55f; if (s.lockV[i] > 0f) s.lockV[i] = 0f; }
             }
-            if (LOCKS[i] >= 0) p.rot[LOCKS[i] * 3 + 1] -= s.lockA[i];
+            if (LOCKS[i] >= 0) {
+                p.rot[LOCKS[i] * 3 + 1] -= s.lockA[i];
+                p.rot[LOCKS[i] * 3] += MathHelper.sin(t * 1.1f - i * 0.8f) * s.liftA * 0.15f;   // волна вдоль гривы
+            }
         }
+        for (int n = 0; n < steps; n++) {
+            float acc = -0.25f * (s.liftA - liftT) - 0.2f * s.liftV + Math.abs(bobRate) * 4f;
+            s.liftV += acc * h;
+            s.liftA = MathHelper.clamp(s.liftA + s.liftV * h, 0f, 70f);
+        }
+        if (MANE >= 0) p.rot[MANE * 3 + 1] -= s.liftA;
     }
 
     /** Из ванильной системы координат модели (y вниз, вперёд −z) — в нашу (пиксели, y вверх, вперёд +z). */
