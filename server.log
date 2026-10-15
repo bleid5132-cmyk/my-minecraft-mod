@@ -1,0 +1,180 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.6.12
+:remapping 56 mods from modImplementation (java-api)
+Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix.
+
+> Task :compileJava
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :processResources
+> Task :classes
+> Task :generateDLIConfig
+> Task :generateLog4jConfig
+> Task :generateRemapClasspath
+> Task :configureLaunch
+
+> Task :runServer
+[22:04:04] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.20.1 with Fabric Loader 0.16.10
+[22:04:04] [main/INFO] (FabricLoader) Loading 47 mods:
+	- armor_model_api 1.0.0+1.20.1
+	- fabric-api 0.92.2+1.20.1
+	- fabric-api-base 0.4.31+1802ada577
+	- fabric-api-lookup-api-v1 1.6.36+1802ada577
+	- fabric-biome-api-v1 13.0.13+1802ada577
+	- fabric-block-api-v1 1.0.11+1802ada577
+	- fabric-block-view-api-v2 1.0.1+1802ada577
+	- fabric-command-api-v1 1.2.34+f71b366f77
+	- fabric-command-api-v2 2.2.13+1802ada577
+	- fabric-commands-v0 0.2.51+df3654b377
+	- fabric-containers-v0 0.1.64+df3654b377
+	- fabric-content-registries-v0 4.0.11+1802ada577
+	- fabric-convention-tags-v1 1.5.5+1802ada577
+	- fabric-crash-report-info-v1 0.2.19+1802ada577
+	- fabric-data-attachment-api-v1 1.0.0+de0fd6d177
+	- fabric-data-generation-api-v1 12.3.4+1802ada577
+	- fabric-dimensions-v1 2.1.54+1802ada577
+	- fabric-entity-events-v1 1.6.0+1c78457f77
+	- fabric-events-interaction-v0 0.6.2+1802ada577
+	- fabric-events-lifecycle-v0 0.2.63+df3654b377
+	- fabric-game-rule-api-v1 1.0.40+1802ada577
+	- fabric-gametest-api-v1 1.2.13+1802ada577
+	- fabric-item-api-v1 2.1.28+1802ada577
+	- fabric-item-group-api-v1 4.0.12+1802ada577
+	- fabric-lifecycle-events-v1 2.2.22+1802ada577
+	- fabric-loot-api-v2 1.2.1+1802ada577
+	- fabric-loot-tables-v1 1.1.45+9e7660c677
+	- fabric-message-api-v1 5.1.9+1802ada577
+	- fabric-mining-level-api-v1 2.1.50+1802ada577
+	- fabric-networking-api-v1 1.3.11+1802ada577
+	- fabric-networking-v0 0.3.51+df3654b377
+	- fabric-object-builder-api-v1 11.1.3+1802ada577
+	- fabric-particles-v1 1.1.2+1802ada577
+	- fabric-recipe-api-v1 1.0.21+1802ada577
+	- fabric-registry-sync-v0 2.3.3+1802ada577
+	- fabric-rendering-data-attachment-v1 0.3.37+92a0d36777
+	- fabric-rendering-fluids-v1 3.0.28+1802ada577
+	- fabric-resource-conditions-api-v1 2.3.8+1802ada577
+	- fabric-resource-loader-v0 0.11.10+1802ada577
+	- fabric-screen-handler-api-v1 1.3.30+1802ada577
+	- fabric-transfer-api-v1 3.3.5+8dd72ea377
+	- fabric-transitive-access-wideners-v1 4.3.1+1802ada577
+	- fabricloader 0.16.10
+	- java 17
+	- minecraft 1.20.1
+	- mixinextras 0.4.1
+	- vestments 1.0.0
+[22:04:04] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/home/runner/.gradle/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.15.4+mixin.0.8.7/6a12aacc794f1078458433116e9ed42c1cc98096/sponge-mixin-0.15.4+mixin.0.8.7.jar Service=Knot/Fabric Env=SERVER
+[22:04:04] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[22:04:04] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_16
+[22:04:04] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_17
+[22:04:04] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.4.1).
+[22:04:09] [main/INFO] (vestments) Priest Vestments загружен
+[22:04:09] [main/INFO] (Minecraft) Environment: authHost='https://authserver.mojang.com', accountsHost='https://api.mojang.com', sessionHost='https://sessionserver.mojang.com', servicesHost='https://api.minecraftservices.com', name='PROD'
+[22:04:10] [main/INFO] (Minecraft) Loaded 7 recipes
+[22:04:10] [main/INFO] (Minecraft) Loaded 1271 advancements
+[22:04:10] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 64 new biomes in 1.078 ms
+[22:04:10] [Server thread/INFO] (vestments) Silent Cathedral island v2 installed into ./world/./dimensions/vestments/silent_cathedral
+[22:04:10] [Server thread/INFO] (vestments) Стандартные храмы жителей убраны из деревень (33 записей)
+[22:04:10] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.20.1
+[22:04:10] [Server thread/INFO] (Minecraft) Loading properties
+[22:04:10] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[22:04:10] [Server thread/INFO] (Minecraft) Generating keypair
+[22:04:10] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[22:04:11] [Server thread/INFO] (Minecraft) Using epoll channel type
+[22:04:11] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[22:04:11] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[22:04:11] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[22:04:11] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[22:04:11] [Server thread/INFO] (Minecraft) Preparing level "world"
+[22:04:14] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[22:04:15] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 0%
+[22:04:15] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 0%
+[22:04:15] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 0%
+[22:04:16] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 0%
+[22:04:16] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 0%
+[22:04:17] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 1%
+[22:04:17] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 3%
+[22:04:18] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 4%
+[22:04:18] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 6%
+[22:04:19] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 9%
+[22:04:19] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 10%
+[22:04:20] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 13%
+[22:04:21] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 15%
+[22:04:21] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 16%
+[22:04:21] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 18%
+[22:04:22] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 22%
+[22:04:22] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 24%
+[22:04:23] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 27%
+[22:04:23] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 30%
+[22:04:24] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 34%
+[22:04:24] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 37%
+[22:04:25] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 40%
+[22:04:25] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 44%
+[22:04:26] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 46%
+[22:04:26] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 50%
+[22:04:27] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 55%
+[22:04:27] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 58%
+[22:04:28] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 61%
+[22:04:28] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 64%
+[22:04:29] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 67%
+[22:04:29] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 71%
+[22:04:30] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 74%
+[22:04:30] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 76%
+[22:04:31] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 79%
+[22:04:31] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 83%
+[22:04:32] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 86%
+[22:04:32] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 90%
+[22:04:33] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 91%
+[22:04:33] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 96%
+[22:04:34] [Server thread/INFO] (Minecraft) Time elapsed: 19339 ms
+[22:04:34] [Server thread/INFO] (Minecraft) Done (23.131s)! For help, type "help"
+[22:04:34] [Server thread/INFO] (Minecraft) Starting remote control listener
+[22:04:34] [Server thread/INFO] (Minecraft) Thread RCON Listener started
+[22:04:34] [Server thread/INFO] (Minecraft) RCON running on 0.0.0.0:25575
+[22:04:35] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:04:36] [Server thread/INFO] (Minecraft) [Rcon: Marked chunk [0, 0] in vestments:silent_cathedral to be force loaded]
+[22:04:37] [Server thread/INFO] (Minecraft) [Rcon: Marked [21, -1] chunks in vestments:silent_cathedral from [21, -1] to [22, 1] to be force loaded]
+[22:04:53] [Server thread/INFO] (Minecraft) [Not Secure] [Rcon] PORTAL_OK
+[22:04:54] [Server thread/INFO] (Minecraft) [Not Secure] [Rcon] FRAME_OK
+[22:04:55] [Server thread/INFO] (Minecraft) [Not Secure] [Rcon] CENTER_AIR
+[22:04:57] [Server thread/INFO] (Minecraft) [Not Secure] [Rcon] RINGER_OK
+[22:04:58] [Server thread/INFO] (Minecraft) [Not Secure] [Rcon] UNDERSIDE_OK
+[22:04:59] [Server thread/INFO] (Minecraft) [Not Secure] [Rcon] FLOOR_LEVEL_OK
+[22:05:01] [Server thread/INFO] (Minecraft) Locating element vestments:bell_courtyard took 0 ms
+[22:05:02] [Server thread/INFO] (Minecraft) [Rcon: Marked [0, 0] chunks in minecraft:overworld from [0, 0] to [7, 7] to be force loaded]
+[22:05:29] [Server thread/INFO] (Minecraft) [Rcon: Loaded template "vestments:bell_courtyard" at 0, 120, 0]
+[22:05:31] [Server thread/INFO] (Minecraft) [Not Secure] [Rcon] TEMPLATE_FRAME_OK2
+[22:05:38] [Server thread/INFO] (Minecraft) [Rcon: Marked [7, -22] chunks in minecraft:overworld from [7, -22] to [15, -14] to be force loaded]
+[22:05:38] [Server thread/WARN] (Minecraft) Can't keep up! Is the server overloaded? Running 5107ms or 102 ticks behind
+[22:06:19] [Server thread/INFO] (Minecraft) [Rcon: Summoned new The Silent Bell]
+[22:06:25] [Server thread/INFO] (Minecraft) [Rcon: Killed The Silent Bell]
+[22:06:26] [Server thread/INFO] (Minecraft) [Rcon: Stopping the server]
+[22:06:26] [Server thread/INFO] (Minecraft) Stopping server
+[22:06:26] [Server thread/INFO] (Minecraft) Saving players
+[22:06:26] [Server thread/INFO] (Minecraft) Saving worlds
+[22:06:26] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[22:06:27] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/vestments:silent_cathedral
+[22:06:27] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[22:06:27] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[22:06:27] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved
+[22:06:27] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (silent_cathedral): All chunks are saved
+[22:06:27] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[22:06:27] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[22:06:27] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved
+[22:06:27] [Server thread/INFO] (Minecraft) Thread RCON Listener stopped
+[22:06:27] [RCON Client /127.0.0.1 #2/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:06:27] [Server thread/INFO] (Minecraft) Thread RCON Client /127.0.0.1 stopped
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1792101830268.json
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.8/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 40s
+6 actionable tasks: 6 executed

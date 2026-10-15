@@ -1,0 +1,41 @@
+started: True
+> execute in vestments:silent_cathedral run forceload add 0 0
+Marked chunk [0, 0] in vestments:silent_cathedral to be force loaded
+> execute in vestments:silent_cathedral run forceload add 336 -16 352 16
+Marked [21, -1] chunks in vestments:silent_cathedral from [21, -1] to [22, 1] to be force loaded
+> execute in vestments:silent_cathedral if block 344 -58 0 vestments:bell_portal run say PORTAL_OK
+
+> execute in vestments:silent_cathedral if block 344 -59 -2 minecraft:oxidized_cut_copper run say FRAME_OK
+
+> execute in vestments:silent_cathedral if block 0 -56 0 minecraft:air run say CENTER_AIR
+
+> execute in vestments:silent_cathedral run data get block 326 -60 4 Command
+326, -60, 4 has the following block data: "execute unless entity @e[type=vestments:bell_ringer] unless entity @e[type=vestments:silent_bell] run summon vestments:bell_ringer 0.5 -56 0.5 {Dormant:1b,Rotation:[-90f,0f]}"
+> execute in vestments:silent_cathedral if entity @e[type=vestments:bell_ringer] run say RINGER_OK
+
+> execute in vestments:silent_cathedral unless block 0 -95 0 minecraft:air run say UNDERSIDE_OK
+
+> execute in vestments:silent_cathedral if block 0 -56 0 minecraft:air run say FLOOR_LEVEL_OK
+
+> execute in vestments:silent_cathedral run data get entity @e[type=vestments:bell_ringer,limit=1] Dormant
+Ringer of the Silent Cathedral has the following entity data: 1b
+> locate structure vestments:bell_courtyard
+The nearest vestments:bell_courtyard is at [176, ~, -288] (268 blocks away)
+> forceload add 0 0 127 127
+Marked [0, 0] chunks in minecraft:overworld from [0, 0] to [7, 7] to be force loaded
+> place template vestments:bell_courtyard 0 120 0
+Loaded template "vestments:bell_courtyard" at 0, 120, 0
+> execute if block 61 123 45 minecraft:oxidized_cut_copper run say TEMPLATE_FRAME_OK
+
+> execute if block 61 123 45 minecraft:weathered_cut_copper run say TEMPLATE_FRAME_OK2
+
+> data get block 61 123 45
+The target block is not a block entity
+> forceload add 112 -352 240 -224
+Marked [7, -22] chunks in minecraft:overworld from [7, -22] to [15, -14] to be force loaded
+> execute in vestments:silent_cathedral run summon vestments:silent_bell 10 -56 10
+Summoned new The Silent Bell
+> execute in vestments:silent_cathedral run kill @e[type=vestments:silent_bell]
+Killed The Silent Bell
+> stop
+Stopping the server
