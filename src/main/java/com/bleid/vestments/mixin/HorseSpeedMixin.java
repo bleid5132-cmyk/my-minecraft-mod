@@ -22,6 +22,16 @@ public abstract class HorseSpeedMixin {
         cir.setReturnValue(v);
     }
 
+    @Inject(method = "tickControlled", at = @At("TAIL"), require = 0)
+    private void vestments$cartTurn(PlayerEntity rider, net.minecraft.util.math.Vec3d input, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        CartEntity.clampHorse((AbstractHorseEntity) (Object) this);
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"), require = 0)
+    private void vestments$cartTurnTick(org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        CartEntity.clampHorse((AbstractHorseEntity) (Object) this);
+    }
+
     @Inject(method = "bondWithPlayer", at = @At("RETURN"), require = 0)
     private void vestments$tamed(PlayerEntity player, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValueZ()) com.bleid.vestments.horse.HorseBond.onTamed((AbstractHorseEntity) (Object) this, player);

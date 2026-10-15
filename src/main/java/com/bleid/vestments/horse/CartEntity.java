@@ -69,6 +69,7 @@ public class CartEntity extends Entity {
             };
         }
         intersectionChecked = true;
+        setStepHeight(1.0f);                 // колёса заезжают на ступеньку в блок
     }
 
     @Override
@@ -97,6 +98,26 @@ public class CartEntity extends Entity {
     public AbstractHorseEntity horse() {
         int id = dataTracker.get(HORSE);
         return id >= 0 && getWorld().getEntityById(id) instanceof AbstractHorseEntity h ? h : null;
+    }
+
+    /** Насколько конь в упряжке может отвернуть от оглобель, градусы. */
+    public static final float MAX_TURN = 35f;
+
+    /** Не дать коню в упряжке развернуться поперёк повозки: курс коня — не дальше MAX_TURN от направления оглобель. */
+    public static void clampHorse(AbstractHorseEntity h) {
+        CartEntity c = hitchedTo(h);
+        if (c == null) return;
+        double dx = h.getX() - c.getX(), dz = h.getZ() - c.getZ();
+        if (dx * dx + dz * dz < 1e-4) return;
+        float axis = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float d = MathHelper.wrapDegrees(h.getYaw() - axis);
+        if (Math.abs(d) <= MAX_TURN) return;
+        float y = axis + Math.copySign(MAX_TURN, d);
+        h.setYaw(y);
+        h.prevYaw = y;
+        h.bodyYaw = y;
+        h.prevBodyYaw = y;
+        h.headYaw = y;
     }
 
     /** Повозка, прицепленная к этому коню (на клиенте и сервере), или null. */
