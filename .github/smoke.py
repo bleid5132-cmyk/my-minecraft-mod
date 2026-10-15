@@ -38,6 +38,8 @@ cmds = [
   'execute in vestments:silent_cathedral if block 0 -56 0 minecraft:air run say CENTER_AIR',
   'execute in vestments:silent_cathedral run data get block 326 -60 4 Command',
   'execute in vestments:silent_cathedral if entity @e[type=vestments:bell_ringer] run say RINGER_OK',
+  'execute in vestments:silent_cathedral unless block 0 -95 0 minecraft:air run say UNDERSIDE_OK',
+  'execute in vestments:silent_cathedral if block 0 -56 0 minecraft:air run say FLOOR_LEVEL_OK',
   'execute in vestments:silent_cathedral run data get entity @e[type=vestments:bell_ringer,limit=1] Dormant',
   'locate structure vestments:bell_courtyard',
   'forceload add 0 0 127 127',
