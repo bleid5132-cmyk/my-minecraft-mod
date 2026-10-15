@@ -34,6 +34,16 @@ public final class CombatPose {
         // выхватывание из ножен: руки по обратной кинематике, меч — по ключам
         public DrawPose.Out draw;
         public float shX, shY, shZ, offShX, offShY, offShZ;
+        // катана: вес рук (стойка тюдан — руки всегда в позе, ноги и корпус — от ходьбы), наклон головы,
+        // поворот катаны лезвием вперёд, поза стойки под ударом (для плавного перехода хвата)
+        public float armW = -1f;
+        public float headPitch, edge;
+        public DrawPose.Out baseDraw;
+        public float baseW;
+
+        public float arms() {
+            return armW < 0 ? w : armW;
+        }
     }
 
     /** Локоть руки с мечом во время ударов: рука чуть согнута, предплечье продолжает клинок. */
@@ -52,7 +62,17 @@ public final class CombatPose {
 
     public static Pose compute(LivingEntity e, float tickDelta) {
         CombatClient.Playback pb = CombatClient.get(e);
-        if (pb == null) return null;
+        boolean katana = e.getMainHandStack().getItem() instanceof com.bleid.vestments.samurai.KatanaItem;
+        if (pb == null) return katana ? SamuraiPose.base(e, tickDelta) : null;
+        if (pb.clip.katana && (katana || pb.clip.reverse)) {
+            Pose c = computeClip(e, pb, tickDelta);
+            Pose base = katana ? SamuraiPose.base(e, tickDelta) : SamuraiPose.sheathedIdle(e);
+            return SamuraiPose.blend(base, c, CombatClient.time(pb, tickDelta));
+        }
+        return computeClip(e, pb, tickDelta);
+    }
+
+    private static Pose computeClip(LivingEntity e, CombatClient.Playback pb, float tickDelta) {
         Pose p = new Pose();
         float t = CombatClient.time(pb, tickDelta);
         p.time = t;
@@ -64,6 +84,7 @@ public final class CombatPose {
         p.spin = wrapDeg(pb.clip.spin.at(t));
         p.lift = pb.clip.lift.at(t);
         float stance = pb.clip.stance.at(t);
+        if (pb.clip.keys != null) return SamuraiPose.keyed(e, p, pb, t);
         if (pb.clip.sheath) return sheath(e, p, pb, t);
         if (pb.clip.dodge) return dodge(p, pb, t);
 
@@ -154,9 +175,20 @@ public final class CombatPose {
             p.offRoll = pb.clip.offRoll.at(t);
             p.offElbow = 0.55f;
         }
-        if (free && cur != null && cur.twoHand) {
+        if (pb.clip.katana && cur != null) {
+            // катана: лезвие вперёд по ходу взмаха — при смене направления катана плавно проворачивается в руках
+            int prevE = 1;
+            for (Strike k : pb.clip.strikes) { if (k == cur) break; prevE = k.edgeSign(); }
+            float x = Clip.smooth((t - tStart) / Math.max(0.04f, cur.antic - tStart + 0.02f));
+            float a0 = prevE < 0 ? 1f : 0f, a1 = cur.edgeSign() < 0 ? 1f : 0f;
+            p.edge = (a0 + (a1 - a0) * x) * (float) Math.PI;
+            if (t > cur.rec && cur == pb.clip.strikes.get(pb.clip.strikes.size() - 1))
+                p.edge *= 1f - Clip.smooth((t - cur.rec) / Math.max(0.05f, pb.clip.length - cur.rec));
+        }
+        boolean katanaGrip = pb.clip.katana;
+        if ((free || katanaGrip) && cur != null && cur.twoHand) {
             // хват двумя руками: вторая кисть ложится на рукоять под первой
-            float tw = twoWeight(cur, t, tStart);
+            float tw = katanaGrip ? 1f : twoWeight(cur, t, tStart);
             if (tw > 0.001f) {
                 float by = p.bodyYaw;
                 Vector3f pm = new Vector3f(-MathHelper.cos(by) * 5f, 2f, MathHelper.sin(by) * 5f);
@@ -166,7 +198,8 @@ public final class CombatPose {
                 Vector3f side = new Vector3f(po).sub(pm);
                 side.sub(new Vector3f(Y).mul(side.dot(Y)));
                 if (side.lengthSquared() > 1e-4f) side.normalize();
-                Vector3f grip = new Vector3f(hand).sub(new Vector3f(Y).mul(2.2f)).add(new Vector3f(side).mul(2.0f));
+                float gap = katanaGrip ? com.bleid.vestments.samurai.SamuraiMoves.gripGap : 2.2f;
+                Vector3f grip = new Vector3f(hand).sub(new Vector3f(Y).mul(gap)).add(new Vector3f(side).mul(katanaGrip ? 0.3f : 2.0f));
                 Vector3f rel = new Vector3f(grip).sub(po);
                 // рукоять ушла за спину или слишком далеко — вторая рука отпускает её, а не выворачивается
                 float reach = com.bleid.vestments.client.bend.ArmIk.UPPER + com.bleid.vestments.client.bend.ArmIk.LOWER;

@@ -1,0 +1,24 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  " AA",
+  " I ",
+  "S  "
+ ],
+ "key": {
+  "A": {
+   "item": "minecraft:amethyst_shard"
+  },
+  "I": {
+   "item": "minecraft:iron_ingot"
+  },
+  "S": {
+   "item": "minecraft:stick"
+  }
+ },
+ "result": {
+  "item": "vestments:sumire",
+  "count": 1
+ }
+}

@@ -42,10 +42,27 @@ public final class CombatClient {
         public int hitstop;
         /** Меч, который убирается в ножны (в руке его уже нет). */
         public ItemStack stack = ItemStack.EMPTY;
+        /** Катана была в ножнах, когда начался приём (иай из ножен). */
+        public boolean startedSheathed;
         Playback(Clip c, Moveset m) { clip = c; ms = m; }
     }
 
     private static final Map<Integer, Playback> PLAY = new HashMap<>();
+    /** Игроки, у которых катана в руке, но вложена в ножны (после ното, медитации, ульты). */
+    private static final java.util.Set<Integer> SHEATHED = new java.util.HashSet<>();
+
+    public static boolean isSheathed(Entity e) {
+        return e != null && SHEATHED.contains(e.getId());
+    }
+
+    /** Новый приём: катана из ножен выходит, если приём держит её в руке. */
+    private static Playback start(int id, Clip c, Moveset m) {
+        Playback pb = new Playback(c, m);
+        pb.startedSheathed = SHEATHED.contains(id);
+        if (c.katana && (c.keys == null || c.inHandAt(0.99f) || c.inHandAt(0.5f))) SHEATHED.remove(id);
+        PLAY.put(id, pb);
+        return pb;
+    }
     /** Что было в руках у игроков на прошлом такте — чтобы заметить, что меч/щит только что взяли. */
     private static final Map<Integer, net.minecraft.item.Item[]> HELD = new HashMap<>();
     private static KeyBinding skillKey;
@@ -73,8 +90,8 @@ public final class CombatClient {
                 if (c == null || client.world == null) return;
                 Moveset m = Movesets.of(clipId.substring(0, clipId.indexOf('/')));
                 boolean local = client.player != null && client.player.getId() == id;
-                if (local && !c.skill) return;            // свои удары уже играем сами
-                PLAY.put(id, new Playback(c, m));
+                if (local && !c.skill && c.keys == null) return;            // свои удары уже играем сами
+                start(id, c, m);
             });
         });
         ClientPlayNetworking.registerGlobalReceiver(CombatServer.HIT, (client, handler, buf, sender) -> {
@@ -90,7 +107,7 @@ public final class CombatClient {
                 CameraShake.add(shake);
             });
         });
-        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { PLAY.clear(); HELD.clear(); });
+        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { PLAY.clear(); HELD.clear(); SHEATHED.clear(); });
         ClientTickEvents.END_CLIENT_TICK.register(CombatClient::tick);
     }
 
@@ -146,7 +163,10 @@ public final class CombatClient {
     }
 
     private static boolean holdsSword(ClientPlayerEntity p) {
-        return p != null && RankView.clientPaladin() && p.getMainHandStack().getItem() instanceof PaladinSwordItem;
+        if (p == null) return false;
+        net.minecraft.item.Item it = p.getMainHandStack().getItem();
+        if (it instanceof com.bleid.vestments.samurai.KatanaItem) return RankView.clientSamurai();
+        return RankView.clientPaladin() && it instanceof PaladinSwordItem;
     }
 
     /** Вызывается вместо обычного удара (миксин MinecraftClient.doAttack). true — удар наш. */
@@ -169,6 +189,10 @@ public final class CombatClient {
             return;
         }
         buffer = -1;
+        if (sword instanceof com.bleid.vestments.samurai.KatanaItem && SHEATHED.contains(p.getId()) && ms.draw != null) {
+            start(p.getId(), ms.draw, ms);          // катана в ножнах — сначала выхватить
+            return;
+        }
         int kind;
         if (!p.isOnGround() && !p.isTouchingWater() && !p.isClimbing() && !p.getAbilities().flying) {
             kind = 101;
@@ -190,7 +214,7 @@ public final class CombatClient {
         }
         Clip c = ms.byKind(kind);
         if (c == null) return;
-        PLAY.put(p.getId(), new Playback(c, ms));
+        start(p.getId(), c, ms);
         idle = 0;
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeVarInt(kind);
@@ -207,7 +231,8 @@ public final class CombatClient {
         sprintTicks = me.isSprinting() ? sprintTicks + 1 : 0;
 
         while (skillKey.wasPressed()) {
-            if (holdsSword(me) && mc.currentScreen == null && !me.isUsingItem()
+            boolean noSkill = me.getMainHandStack().getItem() instanceof com.bleid.vestments.samurai.KatanaItem k && !k.hasSkill();
+            if (holdsSword(me) && !noSkill && mc.currentScreen == null && !me.isUsingItem()
                     && !me.getItemCooldownManager().isCoolingDown(me.getMainHandStack().getItem())) {
                 PacketByteBuf buf = PacketByteBufs.create();
                 buf.writeVarInt(200);
@@ -240,8 +265,13 @@ public final class CombatClient {
             le.setBodyYaw(le.getHeadYaw());
             le.prevBodyYaw = le.prevHeadYaw;
             if (le == me) motion(me, p);
-            if (p.clip.sheath) drawCues(mc, le, p);
-            if (p.t >= p.clip.length) it.remove();
+            if (p.clip.keys != null) katanaCues(mc, le, p);
+            else if (p.clip.sheath) drawCues(mc, le, p);
+            if (p.clip.katana) SamuraiFx.tick(mc, le, p);
+            if (p.t >= p.clip.length) {
+                if (p.clip.endsSheathed) SHEATHED.add(e.getKey());
+                it.remove();
+            }
         }
         SwordTrails.tick(mc);
     }
@@ -254,13 +284,14 @@ public final class CombatClient {
             net.minecraft.item.Item main = pl.getMainHandStack().getItem(), off = pl.getOffHandStack().getItem();
             net.minecraft.item.Item[] prev = HELD.put(pl.getId(), new net.minecraft.item.Item[] { main, off });
             if (prev == null || pl.isSpectator()) continue;
+            if (main != prev[0]) SHEATHED.remove(pl.getId());
             Playback cur = PLAY.get(pl.getId());
             boolean free = cur == null || cur.clip.visualOnly;
             if (!free) continue;
             if (main != prev[0] && main instanceof PaladinSwordItem sword && sword.moveset() != null
                     && sword.moveset().draw != null) {
                 Moveset ms = sword.moveset();
-                PLAY.put(pl.getId(), new Playback(ms.draw, ms));
+                start(pl.getId(), ms.draw, ms);
                 sound(mc, pl, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_LEATHER, 0.5f, 1.2f);
             } else if (main != prev[0] && prev[0] instanceof PaladinSwordItem old && old.moveset() != null
                     && old.moveset().sheathe != null && !(main instanceof PaladinSwordItem)) {
@@ -318,6 +349,27 @@ public final class CombatClient {
         }
         if (crossed(p, 0.74f * L)) {
             sound(mc, le, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_NODAMAGE, 0.5f, 1.25f);
+        }
+    }
+
+    /** Звуки ключевых приёмов катаны: хват рукояти и звон выходящего клинка (выхватывание, иай). */
+    private static void katanaCues(MinecraftClient mc, LivingEntity le, Playback p) {
+        String n = com.bleid.vestments.samurai.SamuraiMoves.nameOf(p.clip);
+        float L = p.clip.length;
+        if (n.equals("draw") || n.equals("iai")) {
+            if (crossed(p, 0.2f * L)) sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_CHAIN, 0.5f, 1.6f);
+            if (crossed(p, 0.44f * L)) {
+                sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0.7f, 1.8f);
+                sound(mc, le, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, 0.45f, 1.7f);
+                sound(mc, le, net.minecraft.sound.SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 0.4f + 0.05f * p.ms.tier, 1.8f);
+            }
+        } else if (n.equals("sheathe") || n.equals("ult_end")) {
+            if (crossed(p, 0.3f * L)) sound(mc, le, net.minecraft.sound.SoundEvents.ENTITY_PLAYER_ATTACK_NODAMAGE, 0.5f, 1.5f);
+            if (crossed(p, 0.74f * L)) sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_CHAIN, 0.5f, 1.3f);
+            if (crossed(p, 0.88f * L)) {
+                sound(mc, le, net.minecraft.sound.SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0.65f, 1.35f);
+                sound(mc, le, net.minecraft.sound.SoundEvents.BLOCK_CHAIN_PLACE, 0.5f, 1.7f);
+            }
         }
     }
 

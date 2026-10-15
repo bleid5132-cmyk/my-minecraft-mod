@@ -27,6 +27,10 @@ public final class RankView {
         return "paladin".equals(clientClass);
     }
 
+    public static boolean clientSamurai() {
+        return "samurai".equals(clientClass);
+    }
+
     public static int clientPaladinRank() {
         return clientPaladin() ? com.bleid.vestments.paladin.PaladinRanks.rankFor(clientPoints) : -1;
     }

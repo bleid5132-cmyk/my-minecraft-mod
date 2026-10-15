@@ -1,0 +1,21 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "XLX",
+  "XXX",
+  "XXX"
+ ],
+ "key": {
+  "X": {
+   "item": "minecraft:prismarine_shard"
+  },
+  "L": {
+   "item": "minecraft:prismarine_crystals"
+  }
+ },
+ "result": {
+  "item": "vestments:samurai_ryujin_chest",
+  "count": 1
+ }
+}

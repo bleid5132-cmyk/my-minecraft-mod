@@ -30,6 +30,28 @@ public final class Clip {
     public boolean reverse;
     /** Уворот (кувырок/отскок): руки и ноги поджаты, оружие в обычном хвате. */
     public boolean dodge;
+    // ---- самурай (катана): см. samurai/SamuraiMoves
+    /** Набор ключевых поз (стойка, иай, ното, парирование…): руки по ним, а не по дуге клинка. */
+    public String keys;
+    /** Интервалы доли приёма, когда катана в руке (вне их — в ножнах). */
+    public float[][] grab = new float[0][];
+    /** Катана: две руки на рукояти, лезвие вперёд, покой — стойка тюдан. */
+    public boolean katana;
+    public boolean loop;
+    /** После приёма катана остаётся в ножнах (ното, медитация). */
+    public boolean endsSheathed;
+    /** Рывки-телепорты: {t, вбок, вперёд (блоки, от цели в 3 блоках впереди), поворот}. */
+    public final List<float[]> warps = new ArrayList<>();
+    /** События эффектов: время и тип. */
+    public final List<Object[]> fx = new ArrayList<>();
+    /** Наклон головы (рад) — ключевые позы. */
+    public final Track head = new Track();
+
+    public boolean inHandAt(float u) {
+        for (float[] g : grab) if (u >= g[0] && u < g[1]) return true;
+        return false;
+    }
+
     // своя дорожка для второй руки (радианы модели); пустые — обычная защитная стойка
     public final Track offPitch = new Track(), offYaw = new Track(), offRoll = new Track();
 

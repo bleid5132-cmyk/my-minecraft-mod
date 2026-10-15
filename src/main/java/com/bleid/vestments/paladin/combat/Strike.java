@@ -22,6 +22,7 @@ public final class Strike {
     public boolean heavy;                    // тяжёлый удар — разгон равномернее
     public boolean smooth;                   // плавное движение (разгон и торможение), для показных движений
     public boolean twoHand;                  // вторая рука перехватывает рукоять (если она свободна)
+    public int edge;                         // катана: куда смотрит лезвие (1 / -1, 0 — по направлению взмаха)
 
     public Strike(float antic, float pre, float contact, float rec, float roll, float a0, float a1) {
         this.antic = antic;
@@ -48,6 +49,11 @@ public final class Strike {
     /** Полный угол дуги (для вращений больше 200° корпус не «следует» за клинком автоматически). */
     public float sweep() {
         return Math.abs(a1 - a0);
+    }
+
+    /** Катана повёрнута лезвием вперёд по ходу взмаха: -1 — перевёрнута на 180° вокруг клинка. */
+    public int edgeSign() {
+        return edge != 0 ? edge : (a1 >= a0 ? 1 : -1);
     }
 
     public boolean thrust() {

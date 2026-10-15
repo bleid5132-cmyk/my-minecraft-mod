@@ -32,6 +32,9 @@ public final class FirstPersonSword {
                                  int light) {
         if (hand == Hand.MAIN_HAND && com.bleid.vestments.client.HammerClient.flying(player)
                 && com.bleid.vestments.client.HammerClient.isHammer(item)) return true;     // молот в полёте
+        if (hand == Hand.MAIN_HAND && item.getItem() instanceof com.bleid.vestments.samurai.KatanaItem) {
+            return SamuraiFirstPerson.render(renderer, player, tickDelta, item, matrices, vcp, light);
+        }
         if (hand != Hand.MAIN_HAND || !(item.getItem() instanceof PaladinSwordItem)) return false;
         CombatPose.Pose p = CombatPose.compute(player, tickDelta);
         if (p == null || p.clip.offOnly || p.clip.dodge) return false;

@@ -1,0 +1,24 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "  F",
+  " C ",
+  "S  "
+ ],
+ "key": {
+  "F": {
+   "item": "minecraft:flint"
+  },
+  "C": {
+   "item": "minecraft:cobblestone"
+  },
+  "S": {
+   "item": "minecraft:stick"
+  }
+ },
+ "result": {
+  "item": "vestments:ishikiri",
+  "count": 1
+ }
+}

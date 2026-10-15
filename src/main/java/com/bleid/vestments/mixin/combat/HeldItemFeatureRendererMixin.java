@@ -73,9 +73,17 @@ public abstract class HeldItemFeatureRendererMixin {
         Matrix4f target;
         Matrix4f van = vestments$vanillaGrip(s);
 
+        if (stack.getItem() instanceof com.bleid.vestments.samurai.KatanaItem && p.draw == null) {
+            // катана в ударе: хват по руке, лезвие вперёд; в начале и конце удара — плавно из хвата стойки
+            Matrix4f grip = new Matrix4f().translate(-s / 16f, 0.6f, -0.05f).rotateY(p.edge).scale(0.85f).translate(0, 0.53f, 0);
+            com.bleid.vestments.client.combat.SwordGrip.render(heldItemRenderer, e, stack, arm, model, p.baseDraw,
+                    p.baseDraw == null ? 0f : p.baseW, grip, 0.5f, matrices, vcp, light);
+            ci.cancel();
+            return;
+        }
         if (p.draw != null) {
             if (p.draw.inHand) {
-                com.bleid.vestments.client.combat.SwordGrip.render(heldItemRenderer, e, stack, arm, model, p.draw, w,
+                com.bleid.vestments.client.combat.SwordGrip.render(heldItemRenderer, e, stack, arm, model, p.draw, p.arms(),
                         matrices, vcp, light);
             }
             ci.cancel();             // до хвата меч в ножнах — его рисует ScabbardFeature

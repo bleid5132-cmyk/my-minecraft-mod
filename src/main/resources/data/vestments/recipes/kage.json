@@ -1,0 +1,24 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  " ED",
+  " D ",
+  "S  "
+ ],
+ "key": {
+  "E": {
+   "item": "minecraft:echo_shard"
+  },
+  "D": {
+   "item": "minecraft:diamond"
+  },
+  "S": {
+   "item": "minecraft:stick"
+  }
+ },
+ "result": {
+  "item": "vestments:kage",
+  "count": 1
+ }
+}

@@ -115,7 +115,7 @@ public abstract class BipedEntityModelCombatMixin {
 
         // ---------- приём
         if (p != null) {
-            float w = p.w;
+            float w = p.w, aw = p.arms();
             ModelPart main = rightMain ? m.rightArm : m.leftArm;
             ModelPart off = rightMain ? m.leftArm : m.rightArm;
             // удары считаются для правши и зеркалятся; выхватывание уже посчитано в пространстве модели
@@ -123,37 +123,38 @@ public abstract class BipedEntityModelCombatMixin {
             float legS = rightMain ? 1f : -1f;
             float eMain = rightMain ? eR : eL, eOff = rightMain ? eL : eR;
             if (!p.clip.offOnly) {
-                m.body.yaw = MathHelper.lerp(w, m.body.yaw, p.bodyYaw * s);
+                m.body.yaw = MathHelper.lerp(aw, m.body.yaw, p.bodyYaw * s);
                 float bt = m.body.yaw;
-                m.rightArm.pivotZ = MathHelper.lerp(w, m.rightArm.pivotZ, MathHelper.sin(bt) * 5f);
-                m.rightArm.pivotX = MathHelper.lerp(w, m.rightArm.pivotX, -MathHelper.cos(bt) * 5f);
-                m.leftArm.pivotZ = MathHelper.lerp(w, m.leftArm.pivotZ, -MathHelper.sin(bt) * 5f);
-                m.leftArm.pivotX = MathHelper.lerp(w, m.leftArm.pivotX, MathHelper.cos(bt) * 5f);
-                if (p.draw != null) {
+                m.rightArm.pivotZ = MathHelper.lerp(aw, m.rightArm.pivotZ, MathHelper.sin(bt) * 5f);
+                m.rightArm.pivotX = MathHelper.lerp(aw, m.rightArm.pivotX, -MathHelper.cos(bt) * 5f);
+                m.leftArm.pivotZ = MathHelper.lerp(aw, m.leftArm.pivotZ, -MathHelper.sin(bt) * 5f);
+                m.leftArm.pivotX = MathHelper.lerp(aw, m.leftArm.pivotX, MathHelper.cos(bt) * 5f);
+                if (p.draw != null && aw > 0f) {
                     // плечи подаются вперёд/внутрь, чтобы дотянуться до рукояти
-                    main.pivotX = MathHelper.lerp(w, main.pivotX, p.shX);
-                    main.pivotY = MathHelper.lerp(w, main.pivotY, p.shY);
-                    main.pivotZ = MathHelper.lerp(w, main.pivotZ, p.shZ);
-                    off.pivotX = MathHelper.lerp(w, off.pivotX, p.offShX);
-                    off.pivotY = MathHelper.lerp(w, off.pivotY, p.offShY);
-                    off.pivotZ = MathHelper.lerp(w, off.pivotZ, p.offShZ);
+                    main.pivotX = MathHelper.lerp(aw, main.pivotX, p.shX);
+                    main.pivotY = MathHelper.lerp(aw, main.pivotY, p.shY);
+                    main.pivotZ = MathHelper.lerp(aw, main.pivotZ, p.shZ);
+                    off.pivotX = MathHelper.lerp(aw, off.pivotX, p.offShX);
+                    off.pivotY = MathHelper.lerp(aw, off.pivotY, p.offShY);
+                    off.pivotZ = MathHelper.lerp(aw, off.pivotZ, p.offShZ);
                 }
-                main.pitch = vestments$lerpAngle(w, main.pitch, p.armPitch);
-                main.yaw = vestments$lerpAngle(w, main.yaw, p.armYaw * s);
-                main.roll = vestments$lerpAngle(w, main.roll, p.armRoll * s);
-                eMain = MathHelper.lerp(w, eMain, p.mainElbow);
+                main.pitch = vestments$lerpAngle(aw, main.pitch, p.armPitch);
+                main.yaw = vestments$lerpAngle(aw, main.yaw, p.armYaw * s);
+                main.roll = vestments$lerpAngle(aw, main.roll, p.armRoll * s);
+                eMain = MathHelper.lerp(aw, eMain, p.mainElbow);
                 m.rightLeg.pitch = MathHelper.lerp(w, m.rightLeg.pitch, p.rLeg * legS);
                 m.leftLeg.pitch = MathHelper.lerp(w, m.leftLeg.pitch, p.lLeg * legS);
                 float pkR = rightMain ? p.kneeR : p.kneeL, pkL = rightMain ? p.kneeL : p.kneeR;
                 if (p.draw != null) { pkR = p.kneeR; pkL = p.kneeL; }
                 kR = MathHelper.lerp(w, kR, pkR);
                 kL = MathHelper.lerp(w, kL, pkL);
+                if (p.headPitch != 0f) m.head.pitch += p.headPitch * Math.max(w, aw);
             }
             if (!(e.isUsingItem() && e.getActiveHand() == net.minecraft.util.Hand.OFF_HAND)) {
-                off.pitch = vestments$lerpAngle(w, off.pitch, p.offPitch);
-                off.yaw = vestments$lerpAngle(w, off.yaw, p.offYaw * s);
-                off.roll = vestments$lerpAngle(w, off.roll, p.offRoll * s);
-                eOff = MathHelper.lerp(w, eOff, p.offElbow);
+                off.pitch = vestments$lerpAngle(aw, off.pitch, p.offPitch);
+                off.yaw = vestments$lerpAngle(aw, off.yaw, p.offYaw * s);
+                off.roll = vestments$lerpAngle(aw, off.roll, p.offRoll * s);
+                eOff = MathHelper.lerp(aw, eOff, p.offElbow);
             }
             if (rightMain) { eR = eMain; eL = eOff; } else { eL = eMain; eR = eOff; }
         }

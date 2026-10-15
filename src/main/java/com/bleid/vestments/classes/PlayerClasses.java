@@ -22,14 +22,14 @@ import net.minecraft.world.World;
 
 /**
  * Классы игроков. При первом входе в мир сервер открывает игроку экран выбора класса,
- * выбор сохраняется в данных мира. Классы: «Священник» и «Паладин».
+ * выбор сохраняется в данных мира. Классы: «Священник», «Паладин» и «Самурай».
  */
 public final class PlayerClasses {
     public static final Identifier OPEN_SELECT = new Identifier(Vestments.MOD_ID, "open_class_select");
     public static final Identifier CHOOSE = new Identifier(Vestments.MOD_ID, "choose_class");
 
     /** Доступные классы (id). Порядок = порядок на экране выбора. */
-    public static final List<String> CLASSES = List.of("priest", "paladin");
+    public static final List<String> CLASSES = List.of("priest", "paladin", "samurai");
 
     private PlayerClasses() { }
 

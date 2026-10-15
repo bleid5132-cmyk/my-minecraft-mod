@@ -32,6 +32,10 @@ public final class StaffModel {
                 context.addModels(weaponModel(w));
                 context.addModels(scabbardModel(w));
             }
+            for (var w : com.bleid.vestments.samurai.SamuraiGear.KATANAS) {
+                context.addModels(weaponModel(w));
+                context.addModels(scabbardModel(w));
+            }
             for (var w : com.bleid.vestments.paladin.PaladinGear.WEAPONS) context.addModels(weaponModel(w));
             context.addModels(weaponModel(com.bleid.vestments.paladin.PaladinGear.RELIQUARY));
             context.addModels(weaponModel(com.bleid.vestments.boss.Bosses.BELL_TONGUE));

@@ -70,6 +70,14 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
         return last == null ? ItemStack.EMPTY : last;
     }
 
+    /** Ножны катаны: за поясом слева спереди, клинок назад-вниз, лезвием вверх. */
+    private static Vector3f[] katanaSheath(boolean right) {
+        float[] m = com.bleid.vestments.samurai.SamuraiMoves.sheathMouth, d = com.bleid.vestments.samurai.SamuraiMoves.sheathDir,
+                n = com.bleid.vestments.samurai.SamuraiMoves.sheathNormal;
+        float s = right ? 1f : -1f;
+        return new Vector3f[] { new Vector3f(m[0] * s, m[1], m[2]), new Vector3f(d[0] * s, d[1], d[2]), new Vector3f(n[0] * s, n[1], n[2]) };
+    }
+
     @Override
     public void render(MatrixStack matrices, VertexConsumerProvider vcp, int light, AbstractClientPlayerEntity p,
                        float limbAngle, float limbDistance, float tickDelta, float animationProgress, float headYaw, float headPitch) {
@@ -95,7 +103,8 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
             }
         }
         boolean right = p.getMainArm() == Arm.RIGHT;
-        Vector3f[] sh = DrawPose.sheath(right);
+        boolean katana = sword.getItem() instanceof com.bleid.vestments.samurai.KatanaItem;
+        Vector3f[] sh = katana ? katanaSheath(right) : DrawPose.sheath(right);
         Vector3f y = sh[1], z = sh[2], x = new Vector3f(y).cross(z).normalize();
 
         matrices.push();
@@ -104,7 +113,7 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
         matrices.multiply(new Matrix3f().setColumn(0, x).setColumn(1, y).setColumn(2, z)
                 .getNormalizedRotation(new org.joml.Quaternionf()));
         matrices.scale(0.85f, 0.85f, 0.85f);
-        matrices.translate(0, 0.394f, 0);              // гарда — у устья ножен
+        matrices.translate(0, katana ? 0.375f : 0.394f, 0);   // гарда — у устья ножен
         items.renderItem(DUMMY, ModelTransformationMode.NONE, false, matrices, vcp, light, OverlayTexture.DEFAULT_UV, sheath);
         if (sheathed) {
             items.renderItem(p, sword, ModelTransformationMode.NONE, false, matrices, vcp, p.getWorld(), light,

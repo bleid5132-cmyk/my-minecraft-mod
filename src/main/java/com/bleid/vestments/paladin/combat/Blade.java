@@ -12,6 +12,8 @@ public final class Blade {
     static final Vec3d REST_DIR = new Vec3d(0.72, 0.12, 0.68).normalize();
     static final Vec3d REST_N = new Vec3d(0, 1, 0);
     public static final double INNER = 0.42;   // от плеча до рукояти
+    /** Катана: покой — стойка тюдан (клинок вперёд-вверх). */
+    static final Vec3d KATANA_REST = new Vec3d(0.87, 0, 0.5).normalize();
 
     private Blade() { }
 
@@ -64,10 +66,11 @@ public final class Blade {
 
     /** Состояние клинка в момент t приёма c; len — длина оружия (вылет кончика от плеча). */
     public static State at(Clip c, double t, double len) {
-        Vec3d prevDir = REST_DIR, prevN = REST_N;
+        Vec3d rest = c.katana ? KATANA_REST : REST_DIR;
+        Vec3d prevDir = rest, prevN = REST_N;
         double prevReach = len, prevT = 0;
         for (Strike s : c.strikes) {
-            double r0 = s.reach0 > 0 ? s.reach0 : len, r1 = s.reach1 > 0 ? s.reach1 : len;
+            double r0 = s.reach0 > 0 ? (c.katana ? s.reach0 * len : s.reach0) : len, r1 = s.reach1 > 0 ? (c.katana ? s.reach1 * len : s.reach1) : len;
             Vec3d n = normalOf(s);
             Vec3d wind = dirAt(s, windAngle(s));
             if (t < s.antic) {                       // подход: из предыдущего положения в замах
@@ -102,7 +105,7 @@ public final class Blade {
             prevT = s.rec;
         }
         double x = easeInOut((t - prevT) / Math.max(1e-3, c.length - prevT));
-        return done(mix(prevDir, REST_DIR, x), mix(prevN, REST_N, x), prevReach + (len - prevReach) * x);
+        return done(mix(prevDir, rest, x), mix(prevN, REST_N, x), prevReach + (len - prevReach) * x);
     }
 
     private static State done(Vec3d d, Vec3d n, double reach) {

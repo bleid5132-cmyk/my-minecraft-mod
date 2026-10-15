@@ -1,0 +1,21 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "XLX",
+  "XXX",
+  "XXX"
+ ],
+ "key": {
+  "X": {
+   "item": "minecraft:iron_ingot"
+  },
+  "L": {
+   "item": "minecraft:blue_dye"
+  }
+ },
+ "result": {
+  "item": "vestments:samurai_kozane_chest",
+  "count": 1
+ }
+}

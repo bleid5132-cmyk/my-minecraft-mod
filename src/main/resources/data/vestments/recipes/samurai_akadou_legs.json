@@ -1,0 +1,21 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "XXX",
+  "XLX",
+  "X X"
+ ],
+ "key": {
+  "X": {
+   "item": "minecraft:copper_ingot"
+  },
+  "L": {
+   "item": "minecraft:red_dye"
+  }
+ },
+ "result": {
+  "item": "vestments:samurai_akadou_legs",
+  "count": 1
+ }
+}

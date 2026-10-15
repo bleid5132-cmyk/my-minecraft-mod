@@ -100,16 +100,21 @@ public final class CombatServer {
     // ---------------------------------------------------------------- запрос удара
 
     private static void request(ServerPlayerEntity p, int kind) {
-        if (!ServicePoints.isPaladin(p) || !p.isAlive() || p.isSpectator() || p.isUsingItem()) return;
+        if (!p.isAlive() || p.isSpectator() || p.isUsingItem()) return;
         ItemStack st = p.getMainHandStack();
         if (!(st.getItem() instanceof PaladinSwordItem sword)) return;
+        boolean katana = sword instanceof com.bleid.vestments.samurai.KatanaItem;
+        if (katana ? !com.bleid.vestments.samurai.SamuraiServer.isSamurai(p) : !ServicePoints.isPaladin(p)) return;
         Moveset ms = sword.moveset();
         if (ms == null) return;
         Clip c = ms.byKind(kind);
         if (c == null) return;
         State s = STATES.computeIfAbsent(p.getUuid(), k -> new State());
         if (s.clip != null && s.t < s.clip.cancelTime() - 0.12f) return;
-        if (kind == 200) {
+        if (kind == 200 && katana) {
+            if (!((com.bleid.vestments.samurai.KatanaItem) sword).hasSkill() || p.getItemCooldownManager().isCoolingDown(sword)) return;
+            p.getItemCooldownManager().set(sword, sword.skillCooldown);
+        } else if (kind == 200) {
             if (!RankView.hasPaladin(p, sword.rank)) {
                 p.sendMessage(Text.translatable("message.vestments.rank_required",
                         Text.translatable(PaladinRanks.nameKey(sword.rank))).formatted(Formatting.RED), true);
@@ -118,6 +123,12 @@ public final class CombatServer {
             if (p.getItemCooldownManager().isCoolingDown(sword)) return;
             p.getItemCooldownManager().set(sword, sword.skillCooldown);
         }
+        start(p, s, c, ms);
+        for (ServerPlayerEntity viewer : PlayerLookup.tracking(p)) sendPlay(viewer, p, c);
+        if (kind == 200) sendPlay(p, p, c);
+    }
+
+    private static void start(ServerPlayerEntity p, State s, Clip c, Moveset ms) {
         s.clip = c;
         s.ms = ms;
         s.t = 0;
@@ -127,8 +138,33 @@ public final class CombatServer {
         for (int i = 0; i < n; i++) s.hits.add(new HashSet<>());
         s.preFired = new boolean[n];
         s.contactFired = new boolean[n];
+        if (c.katana) com.bleid.vestments.samurai.SamuraiServer.clipStarted(p, c);
+    }
+
+    /** Запустить приём от сервера (способности самурая): игрок и все, кто его видит, проигрывают его. */
+    public static void forcePlay(ServerPlayerEntity p, Clip c) {
+        ItemStack st = p.getMainHandStack();
+        Moveset ms = st.getItem() instanceof PaladinSwordItem sw && sw.moveset() != null ? sw.moveset() : Movesets.of(c.id.substring(0, c.id.indexOf('/')));
+        State s = STATES.computeIfAbsent(p.getUuid(), k -> new State());
+        start(p, s, c, ms);
         for (ServerPlayerEntity viewer : PlayerLookup.tracking(p)) sendPlay(viewer, p, c);
-        if (kind == 200) sendPlay(p, p, c);
+        sendPlay(p, p, c);
+    }
+
+    /** Текущий приём игрока на сервере (или null). */
+    public static Clip current(ServerPlayerEntity p) {
+        State s = STATES.get(p.getUuid());
+        return s == null ? null : s.clip;
+    }
+
+    /** Волна-клинок вперёд (как у «Удара волной» паладина): летит ~14 блоков, режет всех на пути. */
+    public static void spawnWave(ServerPlayerEntity p, float dmg, int tier, String fx) {
+        ServerWorld w = p.getServerWorld();
+        Vec3d[] fr = Blade.frame(p.getYaw(), p.getPitch());
+        Vec3d dir = new Vec3d(fr[0].x, 0, fr[0].z).normalize();
+        Vec3d start = p.getPos().add(0, 1.0, 0).add(dir.multiply(1.0));
+        WAVES.add(new Wave(p, w, dir, new HashSet<>(), dmg, tier, new Vec3d[] { start }, new int[] { 0 }));
+        if (fx != null) Fx.play(w, fx, start, null, 14, p.getYaw(), tier, 1.1f);
     }
 
     /** Показать приём игрока всем, кто его видит (кроме него самого). */
@@ -146,6 +182,11 @@ public final class CombatServer {
     public static void cancel(ServerPlayerEntity p) {
         State s = STATES.get(p.getUuid());
         if (s != null) s.clip = null;
+    }
+
+    /** Остановить приём игрока на сервере (медитацию прервали и т.п.). */
+    public static void stop(ServerPlayerEntity p) {
+        cancel(p);
     }
 
     private static void sendPlay(ServerPlayerEntity to, ServerPlayerEntity who, Clip c) {
@@ -167,6 +208,11 @@ public final class CombatServer {
             if (!p.isAlive() || !(p.getMainHandStack().getItem() instanceof PaladinSwordItem)) { s.clip = null; continue; }
             s.tPrev = s.t;
             s.t += 0.05f;
+            if (s.clip.katana) {
+                Clip before = s.clip;
+                com.bleid.vestments.samurai.SamuraiServer.tickClip(p, s.clip, s.tPrev, s.t);
+                if (s.clip != before) continue;          // способность прервала или сменила приём
+            }
             List<Strike> strikes = s.clip.strikes;
             for (int i = 0; i < strikes.size(); i++) {
                 Strike k = strikes.get(i);
@@ -182,7 +228,11 @@ public final class CombatServer {
                     if (k.event != null) event(p, s, i, k);
                 }
             }
-            if (s.t >= s.clip.length) s.clip = null;
+            if (s.t >= s.clip.length) {
+                Clip done = s.clip;
+                s.clip = null;
+                if (done.katana) com.bleid.vestments.samurai.SamuraiServer.clipEnded(p, done);
+            }
         }
         for (Iterator<Wave> it = WAVES.iterator(); it.hasNext(); ) {
             Wave w = it.next();
@@ -252,6 +302,10 @@ public final class CombatServer {
         }
     }
 
+    public static float baseDamage(ServerPlayerEntity p) {
+        return baseDamage(p, STATES.get(p.getUuid()));
+    }
+
     private static float baseDamage(ServerPlayerEntity p, State s) {
         float b = (float) p.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
         // двуручное оружие со щитом или предметом во второй руке бьёт слабее
@@ -260,11 +314,14 @@ public final class CombatServer {
     }
 
     /** Нанести удар: урон, отбрасывание, огонь от зачарования, эффект попадания. */
-    static boolean damage(ServerPlayerEntity p, LivingEntity e, float dmg, float kb, int tier, float roll, Strike k) {
+    public static boolean damage(ServerPlayerEntity p, LivingEntity e, float dmg, float kb, int tier, float roll, Strike k) {
         ServerWorld world = p.getServerWorld();
+        boolean katana = p.getMainHandStack().getItem() instanceof com.bleid.vestments.samurai.KatanaItem;
+        if (katana) dmg = com.bleid.vestments.samurai.SamuraiServer.beforeHit(p, e, dmg);
         e.timeUntilRegen = 0;
         boolean ok = e.damage(world.getDamageSources().playerAttack(p), dmg);
         if (!ok) return false;
+        if (katana) com.bleid.vestments.samurai.SamuraiServer.afterHit(p, e, dmg);
         WeaponSkills.onHit(p, e, dmg);
         com.bleid.vestments.paladin.PaladinAbilities.onHit(p, e, dmg);
         Vec3d d = e.getPos().subtract(p.getPos());
@@ -310,6 +367,7 @@ public final class CombatServer {
         Set<Integer> hits = s.hits.get(idx);
         float base = baseDamage(p, s);
         int tier = s.ms.tier;
+        if (s.clip.katana && com.bleid.vestments.samurai.SamuraiServer.event(p, s.clip, k, hits, base)) return;
         switch (k.event) {
             case "crush" -> {
                 for (int id : hits) if (w.getEntityById(id) instanceof LivingEntity e)
@@ -368,7 +426,7 @@ public final class CombatServer {
     }
 
     /** Удар по площади: всем, кого ещё не задело этим ударом (кроме игроков). */
-    static void aoe(ServerPlayerEntity p, Vec3d at, double r, float dmg, float kb, float up, Set<Integer> skip, int tier) {
+    public static void aoe(ServerPlayerEntity p, Vec3d at, double r, float dmg, float kb, float up, Set<Integer> skip, int tier) {
         ServerWorld w = p.getServerWorld();
         Box box = new Box(at, at).expand(r, 2.5, r);
         for (LivingEntity e : w.getEntitiesByClass(LivingEntity.class, box, x -> canHit(p, x) && !(x instanceof PlayerEntity))) {

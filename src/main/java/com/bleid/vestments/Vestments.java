@@ -75,6 +75,7 @@ public class Vestments implements ModInitializer {
     public void onInitialize() {
         com.bleid.vestments.gear.RankGear.init();
         com.bleid.vestments.paladin.PaladinGear.init();
+        com.bleid.vestments.samurai.SamuraiGear.init();
         com.bleid.vestments.boss.Bosses.init();
         // вкладки в творческом инвентаре: священник отдельно, паладин отдельно
         Registry.register(Registries.ITEM_GROUP, new Identifier(MOD_ID, "main"),
@@ -110,7 +111,14 @@ public class Vestments implements ModInitializer {
                             entries.add(com.bleid.vestments.boss.Bosses.BELL_RINGER_SPAWN_EGG);
                         })
                         .build());
+        Registry.register(Registries.ITEM_GROUP, new Identifier(MOD_ID, "samurai"),
+                net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup.builder()
+                        .icon(() -> new net.minecraft.item.ItemStack(com.bleid.vestments.samurai.SamuraiGear.KATANAS.get(4)))
+                        .displayName(net.minecraft.text.Text.translatable("itemGroup.vestments.samurai"))
+                        .entries((context, entries) -> com.bleid.vestments.samurai.SamuraiGear.allItems().forEach(entries::add))
+                        .build());
         SetBonus.register();
+        com.bleid.vestments.samurai.SamuraiServer.register();
         com.bleid.vestments.classes.ClassRules.register();
         com.bleid.vestments.paladin.PaladinBonus.register();
         com.bleid.vestments.paladin.combat.CombatServer.register();

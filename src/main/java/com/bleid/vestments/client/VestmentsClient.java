@@ -69,6 +69,15 @@ public class VestmentsClient implements ClientModInitializer {
                 ctx -> com.bleid.vestments.client.horse.RealHorseRenderer.of(ctx, com.bleid.vestments.client.horse.RealHorseRenderer.ZOMBIE));
         PaladinKeys.register();
         PaladinHud.register();
+        SamuraiHud.register();
+        for (var e : com.bleid.vestments.samurai.SamuraiGear.SETS.entrySet()) {
+            String id = "samurai_" + e.getKey();
+            GeoArmorRenderer r = GeoArmorRenderer.of(new Identifier(Vestments.MOD_ID, "geo/" + id + ".geo.json"),
+                    new Identifier(Vestments.MOD_ID, "textures/armor/" + id + ".png"));
+            if (e.getKey().equals("ryujin") || e.getKey().equals("shogun")) r = r.glow();
+            net.minecraft.item.Item[] it = e.getValue();
+            ArmorRenderers.register(r, it[0], it[1], it[2], it[3]);
+        }
         DodgeClient.register();
         HammerClient.register();
         SmallTooltipComponent.register();

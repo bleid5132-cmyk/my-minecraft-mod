@@ -1,0 +1,20 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "X X",
+  "XLX"
+ ],
+ "key": {
+  "X": {
+   "item": "minecraft:black_wool"
+  },
+  "L": {
+   "item": "minecraft:iron_nugget"
+  }
+ },
+ "result": {
+  "item": "vestments:samurai_shinobi_boots",
+  "count": 1
+ }
+}

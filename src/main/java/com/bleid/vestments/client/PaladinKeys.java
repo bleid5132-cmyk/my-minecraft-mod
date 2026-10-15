@@ -33,7 +33,16 @@ public final class PaladinKeys {
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             for (int i = 0; i < BINDINGS.length; i++) {
                 while (BINDINGS[i].wasPressed()) {
-                    if (mc.player == null || mc.currentScreen != null || !RankView.clientPaladin()) continue;
+                    if (mc.player == null || mc.currentScreen != null) continue;
+                    if (RankView.clientSamurai()) {
+                        // самурай: G иай, H парирование, J шаг ветра, K медитация, N буря лепестков
+                        PacketByteBuf buf = PacketByteBufs.create();
+                        buf.writeVarInt(i);
+                        buf.writeVarInt(HammerClient.target());
+                        ClientPlayNetworking.send(com.bleid.vestments.samurai.SamuraiServer.ABILITY, buf);
+                        continue;
+                    }
+                    if (!RankView.clientPaladin()) continue;
                     PacketByteBuf buf = PacketByteBufs.create();
                     buf.writeVarInt(i);
                     ClientPlayNetworking.send(PaladinAbilities.ABILITY, buf);

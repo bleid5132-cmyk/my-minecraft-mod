@@ -1,0 +1,24 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "  N",
+  " E ",
+  "H  "
+ ],
+ "key": {
+  "N": {
+   "item": "minecraft:nether_star"
+  },
+  "E": {
+   "item": "vestments:enma"
+  },
+  "H": {
+   "item": "minecraft:heart_of_the_sea"
+  }
+ },
+ "result": {
+  "item": "vestments:murakumo",
+  "count": 1
+ }
+}

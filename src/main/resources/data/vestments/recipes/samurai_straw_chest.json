@@ -1,0 +1,21 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "XLX",
+  "XXX",
+  "XXX"
+ ],
+ "key": {
+  "X": {
+   "item": "minecraft:wheat"
+  },
+  "L": {
+   "item": "minecraft:string"
+  }
+ },
+ "result": {
+  "item": "vestments:samurai_straw_chest",
+  "count": 1
+ }
+}

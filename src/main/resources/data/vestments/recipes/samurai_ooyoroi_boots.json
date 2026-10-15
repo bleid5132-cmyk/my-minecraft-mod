@@ -1,0 +1,20 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "equipment",
+ "pattern": [
+  "X X",
+  "XLX"
+ ],
+ "key": {
+  "X": {
+   "item": "minecraft:diamond"
+  },
+  "L": {
+   "item": "minecraft:white_dye"
+  }
+ },
+ "result": {
+  "item": "vestments:samurai_ooyoroi_boots",
+  "count": 1
+ }
+}
