@@ -83,8 +83,13 @@ public abstract class BipedEntityModelCombatMixin {
 
         // ---------- всадник на лошади мода: ноги охватывают бочку, руки держат повод (приём — поверх)
         com.bleid.vestments.client.horse.RiderPose.Pose rp = com.bleid.vestments.client.horse.RiderPose.compute(e);
+        // ноги в ванили всегда на ±1,9 — возвращаем, всадник разводит их шире бочки лошади
+        m.rightLeg.pivotX = -1.9f;
+        m.leftLeg.pivotX = 1.9f;
         if (rp != null) {
             float k = 1f - wc;
+            m.rightLeg.pivotX = MathHelper.lerp(k, -1.9f, -1.9f - rp.legOut);
+            m.leftLeg.pivotX = MathHelper.lerp(k, 1.9f, 1.9f + rp.legOut);
             m.rightLeg.pitch = MathHelper.lerp(k, m.rightLeg.pitch, rp.legPitch);
             m.leftLeg.pitch = MathHelper.lerp(k, m.leftLeg.pitch, rp.legPitch);
             m.rightLeg.yaw = MathHelper.lerp(k, m.rightLeg.yaw, 0f);

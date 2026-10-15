@@ -32,7 +32,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     static GeoAnimations anims;
     static GeoAnimations.Anim[] GAITS;
     static GeoAnimations.Anim IDLE, GRAZE, REAR, JUMP_UP, JUMP_DOWN, SWIM, SWISH, HEADSHAKE;
-    static int NECK, HEAD, JAW, BODY, MANE;
+    static int NECK, HEAD, JAW, BODY, MANE, MIDDLE;
     static final int[] LOCKS = new int[7];
     /** Длина шага цикла каждого аллюра в блоках (при этой длине анимация идёт в своём темпе). */
     static final float[] STRIDE = { 2.6f, 3.6f, 5.3f, 6.6f };
@@ -49,7 +49,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         IDLE = anims.get("idle"); GRAZE = anims.get("graze"); REAR = anims.get("rear");
         JUMP_UP = anims.get("jump_up"); JUMP_DOWN = anims.get("jump_down"); SWIM = anims.get("swim");
         SWISH = anims.get("swish"); HEADSHAKE = anims.get("headshake");
-        NECK = model.index("neck"); HEAD = model.index("head"); JAW = model.index("jaw"); BODY = model.index("body"); MANE = model.index("mane");
+        NECK = model.index("neck"); HEAD = model.index("head"); JAW = model.index("jaw"); BODY = model.index("body"); MANE = model.index("mane"); MIDDLE = model.index("middle");
         for (int i = 0; i < LOCKS.length; i++) LOCKS[i] = model.index("mane" + (i + 1));
     }
 

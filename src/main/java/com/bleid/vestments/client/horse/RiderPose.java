@@ -17,7 +17,7 @@ public final class RiderPose {
     private RiderPose() { }
 
     public static final class Pose {
-        public float legPitch, legRoll, knee, armPitch, armRoll, elbow, chest, rise, sway;
+        public float legPitch, legRoll, legOut, knee, armPitch, armRoll, elbow, chest, rise, sway;
     }
 
     public static HorseEntity horse(Entity e) {
@@ -48,9 +48,11 @@ public final class RiderPose {
         p.rise = wTrot * post * 0.085f + wGallop * 0.05f;
         p.chest = 0.04f + wWalk * 0.03f + wTrot * (0.12f + post * 0.05f) + wCanter * (0.2f + 0.06f * MathHelper.sin(ph + 0.6f))
                 + wGallop * 0.42f + s.rear * 0.35f + s.swim * 0.15f;
-        p.legPitch = -0.68f - wGallop * 0.22f + wWalk * 0.05f * MathHelper.sin(ph * 2f) - s.swim * 0.3f;
-        p.legRoll = 0.4f + 0.03f * wCanter * MathHelper.sin(ph);
-        p.knee = 1.2f + wGallop * 0.35f - wTrot * post * 0.45f + s.swim * 0.2f;
+        // бёдра разведены шире бочки и седельных крыльев, голень висит вдоль бока
+        p.legOut = 4.0f;
+        p.legPitch = -0.55f - wGallop * 0.25f + wWalk * 0.05f * MathHelper.sin(ph * 2f) - s.swim * 0.3f;
+        p.legRoll = 0.32f + 0.03f * wCanter * MathHelper.sin(ph);
+        p.knee = 1.0f + wGallop * 0.4f - wTrot * post * 0.4f + s.swim * 0.2f;
         // руки идут за головой лошади: на кентере и галопе — заметный посыл
         p.armPitch = -0.45f - p.chest * 0.4f + (wCanter * 0.12f + wGallop * 0.16f) * MathHelper.sin(ph - 0.5f) - s.rear * 0.4f;
         p.armRoll = 0.12f;
