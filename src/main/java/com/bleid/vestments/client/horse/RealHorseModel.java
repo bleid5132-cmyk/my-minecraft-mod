@@ -54,7 +54,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     }
 
     static final class State {
-        final float[] lockA = new float[7], lockV = new float[7];
+        final float[] lockA = new float[7], lockV = new float[7], flowA = new float[7], flowV = new float[7];
         float lastNeckYaw = Float.NaN, lastBob = Float.NaN, lastBodyYaw = Float.NaN;
         float last = Float.NaN, speed, gait, phase, move, swim, up, down, swishT = -1, swishNext = 80, shakeT = -1, shakeNext = 400;
         long seed;
@@ -183,7 +183,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         }
         REAR.apply(t / 20f, sm(rear), true, p);
         p.rot[JAW * 3] += 22f * mouth;
-        mane(s, p, e, dt, sp);
+        mane(s, p, e, dt, Math.max(0f, s.speed), t);
         if (baby) {
             int h = HEAD * 3;
             p.scl[h] *= 1.3f; p.scl[h + 1] *= 1.3f; p.scl[h + 2] *= 1.3f;
@@ -195,7 +195,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
      * Грива: каждая прядь — пружина на шарнире вдоль гребня. Её отбрасывает поворот шеи и корпуса, тряска на аллюре
      * и встречный ветер на скорости; прядь может только отходить от шеи наружу (угол ≥ 0), поэтому сквозь шею не проходит.
      */
-    private static void mane(State s, GeoAnimations.Pose p, HorseEntity e, float dt, float sp) {
+    private static void mane(State s, GeoAnimations.Pose p, HorseEntity e, float dt, float sp, float t) {
         if (LOCKS[0] < 0 || dt <= 0f) return;
         float neckYaw = p.rot[NECK * 3 + 1] + p.rot[HEAD * 3 + 1] * 0.5f;
         float bodyYaw = e.bodyYaw;
@@ -205,21 +205,33 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         float yawRate = (neckYaw - s.lastNeckYaw - MathHelper.wrapDegrees(bodyYaw - s.lastBodyYaw)) / dt;   // град/такт
         float bobRate = (bob - s.lastBob) / dt;
         s.lastNeckYaw = neckYaw; s.lastBodyYaw = bodyYaw; s.lastBob = bob;
-        float wind = MathHelper.clamp(sp * 40f, 0f, 16f);                     // на скорости пряди приподнимает
+        // на бегу встречный поток откидывает пряди назад (к холке) и приподнимает от шеи
+        float flow = MathHelper.clamp(sp * 170f, 0f, 70f);
         int steps = Math.max(1, (int) Math.ceil(dt / 0.5f));
         float h = dt / steps;
         for (int i = 0; i < LOCKS.length; i++) {
             float k = 0.35f + 0.04f * i, damp = 0.22f;                         // нижние пряди мягче и запаздывают
+            float flutter = flow > 1f ? MathHelper.sin(t * 0.9f + i * 1.3f) * (3f + flow * 0.12f) : 0f;
+            float outT = flow * 0.6f + flutter * 0.5f;
+            float backT = flow * (0.8f + 0.05f * i) + flutter;
             // грива на правой стороне: шея уходит влево — прядь по инерции отходит наружу; тряска подбрасывает
             float force = yawRate * 0.9f + Math.abs(bobRate) * 25f * (0.6f + 0.1f * i);
+            float kick = bobRate * 20f;
             for (int n = 0; n < steps; n++) {
-                float acc = -k * (s.lockA[i] - wind) - damp * s.lockV[i] + force * k;
+                float acc = -k * (s.lockA[i] - outT) - damp * s.lockV[i] + force * k;
                 s.lockV[i] += acc * h;
                 s.lockA[i] += s.lockV[i] * h;
                 if (s.lockA[i] < 0f) { s.lockA[i] = 0f; if (s.lockV[i] < 0f) s.lockV[i] *= -0.25f; }
-                if (s.lockA[i] > 55f) { s.lockA[i] = 55f; if (s.lockV[i] > 0f) s.lockV[i] = 0f; }
+                if (s.lockA[i] > 60f) { s.lockA[i] = 60f; if (s.lockV[i] > 0f) s.lockV[i] = 0f; }
+                float fa = -k * 0.8f * (s.flowA[i] - backT) - damp * s.flowV[i] + kick * k;
+                s.flowV[i] += fa * h;
+                s.flowA[i] += s.flowV[i] * h;
+                s.flowA[i] = MathHelper.clamp(s.flowA[i], -10f, 80f);
             }
-            if (LOCKS[i] >= 0) p.rot[LOCKS[i] * 3 + 1] -= s.lockA[i];
+            if (LOCKS[i] >= 0) {
+                p.rot[LOCKS[i] * 3] += s.flowA[i];                             // назад вдоль шеи
+                p.rot[LOCKS[i] * 3 + 1] -= s.lockA[i];                         // наружу от шеи
+            }
         }
     }
 
