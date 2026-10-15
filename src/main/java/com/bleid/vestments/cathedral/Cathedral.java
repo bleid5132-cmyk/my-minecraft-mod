@@ -52,6 +52,8 @@ public final class Cathedral {
     private Cathedral() { }
 
     public static final RegistryKey<World> WORLD = RegistryKey.of(RegistryKeys.WORLD, new Identifier(Vestments.MOD_ID, "silent_cathedral"));
+    /** Версия острова: при её смене измерение переустанавливается. */
+    private static final String ISLAND_VERSION = "2";
     private static final String[] REGIONS = { "r.-1.-1.mca", "r.-1.0.mca", "r.0.-1.mca", "r.0.0.mca" };
 
     public static void register() {
@@ -83,12 +85,22 @@ public final class Cathedral {
         try {
             Path dim = server.getSavePath(WorldSavePath.ROOT).resolve("dimensions").resolve(Vestments.MOD_ID).resolve("silent_cathedral");
             Path region = dim.resolve("region");
-            if (Files.isDirectory(region) && Files.list(region).findAny().isPresent()) return;
+            Path ver = dim.resolve("vestments_island.version");
+            String have = Files.exists(ver) ? Files.readString(ver).trim() : "";
+            boolean present = Files.isDirectory(region) && Files.list(region).findAny().isPresent();
+            if (present && ISLAND_VERSION.equals(have)) return;
+            // новая версия острова: старые чанки измерения заменяются целиком
+            if (Files.isDirectory(dim)) {
+                try (var walk = Files.walk(dim)) {
+                    walk.sorted(java.util.Comparator.reverseOrder()).filter(p -> !p.equals(dim)).forEach(p -> p.toFile().delete());
+                }
+            }
             Files.createDirectories(region);
             Files.createDirectories(dim.resolve("entities"));
             for (String r : REGIONS) copy("/vestments_cathedral/region/" + r, region.resolve(r));
             copy("/vestments_cathedral/entities/r.0.0.mca", dim.resolve("entities").resolve("r.0.0.mca"));
-            Vestments.LOGGER.info("Silent Cathedral island installed into {}", dim);
+            Files.writeString(ver, ISLAND_VERSION);
+            Vestments.LOGGER.info("Silent Cathedral island v{} installed into {}", ISLAND_VERSION, dim);
         } catch (Exception e) {
             Vestments.LOGGER.error("Failed to install the Silent Cathedral island", e);
         }
