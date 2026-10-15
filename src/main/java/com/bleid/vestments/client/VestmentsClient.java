@@ -47,6 +47,9 @@ public class VestmentsClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(com.bleid.vestments.boss.Bosses.SILENT_BELL,
                 com.bleid.vestments.client.boss.SilentBellRenderer::new);
         com.bleid.vestments.client.boss.BellBossClient.register();
+        // реалистичные лошади вместо ванильных (только вид и анимации — механика ванильная)
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(net.minecraft.entity.EntityType.HORSE,
+                com.bleid.vestments.client.horse.RealHorseRenderer::new);
         PaladinKeys.register();
         PaladinHud.register();
         DodgeClient.register();
