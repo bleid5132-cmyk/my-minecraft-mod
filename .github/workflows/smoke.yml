@@ -1,0 +1,54 @@
+name: Server smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+      - name: Prepare server dir
+        run: |
+          mkdir -p run
+          echo "eula=true" > run/eula.txt
+          cat > run/server.properties <<'P'
+          enable-rcon=true
+          rcon.password=smoke
+          rcon.port=25575
+          online-mode=false
+          level-seed=12345
+          spawn-protection=0
+          view-distance=6
+          simulation-distance=6
+          P
+          sed -i 's/^ *//' run/server.properties
+      - name: Run server and probe
+        run: |
+          (gradle runServer --no-daemon --args="nogui" > server.log 2>&1 &)
+          python3 .github/smoke.py || true
+          sleep 3
+          cp server.log /tmp/server.log
+      - name: Publish log
+        if: always()
+        run: |
+          mkdir -p /tmp/out && cp server.log /tmp/out/server.log 2>/dev/null || true
+          cp smoke_result.txt /tmp/out/ 2>/dev/null || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan smoke-tmp
+          git rm -rf --cached . > /dev/null
+          cp /tmp/out/* . 2>/dev/null || true
+          git add server.log smoke_result.txt 2>/dev/null || true
+          git commit -m "smoke ${{ github.run_number }}" || true
+          git push -f origin HEAD:smoke-logs
