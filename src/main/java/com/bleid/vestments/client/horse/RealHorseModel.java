@@ -26,7 +26,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     static final Identifier ANIMS = new Identifier("vestments", "animations/horse.animation.json");
 
     /** Модель в пропорциях SWEM (холка 32 px); масштаб даёт холку ~1,75 блока при росте игрока 1,8. */
-    static final float SCALE = 0.875f;
+    public static final float SCALE = 0.875f;
     static GeoModel model, tack, armor;
     static int[] tackMap, armorMap;
     static GeoAnimations anims;
@@ -53,11 +53,16 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         for (int i = 0; i < LOCKS.length; i++) LOCKS[i] = model.index("mane" + (i + 1));
     }
 
-    static final class State {
+    public static final class State {
+        /** Седло для всадника: точка сиденья (пиксели модели, оси модели), наклон корпуса вперёд/вбок (градусы). */
+        public float seatX, seatY, seatZ, seatPitch, seatRoll, rear;
+        public boolean seatValid;
         final float[] lockA = new float[7], lockV = new float[7];
         float liftA, liftV;
         float lastNeckYaw = Float.NaN, lastBob = Float.NaN, lastBodyYaw = Float.NaN;
-        float last = Float.NaN, speed, gait, phase, move, swim, up, down, swishT = -1, swishNext = 80, shakeT = -1, shakeNext = 400;
+        float last = Float.NaN;
+        public float speed, gait, phase, move, swim;
+        float up, down, swishT = -1, swishNext = 80, shakeT = -1, shakeNext = 400;
         long seed;
 
         float rnd() {
@@ -67,6 +72,12 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     }
 
     static final Map<HorseEntity, State> STATES = new WeakHashMap<>();
+
+    /** Состояние лошади с последнего кадра (для позы и посадки всадника); null — лошадь ещё не рисовалась. */
+    public static State state(HorseEntity h) {
+        State s = STATES.get(h);
+        return s != null && s.seatValid ? s : null;
+    }
 
     Matrix4f[] mats;
     boolean baby;
@@ -190,6 +201,18 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
             p.scl[h] *= 1.3f; p.scl[h + 1] *= 1.3f; p.scl[h + 2] *= 1.3f;
         }
         mats = model.pose(p.rot, p.pos, p.scl);
+        // седло: верх сиденья на кости «бочка»; наклон — по её продольной и поперечной осям
+        int mid = model.index("middle");
+        if (mid >= 0) {
+            org.joml.Vector3f seat = mats[mid].transformPosition(new org.joml.Vector3f(0f, 33f, -0.75f));
+            org.joml.Vector3f fw = mats[mid].transformDirection(new org.joml.Vector3f(0f, 0f, 1f));
+            org.joml.Vector3f sd = mats[mid].transformDirection(new org.joml.Vector3f(1f, 0f, 0f));
+            s.seatX = seat.x; s.seatY = seat.y; s.seatZ = seat.z;
+            s.seatPitch = (float) Math.toDegrees(Math.atan2(fw.y, Math.sqrt(fw.x * fw.x + fw.z * fw.z)));
+            s.seatRoll = (float) Math.toDegrees(Math.atan2(sd.y, Math.sqrt(sd.x * sd.x + sd.z * sd.z)));
+            s.rear = rear;
+            s.seatValid = !baby;
+        }
     }
 
     /**

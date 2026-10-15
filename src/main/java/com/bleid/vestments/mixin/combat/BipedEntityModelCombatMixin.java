@@ -81,6 +81,33 @@ public abstract class BipedEntityModelCombatMixin {
             m.head.yaw -= (float) Math.toRadians(L.turn) * k;
         }
 
+        // ---------- всадник на лошади мода: ноги охватывают бочку, руки держат повод (приём — поверх)
+        com.bleid.vestments.client.horse.RiderPose.Pose rp = com.bleid.vestments.client.horse.RiderPose.compute(e);
+        if (rp != null) {
+            float k = 1f - wc;
+            m.rightLeg.pitch = MathHelper.lerp(k, m.rightLeg.pitch, rp.legPitch);
+            m.leftLeg.pitch = MathHelper.lerp(k, m.leftLeg.pitch, rp.legPitch);
+            m.rightLeg.yaw = MathHelper.lerp(k, m.rightLeg.yaw, 0f);
+            m.leftLeg.yaw = MathHelper.lerp(k, m.leftLeg.yaw, 0f);
+            m.rightLeg.roll = MathHelper.lerp(k, m.rightLeg.roll, rp.legRoll);
+            m.leftLeg.roll = MathHelper.lerp(k, m.leftLeg.roll, -rp.legRoll);
+            kR = MathHelper.lerp(k, kR, rp.knee);
+            kL = MathHelper.lerp(k, kL, rp.knee);
+            boolean swinging = m.handSwingProgress > 0;
+            if (freeR && !(swinging && rightMain) && !e.isUsingItem()) {
+                m.rightArm.pitch = MathHelper.lerp(k, m.rightArm.pitch, rp.armPitch);
+                m.rightArm.yaw = MathHelper.lerp(k, m.rightArm.yaw, 0f);
+                m.rightArm.roll = MathHelper.lerp(k, m.rightArm.roll, -rp.armRoll);
+                eR = MathHelper.lerp(k, eR, rp.elbow);
+            }
+            if (freeL && !(swinging && !rightMain) && !e.isUsingItem()) {
+                m.leftArm.pitch = MathHelper.lerp(k, m.leftArm.pitch, rp.armPitch);
+                m.leftArm.yaw = MathHelper.lerp(k, m.leftArm.yaw, 0f);
+                m.leftArm.roll = MathHelper.lerp(k, m.leftArm.roll, rp.armRoll);
+                eL = MathHelper.lerp(k, eL, rp.elbow);
+            }
+        }
+
         // ---------- приём
         if (p != null) {
             float w = p.w;
@@ -140,6 +167,9 @@ public abstract class BipedEntityModelCombatMixin {
             float k = 1f - wc;
             chestF = (float) Math.toRadians(L.lean * Locomotion.CHEST_LEAN) * k;
             chestS = (float) Math.toRadians(L.roll * Locomotion.CHEST_COUNTER_ROLL) * k;
+        }
+        if (rp != null) {
+            chestF += rp.chest * (1f - wc);
         }
         if (Math.abs(chestF) + Math.abs(chestS) > 1e-3f) {
             boolean usingR = e.isUsingItem() && (e.getActiveHand() == net.minecraft.util.Hand.MAIN_HAND) == rightMain;
