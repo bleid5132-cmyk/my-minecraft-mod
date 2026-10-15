@@ -27,14 +27,14 @@ import org.joml.Vector3f;
 
 /**
  * Катана от первого лица. Поза — та же, что от третьего лица (стойка, иай, удары, ното): кисти и катана
- * берутся из неё и переносятся в пространство камеры; руки — прямые, от плеч за краем экрана до кистей,
+ * берутся из неё и переносятся в пространство камеры; руки — прямые, обычной длины, уходят за край экрана,
  * как ванильная рука. Камера рук чуть опущена и отодвинута, чтобы руки и катана были в кадре.
  */
 @Environment(EnvType.CLIENT)
 public final class SamuraiFirstPerson {
     private static final float TILT = 0.68f, EYE = 25.92f;
-    private static final Vector3f OFF = new Vector3f(0, 3.5f, -16f);
-    private static final float SH_X = 11f, SH_Y = -13f, SH_Z = -2f;
+    private static final Vector3f OFF = new Vector3f(0, 1f, -2f);
+    private static final float SH_X = 9f, SH_Y = -12f, SH_Z = 0f;
     private static final ItemStack DUMMY = new ItemStack(Items.STICK);
 
     private SamuraiFirstPerson() { }
@@ -123,17 +123,15 @@ public final class SamuraiFirstPerson {
                             ModelPart arm, ModelPart sleeve, Matrix4f handM, float cx, boolean right) {
         Vector3f hand = handM.transformPosition(new Vector3f(cx, 10f, 0f));
         Vector3f sh = new Vector3f(right ? SH_X : -SH_X, SH_Y, SH_Z);
-        Vector3f Y = new Vector3f(hand).sub(sh);
-        float len = Y.length();
-        Y.normalize();
+        Vector3f Y = new Vector3f(hand).sub(sh).normalize();      // рука обычной длины (12 px), направлена к плечу за краем экрана
         Vector3f X = handM.transformDirection(new Vector3f(1, 0, 0)).normalize();
         X.sub(new Vector3f(Y).mul(X.dot(Y))).normalize();
         Vector3f Z = new Vector3f(X).cross(Y);
         Matrix4f m = new Matrix4f()
                 .setColumn(0, new org.joml.Vector4f(X, 0))
-                .setColumn(1, new org.joml.Vector4f(new Vector3f(Y).mul(len / 12f), 0))
+                .setColumn(1, new org.joml.Vector4f(Y, 0))
                 .setColumn(2, new org.joml.Vector4f(Z, 0))
-                .setColumn(3, new org.joml.Vector4f(new Vector3f(sh).add(new Vector3f(Y).mul(2f / 12f * len)).sub(new Vector3f(X).mul(cx)), 1));
+                .setColumn(3, new org.joml.Vector4f(new Vector3f(hand).sub(new Vector3f(Y).mul(10f)).sub(new Vector3f(X).mul(cx)), 1));
         matrices.push();
         matrices.multiplyPositionMatrix(m);
         matrices.scale(16f, 16f, 16f);                     // ModelPart рисует в блоках (1/16 пикселя)
