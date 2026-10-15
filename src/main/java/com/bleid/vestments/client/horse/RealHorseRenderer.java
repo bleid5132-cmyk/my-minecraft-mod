@@ -59,7 +59,7 @@ public class RealHorseRenderer extends MobEntityRenderer<HorseEntity, RealHorseM
     }
 
     public RealHorseRenderer(EntityRendererFactory.Context ctx) {
-        super(ctx, new RealHorseModel(), 0.9f);
+        super(ctx, new RealHorseModel(), 1.0f);
         addFeature(new Markings(this));
         addFeature(new Armor(this));
         addFeature(new Tack(this));

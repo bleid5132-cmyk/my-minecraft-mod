@@ -25,6 +25,8 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     static final Identifier ARMOR_GEO = new Identifier("vestments", "geo/horse_armor.geo.json");
     static final Identifier ANIMS = new Identifier("vestments", "animations/horse.animation.json");
 
+    /** Рост как у настоящей верховой лошади: холка ~1,75 блока при росте игрока 1,8. */
+    static final float SCALE = 1.08f;
     static GeoModel model, tack, armor;
     static int[] tackMap, armorMap;
     static GeoAnimations anims;
@@ -188,7 +190,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
     void enter(MatrixStack ms) {
         ms.translate(0, 1.501, 0);
         ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees(180));
-        float s = 1f / 16f * (baby ? 0.55f : 1f);
+        float s = SCALE / 16f * (baby ? 0.5f : 1f);
         ms.scale(s, s, s);
     }
 
