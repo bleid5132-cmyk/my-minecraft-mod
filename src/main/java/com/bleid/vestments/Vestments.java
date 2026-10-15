@@ -76,7 +76,7 @@ public class Vestments implements ModInitializer {
         com.bleid.vestments.gear.RankGear.init();
         com.bleid.vestments.paladin.PaladinGear.init();
         com.bleid.vestments.boss.Bosses.init();
-        // своя вкладка в творческом инвентаре: всё из мода в одном месте
+        // вкладки в творческом инвентаре: священник отдельно, паладин отдельно
         Registry.register(Registries.ITEM_GROUP, new Identifier(MOD_ID, "main"),
                 net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup.builder()
                         .icon(() -> new net.minecraft.item.ItemStack(STAFF_OF_LIGHT))
@@ -95,13 +95,19 @@ public class Vestments implements ModInitializer {
                             com.bleid.vestments.gear.RankGear.WEAPONS.forEach(entries::add);
                             entries.add(BIBLE);
                             entries.add(HOLY_ALTAR_ITEM);
-                            // паладин
-                            com.bleid.vestments.paladin.PaladinGear.allItems().forEach(entries::add);
-                            entries.add(com.bleid.vestments.boss.Bosses.SERAEL_SPAWN_EGG);
-                            entries.add(com.bleid.vestments.boss.Bosses.SERAEL_HALO);
-                            entries.add(com.bleid.vestments.boss.Bosses.BELL_RINGER_SPAWN_EGG);
-                            entries.add(com.bleid.vestments.boss.Bosses.BELL_TONGUE);
                             entries.add(com.bleid.vestments.horse.Horses.CART_ITEM);
+                        })
+                        .build());
+        Registry.register(Registries.ITEM_GROUP, new Identifier(MOD_ID, "paladin"),
+                net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup.builder()
+                        .icon(() -> new net.minecraft.item.ItemStack(com.bleid.vestments.boss.Bosses.BELL_TONGUE))
+                        .displayName(net.minecraft.text.Text.translatable("itemGroup.vestments.paladin"))
+                        .entries((context, entries) -> {
+                            com.bleid.vestments.paladin.PaladinGear.allItems().forEach(entries::add);
+                            entries.add(com.bleid.vestments.boss.Bosses.BELL_TONGUE);
+                            entries.add(com.bleid.vestments.boss.Bosses.SERAEL_HALO);
+                            entries.add(com.bleid.vestments.boss.Bosses.SERAEL_SPAWN_EGG);
+                            entries.add(com.bleid.vestments.boss.Bosses.BELL_RINGER_SPAWN_EGG);
                         })
                         .build());
         SetBonus.register();

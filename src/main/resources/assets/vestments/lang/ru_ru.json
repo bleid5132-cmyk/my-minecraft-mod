@@ -226,7 +226,7 @@
   "item.vestments.general_shield": "Сияющий щит генерала",
   "skill.vestments.judgment": "«Суд небес»",
   "tooltip.vestments.skill.judgment": "Прыжок и удар с небес: столп света, ударная волна в радиусе 6, союзники исцелены и защищены",
-  "itemGroup.vestments.main": "Priest Vestments: священники и паладины",
+  "itemGroup.vestments.main": "Priest Vestments: священник",
   "item.vestments.warhammer": "Боевой молот",
   "item.vestments.greathammer": "Двуручный молот",
   "item.vestments.holy_spear": "Священное копьё",
@@ -297,5 +297,6 @@
   "message.vestments.cart_hitched": "Повозка прицеплена",
   "message.vestments.cart_unhitched": "Повозка отцеплена",
   "message.vestments.cart_full": "В повозке уже 6 сундуков",
-  "message.vestments.cart_seats_taken": "Сзади сидят — сундук некуда поставить"
+  "message.vestments.cart_seats_taken": "Сзади сидят — сундук некуда поставить",
+  "itemGroup.vestments.paladin": "Priest Vestments: паладин"
 }

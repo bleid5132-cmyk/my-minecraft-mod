@@ -226,7 +226,7 @@
   "item.vestments.general_shield": "General's Radiant Shield",
   "skill.vestments.judgment": "\"Judgment of Heaven\"",
   "tooltip.vestments.skill.judgment": "Leap and strike from the sky: a pillar of light, a shockwave in radius 6, allies healed and protected",
-  "itemGroup.vestments.main": "Priest Vestments: Priests & Paladins",
+  "itemGroup.vestments.main": "Priest Vestments: Priest",
   "item.vestments.warhammer": "Warhammer",
   "item.vestments.greathammer": "Great Hammer",
   "item.vestments.holy_spear": "Holy Spear",
@@ -297,5 +297,6 @@
   "message.vestments.cart_hitched": "Cart hitched",
   "message.vestments.cart_unhitched": "Cart unhitched",
   "message.vestments.cart_full": "The cart already holds 6 chests",
-  "message.vestments.cart_seats_taken": "Someone sits in the back — no room for a chest"
+  "message.vestments.cart_seats_taken": "Someone sits in the back — no room for a chest",
+  "itemGroup.vestments.paladin": "Priest Vestments: Paladin"
 }
