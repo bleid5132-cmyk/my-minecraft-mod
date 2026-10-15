@@ -208,10 +208,11 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         s.lastNeckYaw = neckYaw; s.lastBodyYaw = bodyYaw; s.lastBob = bob;
         // на бегу вся грива целиком поднимается с шеи и откидывается назад-вверх (шарнир — левый край гребня),
         // по ней бежит волна; пряди дополнительно качаются от поворотов и тряски
-        float lift = MathHelper.clamp(sp * 120f, 0f, 55f);
-        float liftT = lift + (lift > 1f ? MathHelper.sin(t * 0.8f) * (2f + lift * 0.08f) : 0f);
+        // на бегу грива встаёт ровно вверх-назад по средней линии шеи (90° — вертикально), без завала вбок
+        float lift = 90f * sm((sp - 0.06f) / 0.16f);
+        float liftT = lift + (lift > 1f ? MathHelper.sin(t * 0.8f) * (1f + lift * 0.03f) : 0f);
         // пряди раскрываются в одну плоскость с гребнем, чтобы поднятая грива была ровным полотном, а не углом
-        float wind = 90f * MathHelper.clamp(s.liftA / 55f, 0f, 1f);
+        float wind = 90f * MathHelper.clamp(s.liftA / 70f, 0f, 1f);
         int steps = Math.max(1, (int) Math.ceil(dt / 0.5f));
         float h = dt / steps;
         for (int i = 0; i < LOCKS.length; i++) {
@@ -233,7 +234,7 @@ public class RealHorseModel extends EntityModel<HorseEntity> {
         for (int n = 0; n < steps; n++) {
             float acc = -0.25f * (s.liftA - liftT) - 0.2f * s.liftV + Math.abs(bobRate) * 4f;
             s.liftV += acc * h;
-            s.liftA = MathHelper.clamp(s.liftA + s.liftV * h, 0f, 70f);
+            s.liftA = MathHelper.clamp(s.liftA + s.liftV * h, 0f, 95f);
         }
         if (MANE >= 0) p.rot[MANE * 3 + 1] -= s.liftA;
     }
