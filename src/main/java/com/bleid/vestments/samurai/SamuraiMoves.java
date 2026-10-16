@@ -40,16 +40,7 @@ public final class SamuraiMoves {
         public float[] trail, core;
     }
 
-    /** Ключ вида от первого лица: точки на экране (sx, sy, глубина). off == null — левая кисть на рукояти. */
-    public static final class FpKey {
-        public float u;
-        public boolean hold;
-        public float[] hand, tip, off, edge;
-    }
-
     public static final Map<String, List<Key>> KEYSETS = new HashMap<>();
-    public static final Map<String, List<FpKey>> FP = new HashMap<>();
-    public static float[] fpSheathMouth, fpSheathTip;
     public static final Map<String, KatanaSpec> KATANAS = new LinkedHashMap<>();
     /** Приёмы по катане: id катаны → имя приёма → приём. */
     private static final Map<String, Map<String, Clip>> BY_KATANA = new HashMap<>();
@@ -72,25 +63,6 @@ public final class SamuraiMoves {
         sheathMouth = vec(sh.get("mouth"));
         sheathDir = vec(sh.get("dir"));
         sheathNormal = vec(sh.get("normal"));
-        JsonObject fp = data.getAsJsonObject("fp");
-        fpSheathMouth = vec(fp.getAsJsonObject("sheath").get("mouth"));
-        fpSheathTip = vec(fp.getAsJsonObject("sheath").get("tip"));
-        JsonObject fk = fp.getAsJsonObject("keys");
-        for (String name : fk.keySet()) {
-            List<FpKey> list = new ArrayList<>();
-            for (JsonElement el : fk.getAsJsonArray(name)) {
-                JsonObject o = el.getAsJsonObject();
-                FpKey k = new FpKey();
-                k.u = o.get("u").getAsFloat();
-                k.hold = o.get("hold").getAsBoolean();
-                k.hand = vec(o.get("hand"));
-                k.tip = vec(o.get("tip"));
-                k.off = o.get("off").isJsonNull() ? null : vec(o.get("off"));
-                k.edge = vec(o.get("edge"));
-                list.add(k);
-            }
-            FP.put(name, list);
-        }
         JsonObject ks = data.getAsJsonObject("keysets");
         for (String name : ks.keySet()) {
             List<Key> list = new ArrayList<>();

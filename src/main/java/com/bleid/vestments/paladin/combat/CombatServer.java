@@ -42,14 +42,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import net.minecraft.block.BlockState;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.RaycastContext;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
@@ -221,35 +214,20 @@ public final class CombatServer {
                 if (s.clip != before) continue;          // способность прервала или сменила приём
             }
             List<Strike> strikes = s.clip.strikes;
-            boolean bounced = false;
             for (int i = 0; i < strikes.size(); i++) {
                 Strike k = strikes.get(i);
                 if (!s.preFired[i] && s.t >= k.pre) {
                     s.preFired[i] = true;
-                    if (k.maxTargets > 0) swingSound(p, s.ms, k);
+                    swingSound(p, s.ms, k);
                 }
                 if (s.tPrev < k.contact && s.t > k.pre && k.maxTargets > 0) {
-                    float from = Math.max(s.tPrev, k.pre), to = Math.min(s.t, k.contact);
-                    // катана не проходит сквозь стены: удар о блок — отскок клинка
-                    Clip bounce = s.clip.katana ? com.bleid.vestments.samurai.SamuraiMoves.clip(
-                            s.clip.id.substring(0, Math.max(0, s.clip.id.indexOf('/'))),
-                            com.bleid.vestments.samurai.SamuraiMoves.nameOf(s.clip) + "_bounce") : null;
-                    BlockHitResult wall = bounce != null ? wallHit(p, s, from, to) : null;
-                    if (wall != null) {
-                        float at = wallT;
-                        if (at > from) sweep(p, s, i, from, at);
-                        bounceOff(p, wall, bounce);
-                        bounced = true;
-                        break;
-                    }
-                    sweep(p, s, i, from, to);
+                    sweep(p, s, i, Math.max(s.tPrev, k.pre), Math.min(s.t, k.contact));
                 }
                 if (!s.contactFired[i] && s.t >= k.contact) {
                     s.contactFired[i] = true;
                     if (k.event != null) event(p, s, i, k);
                 }
             }
-            if (bounced) continue;
             if (s.t >= s.clip.length) {
                 Clip done = s.clip;
                 s.clip = null;
@@ -267,50 +245,6 @@ public final class CombatServer {
                 if (t.getGroup() == EntityGroup.UNDEAD) t.setOnFireFor(4);
             }
         }
-    }
-
-    // ---------------------------------------------------------------- стены
-
-    private static float wallT;
-
-    /** Первое касание клинком твёрдого блока на отрезке удара [from, to] (луч от плеча к острию). */
-    private static BlockHitResult wallHit(ServerPlayerEntity p, State s, float from, float to) {
-        ServerWorld world = p.getServerWorld();
-        Vec3d[] fr = Blade.frame(p.getYaw(), p.getPitch());
-        Vec3d sh = Blade.shoulder(p.getPos(), fr, p.getHeight());
-        double len = s.ms.length;
-        int steps = Math.max(3, MathHelper.ceil((to - from) / 0.012f));
-        for (int j = 0; j <= steps; j++) {
-            float tt = from + (to - from) * j / steps;
-            Blade.State b = Blade.at(s.clip, tt, len);
-            Vec3d d = Blade.toWorld(b.dir(), fr);
-            Vec3d tip = sh.add(d.multiply(b.reach() * 0.92));
-            BlockHitResult hit = world.raycast(new RaycastContext(sh, tip, RaycastContext.ShapeType.COLLIDER,
-                    RaycastContext.FluidHandling.NONE, p));
-            if (hit.getType() != HitResult.Type.BLOCK) continue;
-            // пол под ногами не считается стеной (иначе удары по лежащим и низким целям отскакивали бы)
-            if (hit.getSide() == Direction.UP && hit.getPos().y <= p.getY() + 0.3) continue;
-            wallT = tt;
-            return hit;
-        }
-        return null;
-    }
-
-    private static void bounceOff(ServerPlayerEntity p, BlockHitResult hit, Clip bounce) {
-        ServerWorld w = p.getServerWorld();
-        Vec3d at = hit.getPos();
-        BlockState bs = w.getBlockState(hit.getBlockPos());
-        w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, bs), at.x, at.y, at.z, 14, 0.08, 0.08, 0.08, 0.15);
-        w.spawnParticles(ParticleTypes.CRIT, at.x, at.y, at.z, 10, 0.05, 0.05, 0.05, 0.35);
-        w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, 6, 0.05, 0.05, 0.05, 0.25);
-        w.playSound(null, at.x, at.y, at.z, bs.getSoundGroup().getHitSound(), SoundCategory.PLAYERS, 1.0f, 0.8f);
-        w.playSound(null, at.x, at.y, at.z, SoundEvents.BLOCK_ANVIL_PLACE, SoundCategory.PLAYERS, 0.35f, 1.9f);
-        w.playSound(null, at.x, at.y, at.z, SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.PLAYERS, 0.6f, 1.4f);
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeVarInt(3);
-        buf.writeFloat(0.3f);
-        ServerPlayNetworking.send(p, HIT, buf);
-        forcePlay(p, bounce);
     }
 
     // ---------------------------------------------------------------- хитбокс

@@ -382,7 +382,7 @@
   "class.vestments.samurai": "Samurai",
   "class.vestments.samurai.desc": "Katana master. Fast two-handed combos, iai draw-cuts, parries and Ki. No shield.",
   "itemGroup.vestments.samurai": "Priest Vestments: Samurai",
-  "tooltip.vestments.katana.combo": "LMB: 3-strike combo (kesa · yoko · overhead cut)",
+  "tooltip.vestments.katana.combo": "LMB: 4-strike combo (kesa · yoko · kiriage · tsuki)",
   "tooltip.vestments.katana.passive_only": "Passive property only",
   "hud.vestments.ki": "Ki",
   "message.vestments.samurai_no_shield": "A samurai does not use a shield",
