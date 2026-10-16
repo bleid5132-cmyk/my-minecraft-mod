@@ -1,0 +1,16 @@
+/home/runner/work/my-minecraft-mod/my-minecraft-mod/src/main/java/com/bleid/vestments/client/combat/SamuraiFirstPerson.java:81: error: cannot find symbol
+            arm(matrices, vcp, light, skin, model.rightArm, model.rightSleeve, f.rh, f.rx, -1f, true);
+            ^
+  symbol:   method arm(MatrixStack,VertexConsumerProvider,int,Identifier,ModelPart,ModelPart,Vector3f,Vector3f,float,boolean)
+--
+/home/runner/work/my-minecraft-mod/my-minecraft-mod/src/main/java/com/bleid/vestments/client/combat/SamuraiFirstPerson.java:82: error: cannot find symbol
+            arm(matrices, vcp, light, skin, model.leftArm, model.leftSleeve, f.lh, f.lx, 1f, false);
+            ^
+  symbol:   method arm(MatrixStack,VertexConsumerProvider,int,Identifier,ModelPart,ModelPart,Vector3f,Vector3f,float,boolean)
+--
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler error output for details.
+
