@@ -232,6 +232,37 @@ public final class SamuraiFirstPerson {
         return f;
     }
 
+    /** Прямая рука обычной длины: кисть в точке hand, рука уходит к плечу за краем экрана. */
+    private static void arm(MatrixStack matrices, VertexConsumerProvider vcp, int light, net.minecraft.util.Identifier skin,
+                            ModelPart arm, ModelPart sleeve, Vector3f hand, Vector3f xAxis, float cx, boolean right) {
+        Vector3f sh = new Vector3f(right ? SH_X : -SH_X, SH_Y, SH_Z);
+        Vector3f Y = new Vector3f(hand).sub(sh).normalize();
+        Vector3f X = new Vector3f(xAxis);
+        X.sub(new Vector3f(Y).mul(X.dot(Y)));
+        if (X.lengthSquared() < 1e-5f) X = side(Y);
+        X.normalize();
+        Vector3f Z = new Vector3f(X).cross(Y);
+        Matrix4f m = new Matrix4f()
+                .setColumn(0, new org.joml.Vector4f(X, 0))
+                .setColumn(1, new org.joml.Vector4f(Y, 0))
+                .setColumn(2, new org.joml.Vector4f(Z, 0))
+                .setColumn(3, new org.joml.Vector4f(new Vector3f(hand).sub(new Vector3f(Y).mul(10f)).sub(new Vector3f(X).mul(cx)), 1));
+        matrices.push();
+        matrices.multiplyPositionMatrix(m);
+        matrices.scale(16f, 16f, 16f);
+        float px = arm.pivotX, py = arm.pivotY, pz = arm.pivotZ, a = arm.pitch, b = arm.yaw, c = arm.roll;
+        boolean vis = sleeve.visible;
+        arm.setPivot(0, 0, 0); arm.setAngles(0, 0, 0);
+        sleeve.copyTransform(arm);
+        Bends.bend(arm, 0f, true);
+        Bends.bend(sleeve, 0f, true);
+        arm.render(matrices, vcp.getBuffer(RenderLayer.getEntitySolid(skin)), light, OverlayTexture.DEFAULT_UV);
+        if (vis) sleeve.render(matrices, vcp.getBuffer(RenderLayer.getEntityTranslucent(skin)), light, OverlayTexture.DEFAULT_UV);
+        arm.setPivot(px, py, pz); arm.setAngles(a, b, c);
+        sleeve.copyTransform(arm);
+        matrices.pop();
+    }
+
     private static Matrix4f part(Vector3f piv, float pitch, float yaw, float roll) {
         return new Matrix4f().translate(piv).rotateZ(roll).rotateY(yaw).rotateX(pitch);
     }
