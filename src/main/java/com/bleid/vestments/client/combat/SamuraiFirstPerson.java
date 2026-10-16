@@ -278,6 +278,12 @@ public final class SamuraiFirstPerson {
         Bends.bend(sleeve, 0f, true);
         arm.render(matrices, vcp.getBuffer(RenderLayer.getEntitySolid(skin)), light, OverlayTexture.DEFAULT_UV);
         if (vis) sleeve.render(matrices, vcp.getBuffer(RenderLayer.getEntityTranslucent(skin)), light, OverlayTexture.DEFAULT_UV);
+        // продолжение руки к плечу: в замахах рука смотрит в камеру, и без него виден обрубленный торец
+        for (int i = 0; i < 2; i++) {
+            matrices.translate(0, -0.75f, 0);
+            arm.render(matrices, vcp.getBuffer(RenderLayer.getEntitySolid(skin)), light, OverlayTexture.DEFAULT_UV);
+            if (vis) sleeve.render(matrices, vcp.getBuffer(RenderLayer.getEntityTranslucent(skin)), light, OverlayTexture.DEFAULT_UV);
+        }
         arm.setPivot(px, py, pz); arm.setAngles(a, b, c);
         sleeve.copyTransform(arm);
         matrices.pop();
