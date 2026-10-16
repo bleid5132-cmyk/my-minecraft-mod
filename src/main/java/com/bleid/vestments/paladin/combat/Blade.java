@@ -13,7 +13,7 @@ public final class Blade {
     static final Vec3d REST_N = new Vec3d(0, 1, 0);
     public static final double INNER = 0.42;   // от плеча до рукояти
     /** Катана: покой — стойка тюдан (клинок вперёд-вверх). */
-    static final Vec3d KATANA_REST = new Vec3d(0.87, 0, 0.5).normalize();
+    static final Vec3d KATANA_REST = new Vec3d(0.4, -0.15, 0.9).normalize();
 
     private Blade() { }
 
