@@ -382,7 +382,7 @@
   "class.vestments.samurai": "Самурай",
   "class.vestments.samurai.desc": "Мастер катаны. Быстрые серии двумя руками, иай из ножен, парирование и ки. Без щита.",
   "itemGroup.vestments.samurai": "Priest Vestments: самурай",
-  "tooltip.vestments.katana.combo": "ЛКМ: серия из 4 ударов (кэса · ёко · кириагэ · цуки)",
+  "tooltip.vestments.katana.combo": "ЛКМ: серия из 3 ударов (кэса · ёко · удар сверху)",
   "tooltip.vestments.katana.passive_only": "Только пассивное свойство",
   "hud.vestments.ki": "Ки",
   "message.vestments.samurai_no_shield": "Самурай не пользуется щитом",

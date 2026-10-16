@@ -40,6 +40,10 @@ public final class SamuraiFirstPerson {
     private static final float SH_X = 9f, SH_Y = -12f, SH_Z = 0f;
     private static final ItemStack DUMMY = new ItemStack(Items.STICK);
 
+    private static Object lastKey;
+    private static Fp last, from;
+    private static float fromAt;
+
     private SamuraiFirstPerson() { }
 
     /** Что рисуем от первого лица (всё — в пикселях модели в пространстве камеры). */
@@ -73,6 +77,21 @@ public final class SamuraiFirstPerson {
                 f = mix(st, f, p.w);
             }
         }
+
+        // смена приёма (удар серии за ударом, возврат в стойку): плавно из последней нарисованной позы
+        float now = pl.age + td;
+        Object key = pb == null ? null : pb;
+        if (key != lastKey) {
+            from = last;
+            fromAt = now;
+            lastKey = key;
+        }
+        if (from != null) {
+            float x = (now - fromAt) / 2.5f;
+            if (x >= 1f || x < 0f) from = null;
+            else f = mix(from, f, x * x * (3 - 2 * x));
+        }
+        last = f;
 
         matrices.push();
         matrices.scale(1f / 16f, 1f / 16f, 1f / 16f);
