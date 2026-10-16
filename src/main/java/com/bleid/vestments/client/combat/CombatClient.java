@@ -48,6 +48,8 @@ public final class CombatClient {
     }
 
     private static final Map<Integer, Playback> PLAY = new HashMap<>();
+    /** Отладка: скорость проигрывания приёмов (команда /samurai_anim speed). */
+    public static float SPEED = 1f;
     /** Игроки, у которых катана в руке, но вложена в ножны (после ното, медитации, ульты). */
     private static final java.util.Set<Integer> SHEATHED = new java.util.HashSet<>();
 
@@ -109,6 +111,26 @@ public final class CombatClient {
         });
         ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { PLAY.clear(); HELD.clear(); SHEATHED.clear(); });
         ClientTickEvents.END_CLIENT_TICK.register(CombatClient::tick);
+        // отладочная команда: /samurai_anim speed 0.1 — замедлить; /samurai_anim play draw — проиграть приём катаны у себя
+        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((d, ctx) -> d.register(
+                net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("samurai_anim")
+                        .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("speed")
+                                .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument("k",
+                                        com.mojang.brigadier.arguments.FloatArgumentType.floatArg(0f, 4f)).executes(c -> {
+                                    SPEED = com.mojang.brigadier.arguments.FloatArgumentType.getFloat(c, "k");
+                                    return 1;
+                                })))
+                        .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("play")
+                                .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument("clip",
+                                        com.mojang.brigadier.arguments.StringArgumentType.word()).executes(c -> {
+                                    MinecraftClient mc = MinecraftClient.getInstance();
+                                    if (mc.player == null || !(mc.player.getMainHandStack().getItem() instanceof com.bleid.vestments.samurai.KatanaItem k)) return 0;
+                                    Clip cl = com.bleid.vestments.samurai.SamuraiMoves.clip(k.spec.id,
+                                            com.mojang.brigadier.arguments.StringArgumentType.getString(c, "clip"));
+                                    if (cl == null) return 0;
+                                    start(mc.player.getId(), cl, k.moveset());
+                                    return 1;
+                                })))));
     }
 
     /** Толчок камеры по направлению текущего взмаха — удар «ощущается» рукой. */
@@ -150,7 +172,7 @@ public final class CombatClient {
     /** Время приёма с учётом доли тика (во время заморозки кадра — стоит). */
     public static float time(Playback p, float tickDelta) {
         if (p.hitstop > 0) return p.t;
-        return Math.min(p.t + tickDelta * 0.05f, p.clip.length);
+        return Math.min(p.t + tickDelta * 0.05f * SPEED, p.clip.length);
     }
 
     /** Множитель движения своего игрока: во время удара ноги «заняты». */
@@ -260,7 +282,7 @@ public final class CombatClient {
             if (!(ent instanceof LivingEntity le) || !le.isAlive()) { it.remove(); continue; }
             p.prevT = p.t;
             if (p.hitstop > 0) { p.hitstop--; }
-            else p.t += 0.05f;
+            else p.t += 0.05f * SPEED;
             // во время приёма тело смотрит туда же, куда голова
             le.setBodyYaw(le.getHeadYaw());
             le.prevBodyYaw = le.prevHeadYaw;

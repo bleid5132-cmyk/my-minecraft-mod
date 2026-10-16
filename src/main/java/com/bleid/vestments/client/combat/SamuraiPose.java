@@ -29,7 +29,7 @@ public final class SamuraiPose {
         if (stance == null) return null;
         CombatPose.Pose p = new CombatPose.Pose();
         p.clip = stance;
-        float t = (e.age + tickDelta) / 20f;
+        float t = (e.age + tickDelta) / 20f * CombatClient.SPEED;
         p.time = t;
         keyed(e, p, stance, t, false);
         p.w = 0f;            // ноги, корпус и покачивание — от ходьбы
