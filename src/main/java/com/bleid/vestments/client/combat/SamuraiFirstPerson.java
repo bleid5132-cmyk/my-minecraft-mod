@@ -61,9 +61,10 @@ public final class SamuraiFirstPerson {
         Fp f;
         if (pb == null) {
             f = authored("stance", ((pl.age + td) / 20f / 3.2f) % 1f, mc);
-        } else if (clip.equals("draw")) {
+        } else if (SamuraiMoves.FP.containsKey(clip)) {
+            // приёмы, снятые с видео (выхватывание, одиночный удар): своя поза от первого лица
             float u = MathHelper.clamp(CombatClient.time(pb, td) / pb.clip.length, 0f, 1f);
-            f = authored("draw", u, mc);
+            f = authored(clip, u, mc);
         } else {
             f = derived(p, pb, k);
             // переход из стойки (вид от первого лица по видео) в приём и обратно
