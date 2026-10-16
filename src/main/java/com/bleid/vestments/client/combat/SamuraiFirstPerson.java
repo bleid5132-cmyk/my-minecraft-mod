@@ -33,7 +33,9 @@ import org.joml.Vector3f;
 @Environment(EnvType.CLIENT)
 public final class SamuraiFirstPerson {
     private static final float TILT = 0.68f, EYE = 25.92f;
-    private static final Vector3f OFF = new Vector3f(0, 1f, -2f);
+    private static final Vector3f OFF = new Vector3f(0, -4.5f, -6f);
+    /** Ближе этой глубины (пиксели перед камерой) остриё не подходит — клинок не лезет в камеру. */
+    private static final float TIP_MIN_Z = -7f;
     private static final float SH_X = 9f, SH_Y = -12f, SH_Z = 0f;
     private static final ItemStack DUMMY = new ItemStack(Items.STICK);
 
@@ -110,7 +112,7 @@ public final class SamuraiFirstPerson {
         }
         if (itemM != null) {
             matrices.push();
-            matrices.multiplyPositionMatrix(new Matrix4f(cam).mul(itemM));
+            matrices.multiplyPositionMatrix(keepOutOfCamera(new Matrix4f(cam).mul(itemM), (KatanaItem) item.getItem()));
             renderer.renderItem(pl, item, ModelTransformationMode.NONE, false, matrices, vcp, light);
             matrices.pop();
         }
@@ -161,6 +163,27 @@ public final class SamuraiFirstPerson {
         Vector3f y = new Vector3f(d.dir), z = new Vector3f(d.normal), x = new Vector3f(y).cross(z).normalize();
         return new Matrix4f().translate(d.hand).mul(new Matrix4f(new Matrix3f().setColumn(0, x).setColumn(1, y).setColumn(2, z)))
                 .scale(13.6f).translate(0, 0.5f, 0);
+    }
+
+    /**
+     * Если остриё подходит к камере ближе TIP_MIN_Z (замах за голову, удар через лицо), клинок
+     * поворачивается вокруг кулака ровно настолько, чтобы остриё осталось перед камерой.
+     */
+    private static Matrix4f keepOutOfCamera(Matrix4f m, KatanaItem k) {
+        float len = k.spec.id.equals("murakumo") ? 26.2f : 2.6f + 20f;
+        Vector3f fist = m.transformPosition(new Vector3f(0, -0.5f, 0));
+        Vector3f tip = m.transformPosition(new Vector3f(0, len / 16f - 0.5f, 0));
+        Vector3f d = new Vector3f(tip).sub(fist);
+        float L = d.length();
+        if (L < 1e-3f || tip.z <= TIP_MIN_Z) return m;
+        d.div(L);
+        float dz = Math.max(-1f, Math.min(1f, (TIP_MIN_Z - fist.z) / L));
+        Vector3f xy = new Vector3f(d.x, d.y, 0);
+        if (xy.lengthSquared() < 1e-6f) xy.set(0, 1, 0);
+        xy.normalize().mul((float) Math.sqrt(Math.max(0f, 1f - dz * dz)));
+        Vector3f nd = new Vector3f(xy.x, xy.y, dz);
+        Quaternionf q = new Quaternionf().rotationTo(d, nd);
+        return new Matrix4f().translate(fist).rotate(q).translate(new Vector3f(fist).negate()).mul(m);
     }
 
     private static Matrix4f blend(Matrix4f a, Matrix4f b, float w) {
