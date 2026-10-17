@@ -29,7 +29,20 @@ public final class SamuraiMoves {
         public boolean hold;
         public float[] hand, dir, normal, sh, osh, off, knees, legs;
         public float body, head;
+        /** Из «Мастерской анимаций»: куда смотрят локти, поворот и отвод ног, сдвиг катаны от кисти. */
+        public float[] poleR = { -0.4f, 0.35f, 1f }, poleL = { 0.4f, 0.35f, 1f }, legYaw = { 0, 0 }, legRoll = { 0, 0 }, katOff = { 0, 0, 0 };
     }
+
+    /** Ключ вида от первого лица (экран: x, y от −1 до 1, глубина в пикселях). */
+    public static final class FpKey {
+        public float u;
+        public boolean hold;
+        public float[] hand, tip, off, edge;
+    }
+
+    public static final Map<String, List<FpKey>> FP = new HashMap<>();
+    /** Положение катаны в кисти (пиксели вдоль осей клинка), общее для всех приёмов. */
+    public static float[] grip = { 0, 0, 0 };
 
     public static final class KatanaSpec {
         public String id;
@@ -63,6 +76,28 @@ public final class SamuraiMoves {
         sheathMouth = vec(sh.get("mouth"));
         sheathDir = vec(sh.get("dir"));
         sheathNormal = vec(sh.get("normal"));
+        if (data.has("grip")) {
+            JsonObject g = data.getAsJsonObject("grip");
+            grip = new float[] { g.get("x").getAsFloat(), g.get("y").getAsFloat(), g.get("z").getAsFloat() };
+        }
+        if (data.has("fp") && data.getAsJsonObject("fp").has("keys")) {
+            JsonObject fk = data.getAsJsonObject("fp").getAsJsonObject("keys");
+            for (String name : fk.keySet()) {
+                List<FpKey> list = new ArrayList<>();
+                for (JsonElement el : fk.getAsJsonArray(name)) {
+                    JsonObject o = el.getAsJsonObject();
+                    FpKey k = new FpKey();
+                    k.u = o.get("u").getAsFloat();
+                    k.hold = o.get("hold").getAsBoolean();
+                    k.hand = vec(o.get("hand"));
+                    k.tip = vec(o.get("tip"));
+                    k.off = !o.has("off") || o.get("off").isJsonNull() ? null : vec(o.get("off"));
+                    k.edge = vec(o.get("edge"));
+                    list.add(k);
+                }
+                if (list.size() >= 2) FP.put(name, list);
+            }
+        }
         JsonObject ks = data.getAsJsonObject("keysets");
         for (String name : ks.keySet()) {
             List<Key> list = new ArrayList<>();
@@ -75,6 +110,11 @@ public final class SamuraiMoves {
                 k.sh = vec(o.get("sh")); k.osh = vec(o.get("osh")); k.off = vec(o.get("off"));
                 k.knees = vec(o.get("knees")); k.legs = vec(o.get("legs"));
                 k.body = o.get("body").getAsFloat(); k.head = o.get("head").getAsFloat();
+                if (o.has("poleR")) k.poleR = vec(o.get("poleR"));
+                if (o.has("poleL")) k.poleL = vec(o.get("poleL"));
+                if (o.has("legYaw")) k.legYaw = vec(o.get("legYaw"));
+                if (o.has("legRoll")) k.legRoll = vec(o.get("legRoll"));
+                if (o.has("katOff")) k.katOff = vec(o.get("katOff"));
                 list.add(k);
             }
             KEYSETS.put(name, list);
@@ -229,6 +269,11 @@ public final class SamuraiMoves {
         o.legs = herm(pa, a, b, nb, k -> k.legs, h00, h10, h01, h11, dt);
         o.body = herm(pa, a, b, nb, k -> new float[] { k.body }, h00, h10, h01, h11, dt)[0];
         o.head = herm(pa, a, b, nb, k -> new float[] { k.head }, h00, h10, h01, h11, dt)[0];
+        o.poleR = herm(pa, a, b, nb, k -> k.poleR, h00, h10, h01, h11, dt);
+        o.poleL = herm(pa, a, b, nb, k -> k.poleL, h00, h10, h01, h11, dt);
+        o.legYaw = herm(pa, a, b, nb, k -> k.legYaw, h00, h10, h01, h11, dt);
+        o.legRoll = herm(pa, a, b, nb, k -> k.legRoll, h00, h10, h01, h11, dt);
+        o.katOff = herm(pa, a, b, nb, k -> k.katOff, h00, h10, h01, h11, dt);
         // плоскость клинка — перпендикулярно к направлению
         float d = o.normal[0] * o.dir[0] + o.normal[1] * o.dir[1] + o.normal[2] * o.dir[2];
         o.normal = norm(new float[] { o.normal[0] - o.dir[0] * d, o.normal[1] - o.dir[1] * d, o.normal[2] - o.dir[2] * d });

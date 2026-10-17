@@ -25,6 +25,8 @@ public final class CombatPose {
         public float armPitch, armYaw, armRoll;     // рука с мечом (модель, радианы)
         public float offPitch, offYaw, offRoll;     // вторая рука (щит)
         public float bodyYaw, rLeg, lLeg;
+        /** Поворот и отвод ног (ключи из «Мастерской анимаций»). */
+        public float rLegYaw, lLegYaw, rLegRoll, lLegRoll;
         public float lean, spin, lift;              // корень: градусы, градусы, блоки
         public Blade.State blade;
         public float time;

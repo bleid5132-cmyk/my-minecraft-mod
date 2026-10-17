@@ -144,6 +144,12 @@ public abstract class BipedEntityModelCombatMixin {
                 eMain = MathHelper.lerp(aw, eMain, p.mainElbow);
                 m.rightLeg.pitch = MathHelper.lerp(w, m.rightLeg.pitch, p.rLeg * legS);
                 m.leftLeg.pitch = MathHelper.lerp(w, m.leftLeg.pitch, p.lLeg * legS);
+                if (p.draw != null) {
+                    m.rightLeg.yaw = MathHelper.lerp(w, m.rightLeg.yaw, p.rLegYaw);
+                    m.leftLeg.yaw = MathHelper.lerp(w, m.leftLeg.yaw, p.lLegYaw);
+                    m.rightLeg.roll = MathHelper.lerp(w, m.rightLeg.roll, p.rLegRoll);
+                    m.leftLeg.roll = MathHelper.lerp(w, m.leftLeg.roll, p.lLegRoll);
+                }
                 float pkR = rightMain ? p.kneeR : p.kneeL, pkL = rightMain ? p.kneeL : p.kneeR;
                 if (p.draw != null) { pkR = p.kneeR; pkL = p.kneeL; }
                 kR = MathHelper.lerp(w, kR, pkR);

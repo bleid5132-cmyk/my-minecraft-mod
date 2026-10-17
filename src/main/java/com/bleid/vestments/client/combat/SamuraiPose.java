@@ -9,6 +9,7 @@ import net.fabricmc.api.Environment;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix3f;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 /**
@@ -32,7 +33,9 @@ public final class SamuraiPose {
         float t = (e.age + tickDelta) / 20f * CombatClient.SPEED;
         p.time = t;
         keyed(e, p, stance, t, false);
-        p.w = 0f;            // ноги, корпус и покачивание — от ходьбы
+        // стоя на месте ноги и корпус — из стойки, при ходьбе — от ходьбы
+        float walk = e.limbAnimator.getSpeed(tickDelta);
+        p.w = SamuraiMoves.FP.containsKey("stance") || stanceEdited() ? MathHelper.clamp(1f - walk * 3f, 0f, 1f) : 0f;
         p.armW = 1f;         // руки — в стойке
         return p;
     }
@@ -66,15 +69,17 @@ public final class SamuraiPose {
         Vector3f sh = R.transform(v(k.sh)), osh = R.transform(v(k.osh));
         Vector3f hand = R.transform(v(k.hand)), off = R.transform(v(k.off));
         float[] a = new float[3];
-        p.mainElbow = ArmIk.solve(new Vector3f(hand).sub(sh), POLE_R, a);
+        p.mainElbow = ArmIk.solve(new Vector3f(hand).sub(sh), v(k.poleR), a);
         p.armPitch = a[0]; p.armYaw = a[1]; p.armRoll = a[2];
-        p.offElbow = ArmIk.solve(new Vector3f(off).sub(osh), POLE_L, a);
+        p.offElbow = ArmIk.solve(new Vector3f(off).sub(osh), v(k.poleL), a);
         p.offPitch = a[0]; p.offYaw = a[1]; p.offRoll = a[2];
         p.shX = sh.x; p.shY = sh.y; p.shZ = sh.z;
         p.offShX = osh.x; p.offShY = osh.y; p.offShZ = osh.z;
         p.bodyYaw = k.body;
         p.rLeg = k.legs[0];
         p.lLeg = k.legs[1];
+        p.rLegYaw = k.legYaw[0]; p.lLegYaw = k.legYaw[1];
+        p.rLegRoll = k.legRoll[0]; p.lLegRoll = k.legRoll[1];
         p.kneeR = Math.max(0, k.knees[0]);
         p.kneeL = Math.max(0, k.knees[1]);
         p.headPitch = k.head;
@@ -82,9 +87,16 @@ public final class SamuraiPose {
         p.spin = c.spin.at(t);
         p.lift = c.lift.at(t);
         DrawPose.Out d = new DrawPose.Out();
-        d.hand.set(hand);
         d.dir.set(R.transform(v(k.dir))).normalize();
         d.normal.set(R.transform(v(k.normal))).normalize();
+        // рукоять — в середине кисти (ось руки Майнкрафта на пиксель сбоку), плюс сдвиг катаны от кисти
+        // и положение катаны в кулаке, как в «Мастерской анимаций»
+        Vector3f fist = new Matrix4f().translate(sh).rotateZ(p.armRoll).rotateY(p.armYaw).rotateX(p.armPitch)
+                .translate(0, 4f, 0).rotateX(-p.mainElbow).translate(0, -4f, 0).transformPosition(new Vector3f(-1f, 9f, 0f));
+        Vector3f bx = new Vector3f(d.dir).cross(d.normal).normalize();
+        float[] g = SamuraiMoves.grip;
+        d.hand.set(fist).add(R.transform(v(k.katOff)))
+                .add(new Vector3f(bx).mul(g[0])).add(new Vector3f(d.dir).mul(g[1])).add(new Vector3f(d.normal).mul(g[2]));
         d.shoulder.set(sh);
         d.offHand.set(off);
         d.offShoulder.set(osh);
@@ -143,6 +155,16 @@ public final class SamuraiPose {
 
     private static float lerpA(float t, float a, float b) {
         return a + MathHelper.wrapDegrees((float) Math.toDegrees(b - a)) * (float) (Math.PI / 180.0) * t;
+    }
+
+    private static Boolean edited;
+    /** Стойку переделали в «Мастерской анимаций» (в ключах есть её поля). */
+    private static boolean stanceEdited() {
+        if (edited == null) {
+            java.util.List<SamuraiMoves.Key> ks = SamuraiMoves.KEYSETS.get("stance");
+            edited = ks != null && !ks.isEmpty() && (ks.get(0).legYaw[0] != 0 || ks.get(0).legYaw[1] != 0 || ks.get(0).katOff[0] != 0);
+        }
+        return edited;
     }
 
     private static Vector3f v(float[] a) {
