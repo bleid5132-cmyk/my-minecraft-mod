@@ -26,6 +26,7 @@ public final class StaffModel {
 
     public static void register() {
         ModelLoadingPlugin.register(context -> {
+            FreeModels.attach(context);
             context.addModels(ID, AIM_ID);
             for (var w : com.bleid.vestments.gear.RankGear.WEAPONS) context.addModels(weaponModel(w));
             for (var w : com.bleid.vestments.paladin.PaladinGear.SWORDS) {

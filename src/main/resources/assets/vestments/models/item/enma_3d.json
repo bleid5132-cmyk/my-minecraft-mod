@@ -281,8 +281,8 @@
     }
    },
    "rotation": {
-    "angle": 45,
     "axis": "z",
+    "angle": 45,
     "origin": [
      8.669642857142858,
      22.660714285714285,
@@ -903,8 +903,8 @@
     }
    },
    "rotation": {
-    "angle": 45,
     "axis": "y",
+    "angle": 45,
     "origin": [
      8,
      1.6,
@@ -980,8 +980,8 @@
     }
    },
    "rotation": {
-    "angle": -45,
     "axis": "y",
+    "angle": -45,
     "origin": [
      8,
      1.6,
