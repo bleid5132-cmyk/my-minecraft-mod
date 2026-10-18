@@ -27,6 +27,8 @@ public final class CombatPose {
         public float bodyYaw, rLeg, lLeg;
         /** Поворот и отвод ног (ключи из «Мастерской анимаций»). */
         public float rLegYaw, lLegYaw, rLegRoll, lLegRoll;
+        /** Ножны из ключа анимации (null — обычное положение). */
+        public float[] scM, scD, scN;
         public float lean, spin, lift;              // корень: градусы, градусы, блоки
         public Blade.State blade;
         public float time;

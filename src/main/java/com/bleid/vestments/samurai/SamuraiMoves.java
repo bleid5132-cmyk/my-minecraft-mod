@@ -31,6 +31,8 @@ public final class SamuraiMoves {
         public float body, head;
         /** Из «Мастерской анимаций»: куда смотрят локти, поворот и отвод ног, сдвиг катаны от кисти. */
         public float[] poleR = { -0.4f, 0.35f, 1f }, poleL = { 0.4f, 0.35f, 1f }, legYaw = { 0, 0 }, legRoll = { 0, 0 }, katOff = { 0, 0, 0 };
+        /** Ножны в этом ключе (устье, направление, плоскость); null — обычное положение. */
+        public float[] scM, scD, scN;
     }
 
     /** Ключ вида от первого лица (экран: x, y от −1 до 1, глубина в пикселях). */
@@ -115,6 +117,7 @@ public final class SamuraiMoves {
                 if (o.has("legYaw")) k.legYaw = vec(o.get("legYaw"));
                 if (o.has("legRoll")) k.legRoll = vec(o.get("legRoll"));
                 if (o.has("katOff")) k.katOff = vec(o.get("katOff"));
+                if (o.has("scab")) { JsonObject sc = o.getAsJsonObject("scab"); k.scM = vec(sc.get("mouth")); k.scD = vec(sc.get("dir")); k.scN = vec(sc.get("normal")); }
                 list.add(k);
             }
             KEYSETS.put(name, list);
@@ -274,6 +277,13 @@ public final class SamuraiMoves {
         o.legYaw = herm(pa, a, b, nb, k -> k.legYaw, h00, h10, h01, h11, dt);
         o.legRoll = herm(pa, a, b, nb, k -> k.legRoll, h00, h10, h01, h11, dt);
         o.katOff = herm(pa, a, b, nb, k -> k.katOff, h00, h10, h01, h11, dt);
+        if (a.scM != null && b.scM != null && (pa == null || pa.scM != null) && (nb == null || nb.scM != null)) {
+            o.scM = herm(pa, a, b, nb, k -> k.scM, h00, h10, h01, h11, dt);
+            o.scD = norm(herm(pa, a, b, nb, k -> k.scD, h00, h10, h01, h11, dt));
+            float[] n = herm(pa, a, b, nb, k -> k.scN, h00, h10, h01, h11, dt);
+            float dn = n[0] * o.scD[0] + n[1] * o.scD[1] + n[2] * o.scD[2];
+            o.scN = norm(new float[] { n[0] - o.scD[0] * dn, n[1] - o.scD[1] * dn, n[2] - o.scD[2] * dn });
+        }
         // плоскость клинка — перпендикулярно к направлению
         float d = o.normal[0] * o.dir[0] + o.normal[1] * o.dir[1] + o.normal[2] * o.dir[2];
         o.normal = norm(new float[] { o.normal[0] - o.dir[0] * d, o.normal[1] - o.dir[1] * d, o.normal[2] - o.dir[2] * d });

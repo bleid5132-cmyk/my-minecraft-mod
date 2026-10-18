@@ -25,6 +25,7 @@ import net.minecraft.item.Items;
 import net.minecraft.util.Arm;
 import org.joml.Matrix3f;
 import org.joml.Vector3f;
+import net.minecraft.util.math.MathHelper;
 
 /**
  * Ножны меча паладина на левом бедре (у левши — на правом). Пока меч не в руке, он лежит в ножнах
@@ -71,11 +72,19 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
     }
 
     /** Ножны катаны: за поясом слева спереди, клинок назад-вниз, лезвием вверх. */
-    private static Vector3f[] katanaSheath(boolean right) {
+    private static Vector3f[] katanaSheath(boolean right, CombatPose.Pose pose) {
         float[] m = com.bleid.vestments.samurai.SamuraiMoves.sheathMouth, d = com.bleid.vestments.samurai.SamuraiMoves.sheathDir,
                 n = com.bleid.vestments.samurai.SamuraiMoves.sheathNormal;
+        if (pose != null && pose.scM != null) {     // ножны, заданные в ключах анимации — с весом позы
+            float w = MathHelper.clamp(pose.w, 0f, 1f);
+            m = lerp(m, pose.scM, w); d = lerp(d, pose.scD, w); n = lerp(n, pose.scN, w);
+        }
         float s = right ? 1f : -1f;
         return new Vector3f[] { new Vector3f(m[0] * s, m[1], m[2]), new Vector3f(d[0] * s, d[1], d[2]), new Vector3f(n[0] * s, n[1], n[2]) };
+    }
+
+    private static float[] lerp(float[] a, float[] b, float w) {
+        return new float[] { a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w };
     }
 
     @Override
@@ -104,8 +113,8 @@ public class ScabbardFeature extends FeatureRenderer<AbstractClientPlayerEntity,
         }
         boolean right = p.getMainArm() == Arm.RIGHT;
         boolean katana = sword.getItem() instanceof com.bleid.vestments.samurai.KatanaItem;
-        Vector3f[] sh = katana ? katanaSheath(right) : DrawPose.sheath(right);
-        Vector3f y = sh[1], z = sh[2], x = new Vector3f(y).cross(z).normalize();
+        Vector3f[] sh = katana ? katanaSheath(right, pose) : DrawPose.sheath(right);
+        Vector3f y = new Vector3f(sh[1]).normalize(), z = new Vector3f(sh[2]).sub(new Vector3f(y).mul(sh[2].dot(y))).normalize(), x = new Vector3f(y).cross(z).normalize();
 
         matrices.push();
         getContextModel().body.rotate(matrices);

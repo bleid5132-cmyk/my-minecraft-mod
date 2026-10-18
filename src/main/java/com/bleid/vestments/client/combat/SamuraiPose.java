@@ -83,6 +83,7 @@ public final class SamuraiPose {
         p.kneeR = Math.max(0, k.knees[0]);
         p.kneeL = Math.max(0, k.knees[1]);
         p.headPitch = k.head;
+        p.scM = k.scM; p.scD = k.scD; p.scN = k.scN;
         if (c.lean != null) p.lean = c.lean.at(t);
         p.spin = c.spin.at(t);
         p.lift = c.lift.at(t);
