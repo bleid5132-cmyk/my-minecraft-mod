@@ -104,6 +104,12 @@ public final class FreeModels {
                 org = vec(r.get("origin"));
             }
             boolean shade = !(e.has("glow") && e.get("glow").getAsBoolean());
+            // форма: сдвиги восьми углов (индекс = x + 2y + 4z), до поворота
+            float[][] D = new float[8][];
+            if (e.has("d") && e.get("d").isJsonArray()) {
+                JsonArray da = e.getAsJsonArray("d");
+                for (int i = 0; i < 8 && i < da.size(); i++) if (da.get(i).isJsonArray()) D[i] = vec(da.get(i));
+            }
             for (int fi = 0; fi < 6; fi++) {
                 float[] uv = fi >= 4 ? cap : side;
                 if (e.has("faces") && e.getAsJsonObject("faces").has(FACE_NAMES[fi])) uv = vec(e.getAsJsonObject("faces").get(FACE_NAMES[fi]));
@@ -112,6 +118,8 @@ public final class FreeModels {
                 for (int v = 0; v < 4; v++) {
                     float[] k = FACES[fi][v];
                     float[] p = {f[0] + (t[0] - f[0]) * k[0], f[1] + (t[1] - f[1]) * k[1], f[2] + (t[2] - f[2]) * k[2]};
+                    float[] dd = D[(int) k[0] + 2 * (int) k[1] + 4 * (int) k[2]];
+                    if (dd != null) { p[0] += dd[0]; p[1] += dd[1]; p[2] += dd[2]; }
                     P[v] = rot(p, ang, org);
                     T[v] = new float[] {uv[0] + (uv[2] - uv[0]) * k[3], uv[1] + (uv[3] - uv[1]) * k[4]};
                 }
@@ -123,6 +131,14 @@ public final class FreeModels {
                 if (cx * n[0] + cy * n[1] + cz * n[2] < 0) {
                     float[] tp = P[1]; P[1] = P[3]; P[3] = tp;
                     float[] tt = T[1]; T[1] = T[3]; T[3] = tt;
+                }
+                // нормаль — по настоящей (возможно, наклонённой) грани
+                {
+                    float ux = P[1][0] - P[0][0], uy = P[1][1] - P[0][1], uz = P[1][2] - P[0][2];
+                    float vx = P[2][0] - P[0][0], vy = P[2][1] - P[0][1], vz = P[2][2] - P[0][2];
+                    float nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+                    float l = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+                    if (l > 1e-6f) n = new float[] {nx / l, ny / l, nz / l};
                 }
                 int[] data = new int[32];
                 int packed = ((int) (n[0] * 127) & 0xFF) | (((int) (n[1] * 127) & 0xFF) << 8) | (((int) (n[2] * 127) & 0xFF) << 16);
