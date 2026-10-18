@@ -40,6 +40,8 @@ public final class SamuraiMoves {
         public float u;
         public boolean hold;
         public float[] hand, tip, off, edge;
+        /** Где катана на экране, если её сдвинули отдельно от кисти (null — в кисти). */
+        public float[] kat;
     }
 
     public static final Map<String, List<FpKey>> FP = new HashMap<>();
@@ -95,6 +97,7 @@ public final class SamuraiMoves {
                     k.tip = vec(o.get("tip"));
                     k.off = !o.has("off") || o.get("off").isJsonNull() ? null : vec(o.get("off"));
                     k.edge = vec(o.get("edge"));
+                    k.kat = !o.has("kat") || o.get("kat").isJsonNull() ? null : vec(o.get("kat"));
                     list.add(k);
                 }
                 if (list.size() >= 2) FP.put(name, list);

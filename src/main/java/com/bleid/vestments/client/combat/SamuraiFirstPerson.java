@@ -139,9 +139,11 @@ public final class SamuraiFirstPerson {
         float s = x * x * (3 - 2 * x);
         Vector3f hand = lerpS(toCam(a.hand, mc), toCam(b.hand, mc), e);
         Vector3f tip = lerpS(toCam(a.tip, mc), toCam(b.tip, mc), e);
-        Vector3f dir = new Vector3f(tip).sub(hand).normalize();
+        // катана может стоять отдельно от кисти (из «Мастерской анимаций»)
+        Vector3f kat = lerpS(toCam(a.kat != null ? a.kat : a.hand, mc), toCam(b.kat != null ? b.kat : b.hand, mc), e);
+        Vector3f dir = new Vector3f(tip).sub(kat).normalize();
         Vector3f edge = new Vector3f(a.edge[0], a.edge[1], a.edge[2]).lerp(new Vector3f(b.edge[0], b.edge[1], b.edge[2]), s);
-        Vector3f grip = new Vector3f(hand).sub(new Vector3f(dir).mul(SamuraiMoves.gripGap));
+        Vector3f grip = new Vector3f(kat).sub(new Vector3f(dir).mul(SamuraiMoves.gripGap));
         Vector3f la = a.off == null ? null : toCam(a.off, mc), lb = b.off == null ? null : toCam(b.off, mc);
         Vector3f lh = lerpS(la == null ? grip : la, lb == null ? grip : lb, s);
         Fp f = new Fp();
@@ -149,7 +151,7 @@ public final class SamuraiFirstPerson {
         f.lh = lh;
         f.rx = side(new Vector3f(hand).sub(SH_X, SH_Y, SH_Z));
         f.lx = side(new Vector3f(lh).sub(-SH_X, SH_Y, SH_Z));
-        f.item = frame(hand, dir, edge, 0.5f);
+        f.item = frame(kat, dir, edge, 0.5f);
         return f;
     }
 
