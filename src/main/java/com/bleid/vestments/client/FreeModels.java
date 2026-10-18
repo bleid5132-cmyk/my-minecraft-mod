@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Модели катан и ножен из «Кузницы катан» с поворотом деталей на любой угол по трём осям.
+ * Модели оружия из «Кузницы оружия» с поворотом деталей на любой угол по трём осям.
  * Обычная модель item/&lt;id&gt;.json даёт текстуру и положение в руке; детали берутся из
  * assets/vestments/free_models/&lt;id&gt;.json и собираются здесь, в обход проверки углов Minecraft.
  */
@@ -44,6 +44,7 @@ public final class FreeModels {
         {{0, 1, 0, 0, 0}, {1, 1, 0, 1, 0}, {1, 1, 1, 1, 1}, {0, 1, 1, 0, 1}},   // up
         {{0, 0, 1, 0, 0}, {1, 0, 1, 1, 0}, {1, 0, 0, 1, 1}, {0, 0, 0, 0, 1}},   // down
     };
+    private static final String[] FACE_NAMES = {"north", "south", "east", "west", "up", "down"};
     private static final float[][] NORMALS = {{0, 0, -1}, {0, 0, 1}, {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}};
 
     public static void attach(ModelLoadingPlugin.Context context) {
@@ -51,7 +52,6 @@ public final class FreeModels {
             Identifier id = ctx.id();
             if (model == null || !"vestments".equals(id.getNamespace()) || !id.getPath().startsWith("item/")) return model;
             String name = id.getPath().substring(5);
-            if (!name.endsWith("_3d") && !name.endsWith("_scabbard")) return model;
             try {
                 Optional<Resource> res = MinecraftClient.getInstance().getResourceManager()
                         .getResource(new Identifier("vestments", "free_models/" + name + ".json"));
@@ -106,6 +106,7 @@ public final class FreeModels {
             boolean shade = !(e.has("glow") && e.get("glow").getAsBoolean());
             for (int fi = 0; fi < 6; fi++) {
                 float[] uv = fi >= 4 ? cap : side;
+                if (e.has("faces") && e.getAsJsonObject("faces").has(FACE_NAMES[fi])) uv = vec(e.getAsJsonObject("faces").get(FACE_NAMES[fi]));
                 float[][] P = new float[4][];
                 float[][] T = new float[4][];
                 for (int v = 0; v < 4; v++) {
